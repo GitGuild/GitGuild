@@ -37,7 +37,7 @@ def cli(ctx, data_dir, overwrite, g, gg_home):
     else:
         ctx.obj['CONFIG_PATH'] = get_config_path(ctx)
     if ctx.obj['CONFIG_PATH'] is None or not os.path.isfile(ctx.obj['CONFIG_PATH']):
-        click.echo("Looks like this is this gg instance is not configured.")
+        click.echo("Looks like this gg instance is not configured.")
         click.echo("Running configuration command before continuing.\n")
         fname = ctx.invoke(configure)
         if fname is not None:
@@ -61,7 +61,7 @@ def configure(ctx, name, role, keyid, pass_manage, gnupg_home):
     if name is None:
         name = click.prompt('What is your git username?', type=str)
     if role is None:
-        role = click.prompt('What is role will this user have?', type=str)
+        role = click.prompt('What role will this user have?', type=str)
     if keyid is None:
         keyid = click.prompt('What pgp keyid will this user sign with?', type=str)
     if gnupg_home is None:
