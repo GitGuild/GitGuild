@@ -22,8 +22,8 @@ config = ConfigParser.ConfigParser()
 @click.option('--gg-home', type=str, default=GGHOME, help='Where is the gg global config directory on your system? Default is ~/.gg')
 @click.pass_context
 def cli(ctx, data_dir, overwrite, g, gg_home):
+    global GGHOME
     if gg_home != GGHOME:
-        global GGHOME
         GGHOME = gg_home
 
     ctx.obj = {}
