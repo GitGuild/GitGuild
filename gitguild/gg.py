@@ -172,34 +172,33 @@ def status(ctx):
     # check for user related file struture
     users = 0
     activeusers = 0
-    rolesfile = open("%sroles.csv" % ctx.obj['DATA_DIR'], 'rb')
-    charterpath = os.path.abspath("%scharter.md" % ctx.obj['DATA_DIR'])
-    roles = csv.reader(rolesfile, delimiter=',')
-    head = True
-    for row in roles:
-        if head:
-            head = False
-            continue
-        users += 1
-        user = row[0]
-        role = row[1]
-        if not os.path.exists("%susers/%s" % (ctx.obj['DATA_DIR'], user)):
-            click.secho("WARNING: User %s has no directory" % user, fg='yellow')
-            continue
-        with open("%susers/%s/charter.md.asc" % (ctx.obj['DATA_DIR'], user), 'rb') as chartsig:
-            verified = ctx.obj['gpg'].verify_file(chartsig, charterpath)
-            if not verified.valid:
-                click.secho("WARNING: User %s did not sign the latest charter" % user, fg='yellow')
+    with open("%sroles.csv" % ctx.obj['DATA_DIR'], 'rb') as rolesfile:
+        charterpath = os.path.abspath("%scharter.md" % ctx.obj['DATA_DIR'])
+        roles = csv.reader(rolesfile, delimiter=',')
+        head = True
+        for row in roles:
+            if head:
+                head = False
                 continue
-        sig_contract_path = os.path.abspath("%susers/%s/%s.md.asc" % (ctx.obj['DATA_DIR'], user, role))
-        with open(sig_contract_path, 'rb') as contractsig:
-            contractpath = os.path.abspath("%scontracts/%s.md" % (ctx.obj['DATA_DIR'], role))
-            verified = ctx.obj['gpg'].verify_file(contractsig, contractpath)
-            if not verified.valid:
-                click.secho("WARNING: User %s did not sign the latest contract" % user, fg='yellow')
+            users += 1
+            user = row[0]
+            role = row[1]
+            if not os.path.exists("%susers/%s" % (ctx.obj['DATA_DIR'], user)):
+                click.secho("WARNING: User %s has no directory" % user, fg='yellow')
                 continue
-        activeusers += 1
-    rolesfile.close()
+            with open("%susers/%s/charter.md.asc" % (ctx.obj['DATA_DIR'], user), 'rb') as chartsig:
+                verified = ctx.obj['gpg'].verify_file(chartsig, charterpath)
+                if not verified.valid:
+                    click.secho("WARNING: User %s did not sign the latest charter" % user, fg='yellow')
+                    continue
+            sig_contract_path = os.path.abspath("%susers/%s/%s.md.asc" % (ctx.obj['DATA_DIR'], user, role))
+            with open(sig_contract_path, 'rb') as contractsig:
+                contractpath = os.path.abspath("%scontracts/%s.md" % (ctx.obj['DATA_DIR'], role))
+                verified = ctx.obj['gpg'].verify_file(contractsig, contractpath)
+                if not verified.valid:
+                    click.secho("WARNING: User %s did not sign the latest contract" % user, fg='yellow')
+                    continue
+            activeusers += 1
 
     click.echo("Guild has %s users, %s of which are active" % (users, activeusers))
 
