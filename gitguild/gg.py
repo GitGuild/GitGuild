@@ -32,10 +32,7 @@ def cli(ctx, data_dir, overwrite, g, gg_home):
     ctx.obj['USEGLOBAL'] = g
 
     # load configuration
-    if g:
-        ctx.obj['CONFIG_PATH'] = get_config_path(ctx, 'global')
-    else:
-        ctx.obj['CONFIG_PATH'] = get_config_path(ctx)
+    ctx.obj['CONFIG_PATH'] = get_config_path('global' if g else None)
     if ctx.obj['CONFIG_PATH'] is None or not os.path.isfile(ctx.obj['CONFIG_PATH']):
         click.echo("Looks like this gg instance is not configured.")
         click.echo("Running configuration command before continuing.\n")
@@ -77,11 +74,7 @@ def configure(ctx, name, role, keyid, pass_manage, gnupg_home):
         click.secho("ERROR: No secret key found for keyid %s in gnupg-home %s" % (keyid, gnupg_home), fg='red', bold=True)
         return None
 
-    fname = None
-    if ctx.obj['USEGLOBAL']:
-        fname = get_config_path(ctx, 'global')
-    else:
-        fname = get_config_path(ctx, 'local')
+    fname = get_config_path('global' if ctx.obj['USEGLOBAL'] else 'local')
 
     if fname is not None and os.path.isfile(fname):
         if not ctx.obj['OVERWRITE']:
@@ -104,7 +97,6 @@ def configure(ctx, name, role, keyid, pass_manage, gnupg_home):
         newconf.write("homedir: %s\n" % gnupg_home)
         newconf.close()
     
-    config.read(ctx.obj['CONFIG_PATH'])
     return fname
 
 
@@ -130,11 +122,10 @@ def charter(ctx, template):
     tempchart = pkgutil.get_data('gitguild', 'template/%s/charter.md' % template)
     with open("%scharter.md" % ctx.obj['DATA_DIR'], 'w') as f:
         f.write(tempchart) 
-        f.close()
     lines = str(tempchart).split("\n")
     liststarted = False
     for line in lines:
-        # read the roles lise out of the charter
+        # read the roles list out of the charter
         if "##### Roles List" in line:
             liststarted = True
             continue
@@ -146,7 +137,6 @@ def charter(ctx, template):
                 tempcontract = pkgutil.get_data('gitguild', 'template/%s/contracts/%s.md' % (template, role))
                 with open("%scontracts/%s.md" % (ctx.obj['DATA_DIR'], role), 'w') as f:
                     f.write(tempcontract) 
-                    f.close()
 
     # create a roles.csv file
     with open("%sroles.csv" % ctx.obj['DATA_DIR'], 'w') as rolesfile:
@@ -166,10 +156,10 @@ def charter(ctx, template):
     userdir = "%susers/%s" % (ctx.obj['DATA_DIR'], config.get('me', 'name'))
     os.makedirs(userdir)
     passphrase = get_pass(ctx)
-    sign_doc(ctx, 'charter', passphrase=passphrase)
-    sign_doc(ctx, 'roles', passphrase=passphrase)
-    sign_doc(ctx, 'ledger', passphrase=passphrase)
-    sign_doc(ctx, "%scontracts/%s.md" % (ctx.obj['DATA_DIR'], config.get('me', 'role')), passphrase=passphrase)
+    sign_doc(ctx, 'charter.md', passphrase=passphrase)
+    sign_doc(ctx, 'roles.csv', passphrase=passphrase)
+    sign_doc(ctx, 'ledger.csv', passphrase=passphrase)
+    sign_doc(ctx, "contracts/%s.md" % config.get('me', 'role'), passphrase=passphrase)
 
 
 @cli.command()
@@ -182,7 +172,6 @@ def status(ctx):
     # check for user related file struture
     users = 0
     activeusers = 0
-    rolespath = os.path.abspath("%sroles.csv" % ctx.obj['DATA_DIR'])
     rolesfile = open("%sroles.csv" % ctx.obj['DATA_DIR'], 'rb')
     charterpath = os.path.abspath("%scharter.md" % ctx.obj['DATA_DIR'])
     roles = csv.reader(rolesfile, delimiter=',')
@@ -192,20 +181,22 @@ def status(ctx):
             head = False
             continue
         users += 1
-        if not os.path.exists("%susers/%s" % (ctx.obj['DATA_DIR'], row[0])):
-            click.secho("WARNING: User %s has no directory" % row[0], fg='yellow')
+        user = row[0]
+        role = row[1]
+        if not os.path.exists("%susers/%s" % (ctx.obj['DATA_DIR'], user)):
+            click.secho("WARNING: User %s has no directory" % user, fg='yellow')
             continue
-        with open("%susers/%s/charter.md.asc" % (ctx.obj['DATA_DIR'], row[0]), 'rb') as chartsig:
+        with open("%susers/%s/charter.md.asc" % (ctx.obj['DATA_DIR'], user), 'rb') as chartsig:
             verified = ctx.obj['gpg'].verify_file(chartsig, charterpath)
             if not verified.valid:
-                click.secho("WARNING: User %s did not sign the latest charter" % row[0], fg='yellow')
+                click.secho("WARNING: User %s did not sign the latest charter" % user, fg='yellow')
                 continue
-        sig_contract_path = os.path.abspath("%susers/%s/%s.md.asc" % (ctx.obj['DATA_DIR'], row[0], row[1]))
+        sig_contract_path = os.path.abspath("%susers/%s/%s.md.asc" % (ctx.obj['DATA_DIR'], user, role))
         with open(sig_contract_path, 'rb') as contractsig:
-            contractpath = os.path.abspath("%scontracts/%s.md" % (ctx.obj['DATA_DIR'], row[1]))
+            contractpath = os.path.abspath("%scontracts/%s.md" % (ctx.obj['DATA_DIR'], role))
             verified = ctx.obj['gpg'].verify_file(contractsig, contractpath)
             if not verified.valid:
-                click.secho("WARNING: User %s did not sign the latest contract" % row[0], fg='yellow')
+                click.secho("WARNING: User %s did not sign the latest contract" % user, fg='yellow')
                 continue
         activeusers += 1
     rolesfile.close()
@@ -229,10 +220,12 @@ def register(ctx):
 
     updated = False
     isfirst = True
-    shutil.copyfile("%sroles.csv" % ctx.obj['DATA_DIR'], "%sroles.csv.bak" % ctx.obj['DATA_DIR'])
-    with open("%sroles.csv.bak" % ctx.obj['DATA_DIR'], 'rb') as rolesfile:
+    roles_path = "%sroles.csv" % ctx.obj['DATA_DIR']
+    roles_bak = "%s.bak" % roles_path
+    shutil.copyfile(roles_path, roles_bak)
+    with open(roles_bak, 'rb') as rolesfile:
         roles = csv.reader(rolesfile, delimiter=',')
-        with open("%sroles.csv" % ctx.obj['DATA_DIR'], 'wb') as newfile:
+        with open(roles_path, 'wb') as newfile:
             newroles = csv.writer(newfile, delimiter=',')
             for row in roles:
                 newroles.writerow(row)
@@ -252,18 +245,18 @@ def register(ctx):
             if not updated:
                 newroles.writerow([name, role, keyid, 'pending'])
 
-    os.remove("%sroles.csv.bak" % ctx.obj['DATA_DIR'])
+    os.remove(roles_bak)
 
     userdir = "%susers/%s" % (ctx.obj['DATA_DIR'], config.get('me', 'name'))
     if not sys.path.exists(userdir):
         os.makedirs(userdir)
 
-    sign_doc(ctx, 'charter')
+    sign_doc(ctx, 'charter.md')
 
     click.echo("registered user with name %s, role %s, keyid %s" % (name, role, keyid))
 
 
-def get_config_path(ctx, location=None):
+def get_config_path(location=None):
     """
     Find the chosen or most relevant configuration for this session.
     Filename is expected to be 'gg.ini' regardless of location.
@@ -302,21 +295,12 @@ def sign_doc(ctx, doc, passphrase=None):
     if passphrase is None:
         passphrase = get_pass(ctx)
 
-    if doc == 'charter':
-        with open("%scharter.md" % ctx.obj['DATA_DIR'], 'rb') as charter:
-            ctx.obj['gpg'].sign_file(charter, detach=True, keyid=config.get('me', 'keyid'), passphrase=passphrase, output="%s/charter.md.asc" % userdir)
-    elif doc == 'roles':
-        with open("%sroles.csv" % ctx.obj['DATA_DIR'], 'rb') as rolesfile:
-            ctx.obj['gpg'].sign_file(rolesfile, detach=True, keyid=config.get('me', 'keyid'), passphrase=passphrase, output="%s/roles.csv.asc" % userdir)
-    elif doc == 'ledger':
-        with open("%sledger.csv" % ctx.obj['DATA_DIR'], 'rb') as ledgerfile:
-            ctx.obj['gpg'].sign_file(ledgerfile, detach=True, keyid=config.get('me', 'keyid'), passphrase=passphrase, output="%s/ledger.csv.asc" % userdir)
-    elif os.path.isfile(doc):
-        with open(doc, 'rb') as f:
-            fname = os.path.split(doc)[1]
-            ctx.obj['gpg'].sign_file(f, detach=True, keyid=config.get('me', 'keyid'), passphrase=passphrase, output="%s/%s.asc" % (userdir, fname))
-    else:
-        raise IOError("Unable to sign doc %s" % doc)
+    with open("%s%s" % (ctx.obj['DATA_DIR'], doc), 'rb') as f:
+        fname = os.path.split(doc)[1]
+        ctx.obj['gpg'].sign_file(
+                f, detach=True, keyid=config.get('me', 'keyid'),
+                passphrase=passphrase,
+                output="%s/%s.asc" % (userdir, fname))
 
 
 def get_pass(ctx):
@@ -328,12 +312,12 @@ def get_pass(ctx):
 
 
 def set_ctx_gpg(ctx):
-    if 'gpg' in ctx.obj and isinstance(ctx.obj['gpg'], gnupg.GPG):
+    if isinstance(ctx.obj.get('gpg'), gnupg.GPG):
         return
-    elif config.get('me', 'pass_manage') == "agent":
-        ctx.obj['gpg'] = gnupg.GPG(gnupghome=config.get('gpg', 'homedir'), use_agent=True)
     else:
-        ctx.obj['gpg'] = gnupg.GPG(gnupghome=config.get('gpg', 'homedir'))
+        ctx.obj['gpg'] = gnupg.GPG(
+                gnupghome=config.get('gpg', 'homedir'),
+                use_agent=(config.get('me', 'pass_manage') == "agent"))
 
 
 if __name__ == '__main__':
