@@ -49,7 +49,7 @@ def cli(ctx, data_dir, overwrite, g, gg_home):
 @cli.command()
 @click.option('--name', type=str, prompt='What is your git username?')
 @click.option('--role', type=str, prompt='What role will this user have?')
-@click.option('--keyid', type=str, prompt='What pgp keyid will this user sign with?')
+@click.option('--keyid', type=str, prompt='What pgp keyid/fingerprint will this user sign with?')
 @click.option('--pass-manage', type=click.Choice(['agent', 'prompt', 'save']), default='prompt')
 @click.option('--gnupg-home', type=str, prompt='Where is gnupg home on your system?')
 @click.pass_context
@@ -64,13 +64,19 @@ def configure(ctx, name, role, keyid, pass_manage, gnupg_home):
     if gnupg_home is None:
         gnupg_home = click.prompt('Where is gnupg home on your system?', type=str)
 
+    keyid = collapse_fprint(keyid.upper())
+    gnupg_home = os.path.expanduser(gnupg_home)
     gpg = gnupg.GPG(gnupghome=gnupg_home, use_agent=(pass_manage == 'agent'))
     skeys = gpg.list_keys(secret=True)
-    foundskey = False
+    fprint = None
     for skey in skeys:
-        if skey['keyid'].endswith(keyid):
-            foundskey = True
-    if not foundskey:
+        if skey['fingerprint'].endswith(keyid):
+            if fprint is not None:
+                click.secho("ERROR: Multiple secret keys found matching %s. "
+                            "Try using a full fingerprint." % keyid, fg='red', bold=True)
+                return None
+            fprint = skey['fingerprint']
+    if fprint is None:
         click.secho("ERROR: No secret key found for keyid %s in gnupg-home %s" % (keyid, gnupg_home), fg='red', bold=True)
         return None
 
@@ -87,10 +93,10 @@ def configure(ctx, name, role, keyid, pass_manage, gnupg_home):
         newconf.write("[me]\n")
         newconf.write("name: %s\n" % name)
         newconf.write("role: %s\n" % role)
-        newconf.write("keyid: %s\n" % keyid)
+        newconf.write("keyfp: %s\n" % fprint)
         newconf.write("pass_manage: %s\n" % pass_manage)
         if pass_manage == 'save':
-            password = click.prompt("Passphrase for keyid %s" % keyid, hide_input=True)
+            password = click.prompt("Passphrase for keyid %s" % fprint, hide_input=True)
             newconf.write("passphrase: %s\n" % password)
         newconf.write("\n")
         newconf.write("[gpg]\n")
@@ -141,10 +147,10 @@ def charter(ctx, template):
     # create a roles.csv file
     with open("%sroles.csv" % ctx.obj['DATA_DIR'], 'w') as rolesfile:
         outcsv = csv.writer(rolesfile)
-        outcsv.writerow(['Name', 'Role', 'Keyid', 'Status'])
+        outcsv.writerow(['Name', 'Role', 'Keyfp', 'Status'])
         outcsv.writerow([config.get('me', 'name'),
                          config.get('me', 'role'),
-                         config.get('me', 'keyid'),
+                         config.get('me', 'keyfp'),
                          'active'])
 
     # create a ledger.csv file
@@ -297,14 +303,14 @@ def sign_doc(ctx, doc, passphrase=None):
     with open("%s%s" % (ctx.obj['DATA_DIR'], doc), 'rb') as f:
         fname = os.path.split(doc)[1]
         ctx.obj['gpg'].sign_file(
-                f, detach=True, keyid=config.get('me', 'keyid'),
+                f, detach=True, keyid=config.get('me', 'keyfp'),
                 passphrase=passphrase,
                 output="%s/%s.asc" % (userdir, fname))
 
 
 def get_pass(ctx):
     if config.get('me', 'pass_manage') == 'prompt':
-        return click.prompt("Passphrase for keyid %s" % config.get('me', 'keyid'), hide_input=True)
+        return click.prompt("Passphrase for keyid %s" % config.get('me', 'keyfp'), hide_input=True)
     elif config.get('me', 'pass_manage') == 'save' and config.get('me', 'passphrase') is not None:
         return config.get('me', 'passphrase')
     # for agent, let the agent gather it at runtime
@@ -317,6 +323,18 @@ def set_ctx_gpg(ctx):
         ctx.obj['gpg'] = gnupg.GPG(
                 gnupghome=config.get('gpg', 'homedir'),
                 use_agent=(config.get('me', 'pass_manage') == "agent"))
+
+
+def collapse_fprint(fprint):
+    return ''.join(fprint.split(' '))
+
+
+def expand_fprint(fprint):
+    if len(fprint) != 40:
+        raise ValueError('Invalid collapsed fingerprint')
+    def group(string, grpsize):
+        return [string[i:i+grpsize] for i in range(0, len(string), grpsize)]
+    return '  '.join(' '.join(group(s, 4)) for s in group(fprint, 20))
 
 
 if __name__ == '__main__':
