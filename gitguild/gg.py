@@ -64,8 +64,8 @@ def configure(ctx, name, role, keyid, pass_manage, gnupg_home):
     if gnupg_home is None:
         gnupg_home = click.prompt('Where is gnupg home on your system?', type=str)
 
-    set_ctx_gpg(ctx)
-    skeys = ctx.obj['gpg'].list_keys(secret=True)
+    gpg = gnupg.GPG(gnupghome=gnupg_home, use_agent=(pass_manage == 'agent'))
+    skeys = gpg.list_keys(secret=True)
     foundskey = False
     for skey in skeys:
         if skey['keyid'].endswith(keyid):
