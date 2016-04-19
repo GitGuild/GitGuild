@@ -18,7 +18,11 @@ config = ConfigParser.ConfigParser()
 @click.group()
 @click.option('--data-dir', default='./.gg/', help='The path to the working guild data directory.')
 @click.option('--overwrite/--no-overwrite', default=False)
-@click.option('-g/-l', default=False, help='Use global (g) or local (l) configuration.')
+@click.option('--global', 'g', is_flag=True, default=False,
+              help='Force global configuration. (Normally, config will be '
+              'read from the current directory, falling back to the global '
+              'directory if not found there, and generated config will be '
+              'written to the current directory.)')
 @click.option('--gg-home', type=str, default=GGHOME, help='Where is the gg global config directory on your system? Default is ~/.gg')
 @click.pass_context
 def cli(ctx, data_dir, overwrite, g, gg_home):
@@ -274,14 +278,19 @@ def get_config_path(location=None):
     fname = "gg.ini"
     localconfig = "./%s" % fname
     globalconfig = "%s/%s" % (GGHOME, fname)
-    if location == 'local' or (location is None and 
-            os.path.isfile(localconfig)):
+    if location == 'local':
         return localconfig
-    elif location == 'global' or (location is None and 
-            os.path.isfile(globalconfig)):
+    elif location == 'global':
         return globalconfig
+    elif location is None:
+        if os.path.isfile(localconfig):
+            return localconfig
+        elif os.path.isfile(globalconfig):
+            return globalconfig
+        else:
+            return None
     else:
-        return None
+        raise ValueError("Invalid location %r" % location)
 
 
 def basic_files_exist(ctx):
