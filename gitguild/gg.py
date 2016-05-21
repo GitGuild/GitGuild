@@ -148,9 +148,9 @@ def charter(ctx, template):
                 with open("%scontracts/%s.md" % (ctx.obj['DATA_DIR'], role), 'w') as f:
                     f.write(tempcontract) 
 
-    # create a roles.csv file
-    with open("%sroles.csv" % ctx.obj['DATA_DIR'], 'w') as rolesfile:
-        outcsv = csv.writer(rolesfile)
+    # create a members.csv file
+    with open("%smembers.csv" % ctx.obj['DATA_DIR'], 'w') as membersfile:
+        outcsv = csv.writer(membersfile)
         outcsv.writerow(['Name', 'Role', 'Keyfp', 'Status'])
         outcsv.writerow([config.get('me', 'name'),
                          config.get('me', 'role'),
@@ -167,7 +167,7 @@ def charter(ctx, template):
     os.makedirs(userdir)
     passphrase = get_pass(ctx)
     sign_doc(ctx, 'charter.md', passphrase=passphrase)
-    sign_doc(ctx, 'roles.csv', passphrase=passphrase)
+    sign_doc(ctx, 'members.csv', passphrase=passphrase)
     sign_doc(ctx, 'ledger.csv', passphrase=passphrase)
     sign_doc(ctx, "contracts/%s.md" % config.get('me', 'role'), passphrase=passphrase)
 
@@ -182,11 +182,11 @@ def status(ctx):
     # check for user related file struture
     users = 0
     activeusers = 0
-    with open("%sroles.csv" % ctx.obj['DATA_DIR'], 'rb') as rolesfile:
+    with open("%smembers.csv" % ctx.obj['DATA_DIR'], 'rb') as membersfile:
         charterpath = os.path.abspath("%scharter.md" % ctx.obj['DATA_DIR'])
-        roles = csv.reader(rolesfile, delimiter=',')
+        members = csv.reader(membersfile, delimiter=',')
         head = True
-        for row in roles:
+        for row in members:
             if head:
                 head = False
                 continue
@@ -229,15 +229,15 @@ def register(ctx):
 
     updated = False
     isfirst = True
-    roles_path = "%sroles.csv" % ctx.obj['DATA_DIR']
-    roles_bak = "%s.bak" % roles_path
-    shutil.copyfile(roles_path, roles_bak)
-    with open(roles_bak, 'rb') as rolesfile:
-        roles = csv.reader(rolesfile, delimiter=',')
-        with open(roles_path, 'wb') as newfile:
-            newroles = csv.writer(newfile, delimiter=',')
-            for row in roles:
-                newroles.writerow(row)
+    members_path = "%smembers.csv" % ctx.obj['DATA_DIR']
+    members_bak = "%s.bak" % members_path
+    shutil.copyfile(members_path, members_bak)
+    with open(members_bak, 'rb') as membersfile:
+        members = csv.reader(membersfile, delimiter=',')
+        with open(members_path, 'wb') as newfile:
+            newmembers = csv.writer(newfile, delimiter=',')
+            for row in members:
+                newmembers.writerow(row)
                 if isfirst:
                     isfirst = False
                     continue
@@ -252,9 +252,9 @@ def register(ctx):
                     row[3] = 'pending'
                     updated = True
             if not updated:
-                newroles.writerow([name, role, keyid, 'pending'])
+                newmembers.writerow([name, role, keyid, 'pending'])
 
-    os.remove(roles_bak)
+    os.remove(members_bak)
 
     userdir = "%susers/%s" % (ctx.obj['DATA_DIR'], config.get('me', 'name'))
     if not sys.path.exists(userdir):
@@ -301,7 +301,7 @@ def basic_files_exist(ctx):
          os.path.exists("%scontracts" % ctx.obj['DATA_DIR']) and
          os.path.exists("%susers" % ctx.obj['DATA_DIR']) and
          os.path.isfile("%scharter.md" % ctx.obj['DATA_DIR']) and
-         os.path.isfile("%sroles.csv" % ctx.obj['DATA_DIR']))
+         os.path.isfile("%smembers.csv" % ctx.obj['DATA_DIR']))
 
 
 def sign_doc(ctx, doc, passphrase=None):
