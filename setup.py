@@ -14,7 +14,7 @@ setup(
                                'template/software/charter.md',
                                'template/software/contracts/*.md',
                                ]},
-    install_requires=['click', 'python-gnupg'],
+    install_requires=['python-gnupg'],
     entry_points={
         'console_scripts': [
             'gg = gitguild.gg:cli',
