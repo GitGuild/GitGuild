@@ -1,4 +1,6 @@
 import click
+import argparse
+import getpass
 import ConfigParser
 import csv
 import gnupg
@@ -6,6 +8,7 @@ import os
 import pkgutil
 import shutil
 import sys
+from functools import partial
 
 USERHOME = os.path.expanduser("~")
 GGHOME = "%s/.gg" % USERHOME
@@ -13,8 +16,73 @@ if not os.path.exists(GGHOME):
     os.makedirs(GGHOME)
 
 config = ConfigParser.ConfigParser()
+gpg = None
+parser = argparse.ArgumentParser('gg')
+subparsers = parser.add_subparsers(title='Commands', metavar='<command>')
 
 
+class Command(object):
+    """
+    Temporary object to accumulate subcommand arguments (to be passed between
+    the below decorators, not used directly)
+    """
+    def __init__(self, func):
+        self.func = func
+        self.args = []
+
+def command(name=None, **kwargs):
+    """
+    Declare a subcommand, adding it and any arguments from cmd_arg() to the
+    parser. Use as the outermost (first) decorator. Decorator keyword arguments
+    are passed through to add_parser() and thus include any ArgumentParser
+    constructor arguments, plus "help", which defaults to the function's
+    docstring.
+    """
+    def decorator(cmd):
+        if not isinstance(cmd, Command):
+            cmd = Command(cmd)
+        func = cmd.func
+        cmd_name = name if name is not None else func.__name__
+        if 'help' not in kwargs and func.__doc__ is not None:
+            kwargs['help'] = func.__doc__
+        subparser = subparsers.add_parser(cmd_name, **kwargs)
+        subparser.set_defaults(func=func)
+        for arg_args, arg_kwargs in reversed(cmd.args):
+            subparser.add_argument(*arg_args, **arg_kwargs)
+        return func
+    return decorator
+
+def cmd_arg(*args, **kwargs):
+    """
+    Declare a subcommand argument. Use zero or more of these inside (below) a
+    command() decorator; they will be ordered top to bottom. Decorator
+    arguments are passed through to ArgumentParser.add_argument().
+    """
+    def decorator(cmd):
+        if not isinstance(cmd, Command):
+            cmd = Command(cmd)
+        cmd.args.append((args, kwargs))
+        return cmd
+    return decorator
+
+def error(msg):
+    "Print an error message"
+    print('ERROR: %s' % msg)
+
+def warning(msg):
+    "Print a warning message"
+    print('WARNING: %s' % msg)
+
+def info(msg):
+    "Print an informational message"
+    print(msg)
+
+def data_file(args, path):
+    "Qualify a gg file/directory path based on the --data-dir argument"
+    return os.path.join(args.data_dir, path)
+
+
+# Main entry point
 @click.group()
 @click.option('--data-dir', default='./.gg/', help='The path to the working guild data directory.')
 @click.option('--overwrite/--no-overwrite', default=False)
@@ -50,6 +118,8 @@ def cli(ctx, data_dir, overwrite, g, gg_home):
     set_ctx_gpg(ctx)
 
 
+# Subcommands
+
 @cli.command()
 @click.option('--name', type=str, prompt='What is your git username?')
 @click.option('--role', type=str, prompt='What role will this user have?')
@@ -58,6 +128,8 @@ def cli(ctx, data_dir, overwrite, g, gg_home):
 @click.option('--gnupg-home', type=str, prompt='Where is gnupg home on your system?')
 @click.pass_context
 def configure(ctx, name, role, keyid, pass_manage, gnupg_home):
+    "Initialize new gg.ini"
+
     # prompt again in case invoking second hand...
     if name is None:
         name = click.prompt('What is your git username?', type=str)
@@ -114,6 +186,8 @@ def configure(ctx, name, role, keyid, pass_manage, gnupg_home):
 @click.pass_context
 @click.option('--template', default='software',  type=click.Choice(['software', 'medieval']), prompt='What charter template do you want to use?')
 def charter(ctx, template):
+    "Charter new guild (create data files, sign contracts)"
+
     if os.path.exists(ctx.obj['DATA_DIR']):
         if ctx.obj['OVERWRITE']:
             click.echo('Overwriting guild in directory: %s' % ctx.obj['DATA_DIR'])
@@ -175,6 +249,8 @@ def charter(ctx, template):
 @cli.command()
 @click.pass_context
 def status(ctx):
+    "Check contract signatures and report on guild status"
+
     if not basic_files_exist(ctx):
         click.echo("No valid guild data found.")
         return
@@ -223,6 +299,8 @@ def user(ctx):
 @user.command()
 @click.pass_context
 def register(ctx):
+    "Register with guild (update members.csv, sign charter)"
+
     if not basic_files_exist(ctx):
         click.echo("No valid guild data found.")
         return
