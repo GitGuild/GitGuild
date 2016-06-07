@@ -19,17 +19,16 @@ To charter a guild in the local directory (should be the top level of a git repo
 
 ```
 $gg charter
-What charter template do you want to use? [software]: 
 Chartering new guild using template: software
 Passphrase for keyid B5D3D208: 
 ```
 
 ## Register User
 
-To register your user with the current working guild, use the `gg user register` command. This will add your user to the guild membership roles as well as signing the charter and contract for you.
+To register your user with the current working guild, use the `gg register` command. This will add your user to the guild membership roles as well as signing the charter and contract for you.
 
 ```
-gg user register
+gg register
 ```
 
 ## Ledger Entries
@@ -58,7 +57,7 @@ For a repository to be conforming Git Guild, it must have the following file str
 |----------|-------------|
 | .gg/     | Git Guild data directory |
 | .gg/charter.md | Charter for this repository |
-| .gg/roles.csv  | Registry of members, public keys, and roles |
+| .gg/members.csv  | Registry of members, public keys, and roles |
 | .gg/ledger.csv(.gpg) | A (encrypted?) ledger of accounts for this repository. Record of all credits, debits, and promises. |
 | .gg/contracts/ | Directory for contract templates. Signed contracts belong in the signing user's signature directory. |
 | .gg/contracts/$role.md  | Contract governing the responsibilities and benefits pertaining to the role named $role i.e. manager |
@@ -66,7 +65,7 @@ For a repository to be conforming Git Guild, it must have the following file str
 | .gg/users/$username/ | Directory storing all documents by the user with name $username |
 | .gg/users/$username/$document.asc | The user's signature for a document i.e. charter.md |
 
-So say we have a relatively simple repository like a website with a manager, two contributors and an arbitrator. Our roles.csv might have content that looks like this:
+So say we have a relatively simple repository like a website with a manager, two contributors and an arbitrator. Our members.csv might have content that looks like this:
 
 | Name | Role | Public Key | Status |
 |------|------|------------|--------|
