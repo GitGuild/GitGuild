@@ -309,42 +309,51 @@ def register(args):
         error('No valid guild data found.')
         return
 
-    updated = False
-    isfirst = True
+    name = config.get('me', 'name')
+    role = config.get('me', 'role')
+    keyfp = config.get('me', 'keyfp')
+    new_row = [name, role, keyfp, 'pending']
+
     members_path = data_file(args, 'members.csv')
-    members_bak = "%s.bak" % members_path
-    shutil.copyfile(members_path, members_bak)
-    with open(members_bak, 'rb') as membersfile:
+    new_path = data_file(args, '._members.csv.new')
+    with open(members_path, 'rb') as membersfile:
         members = csv.reader(membersfile, delimiter=',')
-        with open(members_path, 'wb') as newfile:
-            newmembers = csv.writer(newfile, delimiter=',')
+        new_file = open(new_path, 'wb')
+        try:
+            newmembers = csv.writer(new_file, delimiter=',')
+            updated = False
+            isfirst = True
             for row in members:
-                newmembers.writerow(row)
-                if isfirst:
+                if isfirst: # Skip header
                     isfirst = False
-                    continue
-                if row[0] == name:
-                    if args.overwrite:
-                        info('Overwriting user %s' % name)
-                    else:
-                        warning('User %s exists. Use --overwrite to overwrite.' % name)
+                elif len(row) > 0 and row[0] == name:
+                    if not args.overwrite:
+                        error('User %s exists. Use --overwrite to overwrite.' % name)
                         return
-                    row[1] = role
-                    row[2] = keyid
-                    row[3] = 'pending'
+                    if updated:
+                        warning('Dropping duplicate entry for user %s' % name)
+                        continue
+                    info('Overwriting user %s' % name)
+                    row = new_row
                     updated = True
+                newmembers.writerow(row)
             if not updated:
-                newmembers.writerow([name, role, keyid, 'pending'])
+                newmembers.writerow(new_row)
+            os.fdatasync(new_file.fileno())
+            new_file.close()
+            os.rename(new_path, members_path)
+        finally:
+            new_file.close()
+            if os.path.exists(new_path):
+                os.remove(new_path)
 
-    os.remove(members_bak)
-
-    userdir = data_file(args, 'users/%s' % config.get('me', 'name'))
-    if not sys.path.exists(userdir):
+    userdir = data_file(args, 'users/%s' % name)
+    if not os.path.exists(userdir):
         os.makedirs(userdir)
 
     sign_doc(args, 'charter.md')
 
-    info('registered user with name %s, role %s, keyid %s' % (name, role, keyid))
+    info('registered user with name %s, role %s, key %s' % (name, role, keyfp))
 
 
 def get_config_path(location=None):
