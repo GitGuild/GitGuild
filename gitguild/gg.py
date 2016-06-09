@@ -7,6 +7,7 @@ import os
 import pkgutil
 import shutil
 import sys
+import copy
 from functools import partial
 
 GGHOME = os.path.expanduser('~/.gg')
@@ -99,12 +100,17 @@ def cli(argv=sys.argv[1:]):
     if args.gg_home != GGHOME:
         GGHOME = args.gg_home
 
+    if args.func is configure:
+        configure(args)
+        return
+
     # load configuration
     config_path = get_config_path('global' if args.global_ else None)
     if config_path is None or not os.path.isfile(config_path):
         info('Looks like this gg instance is not configured.')
         info('Running configuration command before continuing.\n')
-        fname = configure(args)
+        tmp_args = parser.parse_args(['configure'], copy.copy(args))
+        fname = configure(tmp_args)
         if fname is not None:
             config_path = fname
         else:
@@ -131,11 +137,11 @@ def cli(argv=sys.argv[1:]):
 def configure(args):
     "Initialize new gg.ini"
 
-    def get_arg(arg, prompt):
-        try:
-            return getattr(args, arg)
-        except AttributeError:
-            return raw_input(prompt)
+    def get_arg(parameter, prompt):
+        arg = getattr(args, parameter)
+        if arg is None:
+            arg = raw_input(prompt)
+        return arg
     name = get_arg('name', 'What is your git username? ')
     role = get_arg('role', 'What role will this user have? ')
     keyid = get_arg('keyid', 'What pgp keyid/fingerprint will this user sign with? ')
