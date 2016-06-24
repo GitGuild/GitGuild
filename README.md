@@ -2,6 +2,8 @@
 
 Guild-like governance for a git repository, using PGP identities.
 
+IRC: #gitguild on freenode (see https://freenode.net/kb/answer/chat)
+
 ## Configure your user
 
 Before using `gg`, you will be required to do some local configuration. This lets `gg` know about your pgp keys and configuration choices.
