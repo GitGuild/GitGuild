@@ -1,0 +1,101 @@
+; -*- ledger -*-
+
+P 2016/01/01 TGG $1
+2016/01/01 * Opening Balances
+    Assets                        0 TGG
+    Liabilities:Bounties          $0
+    Income                        0 TGG
+    Expenses                      $0
+
+2016/03/14 * Git Guild Infrastructure Funding
+    Assets                        9000 TGG
+    Income                        -9000 TGG
+
+2016/03/14 * Task #1 Bounty
+    Liabilities:Bounties:1        -$43.54
+    Expenses:Bounties:1           $43.54
+
+2016/03/14 * Task #2 Bounty
+    Liabilities:Bounties:2        -$43.54
+    Expenses:Bounties:2           $43.54
+
+2016/05/6 * Task #2 Bounty Claim
+    Liabilities:Bounties:2        $43.54 @ 1 TGG
+    Assets                        -43.54 TGG
+    Expenses:Bounties:2           -$43.54 @ 1 TGG
+    Expenses:Payments:welshjf           27.5 TGG
+    Expenses:Payments:isysd           9.17 TGG
+    Expenses:Payments:d3brouille           4.58 TGG
+    Assets
+
+2016/03/14 * Task #3 Bounty
+    Liabilities:Bounties:3        -$435.42
+    Expenses:Bounties:3           $435.42
+
+2016/03/14 * Task #4 Bounty
+    Liabilities:Bounties:4        -$261.25
+    Expenses:Bounties:4           $261.25
+
+2016/03/14 * Task #5 Bounty
+    Liabilities:Bounties:5        -$1,741.67
+    Expenses:Bounties:5           $1,741.67
+
+2016/03/14 * Task #6 Bounty
+    Liabilities:Bounties:6        -$435.42
+    Expenses:Bounties:6           $435.42
+
+2016/03/14 * Task #7 Bounty
+    Liabilities:Bounties:7        -$875.00
+    Expenses:Bounties:7           $875.00
+
+2016/05/6 * Task #7 Bounty Claim
+    Liabilities:Bounties:7        $875 @ 1 TGG
+    Assets                        -875 TGG
+    Expenses:Bounties:7           -$875 @ 1 TGG
+    Expenses:Payments:isysd       666.67 TGG
+    Expenses:Payments:d3brouille  83.33 TGG
+    Assets
+
+2016/03/14 * Task #8 Bounty
+    Liabilities:Bounties:8        -$1,306.25
+    Expenses:Bounties:8           $1,306.25
+
+2016/04/16 * Task #9 Bounty
+    Liabilities:Bounties:9        -$435.42
+    Expenses:Bounties:9           $435.42
+
+2016/05/6 * Task #9 Bounty Claim
+    Liabilities:Bounties:9        $435.42 @ 1 TGG
+    Assets                        -435.42 TGG
+    Expenses:Bounties:9           -$435.42 @ 1 TGG
+    Expenses:Payments:welshjf           297.92 TGG
+    Expenses:Payments:isysd           68.75 TGG
+    Expenses:Payments:d3brouille           45.83 TGG
+    Assets
+
+
+2016/04/16 * Task #10 Bounty
+    Liabilities:Bounties:10        -$87.50
+    Expenses:Bounties:10           $87.50
+
+2016/05/6 * Task #10 Bounty Claim
+    Liabilities:Bounties:10        $87.50 @ 1 TGG
+    Assets                        -87.50 TGG
+    Expenses:Bounties:10           -$87.5 @ 1 TGG
+    Expenses:Payments:welshjf           59.58 TGG
+    Expenses:Payments:isysd           13.75 TGG
+    Expenses:Payments:d3brouille          9.17 TGG
+    Assets
+
+2016/04/17 * Task #12 Bounty
+    Liabilities:Bounties:12        -$435.42
+    Expenses:Bounties:12           $435.42
+
+2016/04/17 * Task #15 Bounty
+    Liabilities:Bounties:15        -$609.58
+    Expenses:Bounties:15           $609.58
+
+2016/04/17 * Task #20 Bounty
+    Liabilities:Bounties:20        -$1,741.67
+    Expenses:Bounties:20           $1,741.67
+
