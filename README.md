@@ -12,7 +12,7 @@ If you do not run `gg configure`, then the first command you attempt will run it
 
 __Example__
 ```
-gg configure --name isysd --role maintainer --keyid B5D3D208 --pass-manage prompt --gnupg-home ~/.gnupg
+gg configure --name isysd --roles "maintainer contributor" --keyid B5D3D208 --pass-manage prompt --gnupg-home ~/.gnupg
 ```
 
 ## Charter a Guild
@@ -69,12 +69,12 @@ For a repository to be conforming Git Guild, it must have the following file str
 
 So say we have a relatively simple repository like a website with a manager, two contributors and an arbitrator. Our members.csv might have content that looks like this:
 
-| Name | Role | Public Key | Status |
+| Name | Roles | Keyfp | Status |
 |------|------|------------|--------|
-|Alice | Manager | FBE5BA2A | active |
-|Bob | Contributor | 9V66WCKR | active |
-|Clair | Contributor | T1R7WR52 | active |
-|Dean | Arbitrator | 8NSAUL8V | active |
+|Alice | Manager | 2E945FC151AED70B230AD4DBD811F669651AA3E9 | active |
+|Bob | Contributor | A5AE3894C77DBA19681C3C0B51DB916CBFF82D82 | active |
+|Clair | Contributor | 0A3888126FA9ACA155002C12F8644E58C2F901A8 | active |
+|Dean | Arbitrator | 606465EAE5A7ADDC237C93B9E09688F1B53995C8 | active |
 
 The charter might say something very simple like "The Manager had complete control over membership, the treasury, as well as veto power on Pull Requests (PRs). In case of a dispute, the Arbitrator will judge, and the loser will pay Arbitrator 10% of the recovered amount."
 
