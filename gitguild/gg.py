@@ -115,8 +115,20 @@ def cli(argv=sys.argv[1:]):
             config_path = fname
         else:
             error('Unable to load gg configuration')
-            sys.exit()
+            return
     config.read(config_path)
+
+    # basic config validation
+    for section in ('me', 'gpg'):
+        if not config.has_section(section):
+            error('Invalid config %s: missing section "%s"' % (config_path, section))
+            return
+    if config.has_option('me', 'role'):
+        if config.has_option('me', 'roles'):
+            warning('Ignoring deprecated "role" in %s' % config_path)
+        else:
+            warning('"role" is deprecated in %s, please rename to "roles"' % config_path)
+            config.set('me', 'roles', config.get('me', 'role'))
 
     global gpg
     gpg = gnupg.GPG(
@@ -130,7 +142,7 @@ def cli(argv=sys.argv[1:]):
 
 @command()
 @cmd_arg('--name')
-@cmd_arg('--role')
+@cmd_arg('--roles')
 @cmd_arg('--keyid')
 @cmd_arg('--pass-manage', choices=['agent', 'prompt', 'save'], default='prompt')
 @cmd_arg('--gnupg-home')
@@ -143,7 +155,7 @@ def configure(args):
             arg = raw_input(prompt)
         return arg
     name = get_arg('name', 'What is your git username? ')
-    role = get_arg('role', 'What role will this user have? ')
+    roles = get_arg('roles', 'What role(s) will this user have? (space separated) ').split()
     keyid = get_arg('keyid', 'What pgp keyid/fingerprint will this user sign with? ')
     gnupg_home = get_arg('gnupg_home', 'Where is gnupg home on your system? ')
     pass_manage = args.pass_manage
@@ -176,7 +188,7 @@ def configure(args):
     with open(fname, 'w') as newconf:
         newconf.write("[me]\n")
         newconf.write("name: %s\n" % name)
-        newconf.write("role: %s\n" % role)
+        newconf.write("roles: %s\n" % ' '.join(roles))
         newconf.write("keyfp: %s\n" % fprint)
         newconf.write("pass_manage: %s\n" % pass_manage)
         if pass_manage == 'save':
@@ -237,9 +249,9 @@ def charter(args):
     # create a members.csv file
     with open(_data_file('members.csv'), 'w') as membersfile:
         outcsv = csv.writer(membersfile)
-        outcsv.writerow(['Name', 'Role', 'Keyfp', 'Status'])
+        outcsv.writerow(['Name', 'Roles', 'Keyfp', 'Status'])
         outcsv.writerow([config.get('me', 'name'),
-                         config.get('me', 'role'),
+                         config.get('me', 'roles'),
                          config.get('me', 'keyfp'),
                          'active'])
 
@@ -255,7 +267,8 @@ def charter(args):
     sign_doc(args, 'charter.md', passphrase=passphrase)
     sign_doc(args, 'members.csv', passphrase=passphrase)
     sign_doc(args, 'ledger.csv', passphrase=passphrase)
-    sign_doc(args, 'contracts/%s.md' % config.get('me', 'role'), passphrase=passphrase)
+    for role in config.get('me', 'roles').split():
+        sign_doc(args, 'contracts/%s.md' % role, passphrase=passphrase)
 
 
 @command()
@@ -280,23 +293,26 @@ def status(args):
                 continue
             users += 1
             user = row[0]
-            role = row[1]
+            roles = row[1].split()
             if not os.path.exists(_data_file('users/%s' % user)):
                 warning('User %s has no directory' % user)
                 continue
+            all_valid = True
             with open(_data_file('users/%s/charter.md.asc' % user), 'rb') as chartsig:
                 charterpath = os.path.abspath(_data_file('charter.md'))
                 verified = gpg.verify_file(chartsig, charterpath)
                 if not verified.valid:
                     warning('User %s did not sign the latest charter' % user)
-                    continue
-            with open(_data_file('users/%s/%s.md.asc' % (user, role)), 'rb') as contractsig:
-                contractpath = os.path.abspath(_data_file('contracts/%s.md' % role))
-                verified = gpg.verify_file(contractsig, contractpath)
-                if not verified.valid:
-                    warning('User %s did not sign the latest contract' % user)
-                    continue
-            activeusers += 1
+                    all_valid = False
+            for role in roles:
+                with open(_data_file('users/%s/%s.md.asc' % (user, role)), 'rb') as contractsig:
+                    contractpath = os.path.abspath(_data_file('contracts/%s.md' % role))
+                    verified = gpg.verify_file(contractsig, contractpath)
+                    if not verified.valid:
+                        warning('User %s did not sign the latest %s contract' % (user, role))
+                        all_valid = False
+            if all_valid:
+                activeusers += 1
 
     info('Guild has %s users, %s of which are active' % (users, activeusers))
 
@@ -310,9 +326,9 @@ def register(args):
         return
 
     name = config.get('me', 'name')
-    role = config.get('me', 'role')
+    roles = config.get('me', 'roles').split()
     keyfp = config.get('me', 'keyfp')
-    new_row = [name, role, keyfp, 'pending']
+    new_row = [name, ' '.join(roles), keyfp, 'pending']
 
     members_path = data_file(args, 'members.csv')
     new_path = data_file(args, '._members.csv.new')
@@ -351,9 +367,12 @@ def register(args):
     if not os.path.exists(userdir):
         os.makedirs(userdir)
 
-    sign_doc(args, 'charter.md')
+    passphrase = get_pass()
+    sign_doc(args, 'charter.md', passphrase=passphrase)
+    for role in roles:
+        sign_doc(args, 'contracts/%s.md' % role, passphrase=passphrase)
 
-    info('registered user with name %s, role %s, key %s' % (name, role, keyfp))
+    info('registered user with name %s, roles (%s), key %s' % (name, ' '.join(roles), keyfp))
 
 
 def get_config_path(location=None):
