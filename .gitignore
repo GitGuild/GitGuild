@@ -61,8 +61,10 @@ target/
 #Ipython Notebook
 .ipynb_checkpoints
 
-# temporary files
+# temporary and working files
 *~
+.idea
 
 # gg configuration
 gg.ini
+gg.ini*
