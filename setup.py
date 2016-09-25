@@ -2,11 +2,11 @@ from setuptools import setup
 
 setup(
     name='gitguild',
-    version='0.0.1.1',
+    version='0.0.2',
     url='https://github.com/deginner/gitguild',
     license='MIT',
     author='Ira Miller',
-    author_email='ira@deginner.com',
+    author_email='ira@gitguild.com',
     description='',
     packages=['gitguild'],
     install_requires=['python-gnupg',
