@@ -1,0 +1,33 @@
+{
+    "title": "Register User",
+	"description": "Register current user with a guild.",
+    "type": "object",
+    "diffbody": "<len_orig>a<len_new>\n> <user_name>, <user_email>, <user_signingkey>",
+	"must_be_member": false,
+	"vote_percent_required": 51.0,
+    "properties": {
+        "len_orig": {
+            "description": "Length of original file",
+            "type": "integer",
+            "minimum": 0
+        },
+        "len_new": {
+            "description": "New length",
+            "type": "integer",
+            "minimum": 1
+        },
+		"user_name": {
+            "description": "User name being registered",
+            "type": "string"
+        },
+	   "user_email": {
+            "description": "User email being registered",
+            "type": "string"
+        },
+	   "user_signingkey": {
+            "description": "User signing key being registered",
+            "type": "string"
+        }
+    },
+    "required": ["len_orig", "len_new", "user_name", "user_email",  "user_signingkey"]
+}

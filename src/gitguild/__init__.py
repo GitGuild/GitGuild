@@ -1,8 +1,8 @@
-import subprocess
 import sys
 
-gitname = subprocess.check_output(['git', 'config', 'user.name']).strip()
-gitsigkey = subprocess.check_output(['git', 'config', 'user.signingkey']).strip()
+
+class GuildError(Exception):
+    pass
 
 
 def error(msg, out=sys.stdout):

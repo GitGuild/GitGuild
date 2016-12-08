@@ -1,0 +1,14 @@
+account m:<MEMBER_NAME>
+    assert commodity =~ /^XP|XGG$/
+
+account m:<MEMBER_NAME>:Experience
+    assert commodity == "XP"
+
+account m:<MEMBER_NAME>:Assets
+    assert commodity == "XGG"
+
+account v:Member:<MEMBER_NAME>
+    assert commodity == "XP"
+
+account v:Member:<MEMBER_NAME>:<MEMBER_NAME>
+    assert commodity == ""

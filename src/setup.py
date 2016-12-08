@@ -1,20 +1,20 @@
 from setuptools import setup
 
 setup(
-    name='gitguild',
-    version='0.0.2',
-    url='https://github.com/deginner/gitguild',
+    name='gitguild-cli',
+    version='0.0.2.2.2',
+    url='https://github.com/gitguild/gitguild',
     license='MIT',
     author='Ira Miller',
     author_email='ira@gitguild.com',
-    description='',
+    description='A helper for git project standards and governance.',
     packages=['gitguild'],
     install_requires=['python-gnupg',
                       'gitpython',
                       'pygithub'],
     entry_points={
         'console_scripts': [
-            'gg = gitguild.gg:cli',
+            'gitguild = gitguild.command:cli',
         ],
     },
     classifiers=[
