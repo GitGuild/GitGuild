@@ -1,0 +1,35 @@
+{
+    "title": "init",
+	"description": "Create a new guild in a new (empty) project directory.",
+	"must_be_member": false,
+	"vote_percent_required": 100.0,
+    "directories": {
+      "new": {},
+      "modified": {},
+      "deleted": {}
+    },
+    "files": {
+      "new": {"AUTHORS": {"parameters": []}, "LICENSE": {
+          "templates": {
+            "MIT": "transaction/license/LICENSE.MIT",
+            "CC4.0": "transaction/license/LICENSE.CC4"
+          },
+          "parameters": ["years", "authors"]
+        },
+        "CONTRIBUTING.md": {
+          "templates": {
+            "GitGuild": "transaction/CONTRIBUTING.GitGuild.md"
+          },
+          "parameters": []
+        },
+        "CHANGELOG.md": {
+          "templates": {
+            "GitGuild": "transaction/changelog/CHANGELOG.GitGuild.md"
+          },
+          "parameters": []
+        }
+      },
+      "modified": {},
+      "deleted": {}
+    }
+}

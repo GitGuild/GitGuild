@@ -1,0 +1,24 @@
+{
+    "title": "register",
+	"description": "Register the current user with the guild.",
+	"must_be_member": false,
+	"vote_percent_required": 51.0,
+    "directories": {
+      "new": [],
+      "modified": [],
+      "deleted": []
+    },
+    "files": {
+      "new": [],
+      "modified": [
+        {
+          "out_name": "AUTHORS",
+          "templates": {
+            "register": "transaction/authors/AUTHORS.register"
+          },
+          "parameters": ["user_name", "user_email", "user_signingkey"]
+        }
+      ],
+      "deleted": []
+    }
+}

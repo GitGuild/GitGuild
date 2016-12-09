@@ -1,167 +1,65 @@
-import ConfigParser
-import argparse
-import json
 import sys
-from os import makedirs, system
-from os.path import exists, join, abspath
+from os import system, chdir
+from StringIO import StringIO
 
-from gitguild import error, info, GuildError
-from gitguild.types import Guild
-from git.repo.base import InvalidGitRepositoryError
-
-gpg = None
-parser = argparse.ArgumentParser('gitguild')
-subparsers = parser.add_subparsers(title='Commands', metavar='<command>')
-
-
-class Command(object):
-    """
-    Temporary object to accumulate subcommand arguments (to be passed between
-    the below decorators, not used directly)
-    """
-
-    def __init__(self, func):
-        self.func = func
-        self.args = []
-
-
-def command(name=None, **kwargs):
-    """
-    Declare a subcommand, adding it and any arguments from cmd_arg() to the
-    parser. Use as the outermost (first) decorator. Decorator keyword arguments
-    are passed through to add_parser() and thus include any ArgumentParser
-    constructor arguments, plus "help", which defaults to the function's
-    docstring.
-    """
-
-    def decorator(cmd):
-        if not isinstance(cmd, Command):
-            cmd = Command(cmd)
-        func = cmd.func
-        cmd_name = name if name is not None else func.__name__
-        if 'help' not in kwargs and func.__doc__ is not None:
-            kwargs['help'] = func.__doc__
-        subparser = subparsers.add_parser(cmd_name, **kwargs)
-        subparser.set_defaults(func=func)
-        for arg_args, arg_kwargs in reversed(cmd.args):
-            subparser.add_argument(*arg_args, **arg_kwargs)
-        return func
-
-    return decorator
-
-
-def cmd_arg(*args, **kwargs):
-    """
-    Declare a subcommand argument. Use zero or more of these inside (below) a
-    command() decorator; they will be ordered top to bottom. Decorator
-    arguments are passed through to ArgumentParser.add_argument().
-    """
-
-    def decorator(cmd):
-        if not isinstance(cmd, Command):
-            cmd = Command(cmd)
-        cmd.args.append((args, kwargs))
-        return cmd
-
-    return decorator
-
+import datetime
+from gitguild import cmd_arg, command, error, info, parser, repo, get_user_name, get_user_email, get_user_signingkey, create_stub_guild
 
 # Global args
-parser.add_argument('--gg-path', default='./')
+# parser.add_argument('--gg-path', default='./')
 
 
 # Main entry point
+from gitguild.transaction import load_transaction, apply_transaction, template_chooser
+
+
 def cli(argv=sys.argv[1:], out=sys.stdout):
     args = parser.parse_args(argv)
+    if hasattr(args, 'gg_path') and args.gg_path is not None:
+        chdir(args.gg_path)
     args.func(args=args, out=out)
 
 
 @command()
-def init(args, out=sys.stdout):
-    """Initialize new guild (create data files)"""
-    try:
-        guild = Guild.create_stub_guild(path=args.gg_path)
-    except (IOError, GuildError, InvalidGitRepositoryError, AssertionError) as e:
-        error(e.message, out=out)
-        return
-    info("created guild at %s" % args.gg_path, out=out)
-
-
-@command()
 def config(args, out=sys.stdout):
-    """Configure git and gitguild for local use. i.e. set user name, email and signingkey"""
+    """Configure git and gitguild for local use. i.e. get user name, email and signingkey"""
     try:
-        guild = Guild(path=args.gg_path)
-    except (IOError, GuildError, InvalidGitRepositoryError, AssertionError) as e:
-        error(e.message, out=out)
-        return
-    try:
-        guild.user_name
-        guild.user_email
-        guild.user_signingkey
-    except GuildError as e:
+        # info("Running as user: %s %s %s" % (get_user_name(), get_user_email(), get_user_signingkey()), out)
+        "Running as user: %s %s %s" % (get_user_name(), get_user_email(), get_user_signingkey())
+    except IOError as e:
         error(e.message, out=out)
         return
 
-
 @command()
-def register(args, out=sys.stdout):
-    """Register with guild (update member file)"""
-    guild = Guild(path=args.gg_path)
+@cmd_arg('--years', help='The years that the copyright is active for.')
+@cmd_arg('--authors', default="AUTHORS", help='The authors of the copyright material.')
+# @cmd_arg('--license', default="MIT", choices=["MIT", "CC4"], help='The intellectual property license to use.')
+def init(args, out=sys.stdout):
+    """Initialize local guild (create data files)"""
+    config(args, out=out)
+    if args.years is None or len(args.years) == 0:
+        args.years = str(datetime.date.today().year)
     try:
-        guild.register()
-        info('registered as member with name %s, key %s' % (guild.user_name, guild.user_signingkey), out=out)
-    except (IOError, GuildError) as e:
-        error("Unable to register for reason: %s" % e, out=out)
-
-
-@command()
-def status(args, out=sys.stdout):
-    """Print report on guild and member status"""
-    guild = Guild(path=args.gg_path)
-    try:
-        info(guild.guild_status(), out)
-    except GuildError as ge:
-        error(ge, out)
+        transaction = load_transaction('init')
+        template_chooser(transaction)
+        apply_transaction(transaction, plist={'LICENSE': {'years': args.years, 'authors': args.authors}})
+    except IOError as e:
+        error(e.message, out=out)
         return
-    try:
-        info(guild.member_status(), out)
-    except GuildError as ge:
-        error(ge, out)
-        return
+    info("created guild", out=out)
 
 
 @command()
-@cmd_arg('input_file', help='The file to create a schema stub for. This is the file that will be modified.')
-@cmd_arg('title', help='The title json schema field.')
-@cmd_arg('--can_be_guest', dest='member_required', action='store_false',
-         help='If set, user need not be a member to make this change.')
-@cmd_arg('--must_be_member', dest='member_required', action='store_true',
-         help='If set, user must be a member to make this change.')  # default since second
-@cmd_arg('--vote_percent_required', default='100', help='The percent of XP votes guild requires to accept this change.')
-@cmd_arg('--description', help='The description json schema field.')
-def make_schema_stub(args, out=sys.stdout):
-    """Make a json schema stub for the file indicated."""
-    path = abspath(args.gg_path)
-    rawschema = {"diffbody": "",
-                 "title": args.title,
-                 "type": "object",
-                 "must_be_member": args.member_required,
-                 "vote_percent_required": float(args.vote_percent_required),
-                 "properties": {
-                 },
-                 "required": []
-                }
-    if hasattr(args, 'description') and args.description is not None:
-        rawschema['description'] = args.description
-    with open(join(path, args.input_file), 'r') as f:
-        rawschema['diffbody'] = f.read()
-    outpath = join(path, "%s.json" % args.input_file)
-    with open(outpath, 'w') as f:
-        f.write(json.dumps(rawschema, indent=2))
-        f.close()
-    info("wrote %s" % outpath, out=out)
-
-
-if __name__ == '__main__':
-    cli()
+@cmd_arg('--transaction_dir', help='The local directory with transaction templates to seed this guild.')
+@cmd_arg('--transaction_repo', help='The remote git repo with transaction templates to seed this guild.')
+@cmd_arg('--transaction_repo_branch', default='master', help='The remote git repo branch with transaction templates '                                                             'to seed this guild.')
+def import_transactions(args, out=sys.stdout):
+    """Import transactions from a local directory or git repository."""
+    config(args, out=out)
+    try:
+        create_stub_guild(transaction_dir=args.transaction_dir, transaction_repo=args.transaction_repo,
+                          transaction_repo_branch=args.transaction_repo_branch)
+    except IOError as e:
+        error(e.message, out=out)
+        return
+    info("imported transactions", out=out)
