@@ -72,7 +72,7 @@ def restore_cached_config(testcase):
         repo.git.config('--unset-all', 'user.name', local=True)
         repo.git.config('--unset-all', 'user.email', local=True)
         repo.git.config('--unset-all', 'user.signingkey', local=True)
-    except GitCommandError as e:
+    except GitCommandError:
         pass
 
 
@@ -86,6 +86,7 @@ input_responses = ['y']
 lastresp = 0
 
 
+# noinspection PyUnusedLocal
 def raw_input(prompt=None):
     """
     Override built-in input function for testing. Respond with next string from input_responses list, or start over.

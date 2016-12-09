@@ -1,15 +1,9 @@
-import sys
-from os import system, chdir
-from StringIO import StringIO
-
 import datetime
-from gitguild import cmd_arg, command, error, info, parser, repo, get_user_name, get_user_email, get_user_signingkey, create_stub_guild
+import sys
+from os import chdir
 
-# Global args
-# parser.add_argument('--gg-path', default='./')
-
-
-# Main entry point
+from gitguild import cmd_arg, command, error, info, parser, get_user_name, get_user_email, get_user_signingkey, \
+    create_stub_guild
 from gitguild.transaction import load_transaction, apply_transaction, template_chooser
 
 
@@ -29,6 +23,7 @@ def config(args, out=sys.stdout):
     except IOError as e:
         error(e.message, out=out)
         return
+
 
 @command()
 @cmd_arg('--years', help='The years that the copyright is active for.')
@@ -52,7 +47,8 @@ def init(args, out=sys.stdout):
 @command()
 @cmd_arg('--transaction_dir', help='The local directory with transaction templates to seed this guild.')
 @cmd_arg('--transaction_repo', help='The remote git repo with transaction templates to seed this guild.')
-@cmd_arg('--transaction_repo_branch', default='master', help='The remote git repo branch with transaction templates '                                                             'to seed this guild.')
+@cmd_arg('--transaction_repo_branch', default='master',
+         help='The remote git repo branch with transaction templates to seed this guild.')
 def import_transactions(args, out=sys.stdout):
     """Import transactions from a local directory or git repository."""
     config(args, out=out)

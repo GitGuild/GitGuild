@@ -9,16 +9,15 @@
       "deleted": []
     },
     "files": {
-      "new": [],
-      "modified": [
-        {
-          "out_name": "AUTHORS",
+      "new": {},
+      "modified": {
+        "AUTHORS": {
           "templates": {
             "register": "transaction/authors/AUTHORS.register"
           },
           "parameters": ["user_name", "user_email", "user_signingkey"]
         }
-      ],
-      "deleted": []
+      },
+      "deleted": {}
     }
 }

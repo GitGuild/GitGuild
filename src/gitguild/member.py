@@ -1,5 +1,4 @@
 from os.path import join
-from gitguild import basic_files_exist, command, error, info
 
 
 def members(path):

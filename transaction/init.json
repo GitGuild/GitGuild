@@ -1,12 +1,12 @@
 {
     "title": "init",
-	"description": "Create a new guild in a new (empty) project directory.",
+	"description": "Create a new guild in an empty (except these templates) project directory.",
 	"must_be_member": false,
 	"vote_percent_required": 100.0,
     "directories": {
-      "new": {},
-      "modified": {},
-      "deleted": {}
+      "new": [],
+      "modified": [],
+      "deleted": []
     },
     "files": {
       "new": {"AUTHORS": {"parameters": []}, "LICENSE": {

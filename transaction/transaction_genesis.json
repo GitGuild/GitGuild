@@ -1,0 +1,57 @@
+{
+    "title": "transaction_genesis",
+	"description": "Seed a guild with transactions from a local directory or git repository.",
+	"must_be_member": false,
+	"vote_percent_required": 100.0,
+    "directories": {
+      "new": ["transaction", "transaction/license", "transaction/changelog"],
+      "modified": [],
+      "deleted": []
+    },
+    "files": {
+      "new": {
+        "transaction/authors/AUTHORS.register": {
+          "templates": {
+            "register": "transaction/authors/AUTHORS.register"
+          }
+        },
+        "transaction/license/LICENSE.MIT": {
+          "templates": {
+            "MIT": "transaction/license/LICENSE.MIT"
+          }
+        },
+        "transaction/license/LICENSE.CC4": {
+          "templates": {
+            "CC4.0": "transaction/license/LICENSE.CC4"
+          }
+        },
+        "transaction/CONTRIBUTING.GitGuild.md": {
+          "templates": {
+            "GitGuild": "transaction/CONTRIBUTING.GitGuild.md"
+          }
+        },
+        "transaction/changelog/CHANGELOG.GitGuild.md": {
+          "templates": {
+            "GitGuild": "transaction/changelog/CHANGELOG.GitGuild.md"
+          }
+        },
+        "transaction/init.json": {
+          "templates": {
+            "init": "transaction/init.json"
+          }
+        },
+        "transaction/transaction_genesis.json": {
+          "templates": {
+            "genesis": "transaction/transaction_genesis.json"
+          }
+        },
+        "transaction/register.json": {
+          "templates": {
+            "register": "transaction/register.json"
+          }
+        }
+      },
+      "modified": {},
+      "deleted": {}
+    }
+}

@@ -1,11 +1,11 @@
 import argparse
 import subprocess
 import sys
-from os.path import exists, isfile, join, abspath
+from os.path import exists, isfile, abspath
 from shutil import Error
 from shutil import copytree
 
-from git import Repo, InvalidGitRepositoryError
+from git import Repo, InvalidGitRepositoryError, GitCommandError
 
 parser = argparse.ArgumentParser('gitguild')
 subparsers = parser.add_subparsers(title='Commands', metavar='<command>')
@@ -96,7 +96,7 @@ def create_stub_guild(transaction_dir=None, transaction_repo=None, transaction_r
         else:
             try:
                 copytree(tpath, "transaction")
-            except (Error, OSError) as e:
+            except (Error, OSError):
                 raise IOError("couldn't copy transaction dir %s to transaction" % tpath)
     elif transaction_repo is not None:
         # transaction templates are in a remote repo, create submodule
@@ -107,8 +107,6 @@ def create_stub_guild(transaction_dir=None, transaction_repo=None, transaction_r
         raise IOError("Either transaction_dir or transaction_repo must be specified to initialize guild.")
     repo.index.add(["transaction"])
     # repo.index.commit("imported transactions")
-    repo.git.commit("-S", "-m", "imported transactions")
-    repo.git.checkout('HEAD', b="voting")
 
 
 def basic_files_exist():
@@ -174,3 +172,11 @@ def user_is_configured():
         return True
     except IOError:
         return False
+
+
+def commit(message):
+    try:
+        repo.git.checkout(b="voting")
+    except GitCommandError:
+        pass
+    repo.git.commit("-S", "-m", message)

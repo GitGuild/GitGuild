@@ -2,24 +2,21 @@ import json
 from os import makedirs, system
 from os.path import join, isfile
 
-import datetime
-
-import sys
 from gitguild import repo
 
 
-def load_transaction(transName):
+def load_transaction(tname):
     """
     Load a transaction from the active guild's transaction directory.
 
     :raises IOError: If the transaction config file could not be found.
     :raises ValueError: If the transaction config file was not a valid document.
-    :param str transName: The name of the transaction, i.e. the config name before .json
+    :param str tname: The name of the transaction, i.e. the config name before .json
     """
-    transPath = join("transaction", "%s.json" % transName)
-    if not isfile(transPath):
-        raise IOError("Unknown transaction type %s" % transName)
-    with open(transPath, 'r') as tf:
+    tpath = join("transaction", "%s.json" % tname)
+    if not isfile(tpath):
+        raise IOError("Unknown transaction type %s" % tname)
+    with open(tpath, 'r') as tf:
         transaction = json.loads(tf.read())
     return transaction
 
