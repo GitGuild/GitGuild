@@ -1,13 +1,14 @@
 import datetime
 import sys
 from os import chdir
+from os.path import isfile
 
 from gitdb.exc import BadName
 from gitguild import cmd_arg, command, error, info, parser, get_user_name, get_user_email, get_user_signingkey, \
     create_stub_guild, basic_files_exist, ensure_members_unique, repo, warning
 from gitguild.transaction import load_transaction, apply_transaction, template_chooser, get_param_list, param_chooser, \
     validate_transaction_diff, get_diff_file_list
-from os.path import isfile
+from gitguild.member import check_committer
 
 
 def cli(argv=sys.argv[1:], out=sys.stdout):
@@ -91,6 +92,7 @@ def status(args, out=sys.stdout):
             plist = param_chooser(tname, get_param_list(transaction), repo.head.commit, prompt=False)
             diffs = repo.commit("^").diff(repo.head.commit)
             validate_transaction_diff(transaction, diffs, plist=plist)
+            check_committer(repo.head.commit)
             info("valid '%s' transaction for last commit" % tname, out)
             if hasattr(args, 'depth') and args.depth > 1:
                 print "args.depth %s" % args.depth
@@ -104,6 +106,7 @@ def status(args, out=sys.stdout):
                     try:
                         diffs = repo.commit(com + "^").diff(repo.commit(com))
                         validate_transaction_diff(transaction, diffs, plist=plist)
+                        check_committer(repo.commit(com))
                         info("valid '%s' transaction for previous commit" % tname, out)
                     except BadName:
                         info("reached the root of the git tree", out)

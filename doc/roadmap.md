@@ -17,7 +17,7 @@ Commit gpg signed, status checked, changlog entered commit.
 
 ### issues
 
- + [ ] file_templates
+ + [x] file_templates
  + [ ] basic_commit
 
 # Flat XP-only ledger

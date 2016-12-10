@@ -81,6 +81,7 @@ Guild in good standing."""
         apply_transaction(reg_trans, plist=reg_plist)
         output = StringIO()
         status(object, output)
+        print output.getvalue().strip()
         assert output.getvalue().strip() == """WARNING: valid 'register' transaction waiting commit
 valid 'init' transaction for last commit
 Guild in good standing."""
@@ -133,10 +134,102 @@ Guild in good standing."""
         commit("register")
         output = StringIO()
         args = Namespace()
+        args.depth = 2
+        status(args, output)
+        assert output.getvalue().strip() == """valid 'register' transaction for last commit
+valid 'init' transaction for previous commit
+Guild in good standing."""
+        output = StringIO()
+        args = Namespace()
         args.depth = 3
         status(args, output)
-        print output.getvalue().strip()
         assert output.getvalue().strip() == """valid 'register' transaction for last commit
 valid 'init' transaction for previous commit
 reached the root of the git tree
 Guild in good standing."""
+
+    def test_status_wrong_user_register(self):
+        get_or_invent_config(self)
+        create_stub_guild(transaction_dir=get_transaction_path())
+        self.user_name, self.user_email, self.user_signingkey = get_or_invent_config(self)
+        commit("transaction genesis")
+        transaction = load_transaction('init')
+        template_chooser(transaction, prompt=False)
+        plist = param_chooser('init', get_param_list(transaction), prompt=False)
+        apply_transaction(transaction, plist=plist)
+        diffs = repo.head.commit.diff()
+        validate_transaction_diff(transaction, diffs, plist=plist)
+        commit("initialize")
+        reg_trans = load_transaction('register')
+        template_chooser(reg_trans, prompt=False)
+        reg_plist = param_chooser('register', get_param_list(reg_trans), prompt=False)
+        apply_transaction(reg_trans, plist=reg_plist)
+        #overwrite
+        with open('AUTHORS', 'w') as af:
+            af.write("isysd ira@gitguild.com 5C3586F6")
+        repo.index.add(['AUTHORS'])
+        output = StringIO()
+        status(object, output)
+        outval = output.getvalue().strip()
+        assert "ERROR: assert" in outval
+
+    def test_status_wrong_signer(self):
+        get_or_invent_config(self)
+        create_stub_guild(transaction_dir=get_transaction_path())
+        self.user_name, self.user_email, self.user_signingkey = get_or_invent_config(self)
+        commit("transaction genesis")
+        transaction = load_transaction('init')
+        template_chooser(transaction, prompt=False)
+        plist = param_chooser('init', get_param_list(transaction), prompt=False)
+        apply_transaction(transaction, plist=plist)
+        diffs = repo.head.commit.diff()
+        validate_transaction_diff(transaction, diffs, plist=plist)
+        commit("initialize")
+        reg_trans = load_transaction('register')
+        template_chooser(reg_trans, prompt=False)
+        reg_plist = param_chooser('register', get_param_list(reg_trans), prompt=False)
+        apply_transaction(reg_trans, plist=reg_plist)
+        output = StringIO()
+        status(object, output)
+        outval = output.getvalue().strip()
+        assert output.getvalue().strip() == """WARNING: valid 'register' transaction waiting commit
+valid 'init' transaction for last commit
+Guild in good standing."""
+        # overwrite
+        with open('AUTHORS', 'w') as af:
+            af.write("isysd ira@gitguild.com 5C3586F6")
+        repo.index.add(['AUTHORS'])
+        commit("register")
+        output = StringIO()
+        args = Namespace()
+        args.depth = 2
+        status(args, output)
+        assert "ERROR: assert" in output.getvalue().strip()
+
+    def test_status_no_signature(self):
+        get_or_invent_config(self)
+        create_stub_guild(transaction_dir=get_transaction_path())
+        self.user_name, self.user_email, self.user_signingkey = get_or_invent_config(self)
+        commit("transaction genesis")
+        transaction = load_transaction('init')
+        template_chooser(transaction, prompt=False)
+        plist = param_chooser('init', get_param_list(transaction), prompt=False)
+        apply_transaction(transaction, plist=plist)
+        diffs = repo.head.commit.diff()
+        validate_transaction_diff(transaction, diffs, plist=plist)
+        commit("initialize")
+        reg_trans = load_transaction('register')
+        template_chooser(reg_trans, prompt=False)
+        reg_plist = param_chooser('register', get_param_list(reg_trans), prompt=False)
+        apply_transaction(reg_trans, plist=reg_plist)
+        output = StringIO()
+        status(object, output)
+        assert output.getvalue().strip() == """WARNING: valid 'register' transaction waiting commit
+valid 'init' transaction for last commit
+Guild in good standing."""
+        repo.index.commit("register")
+        output = StringIO()
+        args = Namespace()
+        args.depth = 2
+        status(args, output)
+        assert output.getvalue().strip() == """ERROR: assert 'Good signature from ' in ''"""
