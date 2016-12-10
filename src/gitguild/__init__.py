@@ -105,7 +105,9 @@ def create_stub_guild(transaction_dir=None, transaction_repo=None, transaction_r
                               branch=transaction_repo_branch)
     else:
         raise IOError("Either transaction_dir or transaction_repo must be specified to initialize guild.")
-    repo.index.add(["transaction"])
+    with open(".transaction", "w") as ti:
+        ti.write("transaction_genesis")
+    repo.index.add(["transaction", ".transaction"])
     # repo.index.commit("imported transactions")
 
 

@@ -1,9 +1,9 @@
 from os.path import join
 
 
-def members(path):
+def members():
     _members = {}
-    authorpath = join(path, 'AUTHORS')
+    authorpath = 'AUTHORS'
     with open(authorpath, 'r') as authorsf:
         for line in authorsf.readlines():
             line = line.strip()
@@ -11,6 +11,6 @@ def members(path):
                 continue
             else:
                 memarray = line.split(" ")
-                _members[memarray[0]] = {'email': memarray[1], 'signingkey': str(memarray[2:])}
+                _members[memarray[0]] = {'email': memarray[1], 'signingkey': memarray[2]}
         authorsf.close()
     return _members

@@ -2,9 +2,12 @@ import datetime
 import sys
 from os import chdir
 
+from gitdb.exc import BadName
 from gitguild import cmd_arg, command, error, info, parser, get_user_name, get_user_email, get_user_signingkey, \
-    create_stub_guild, basic_files_exist, ensure_members_unique
-from gitguild.transaction import load_transaction, apply_transaction, template_chooser, get_param_list, param_chooser
+    create_stub_guild, basic_files_exist, ensure_members_unique, repo, warning
+from gitguild.transaction import load_transaction, apply_transaction, template_chooser, get_param_list, param_chooser, \
+    validate_transaction_diff, get_diff_file_list
+from os.path import isfile
 
 
 def cli(argv=sys.argv[1:], out=sys.stdout):
@@ -62,15 +65,51 @@ def import_transactions(args, out=sys.stdout):
 
 
 @command()
+@cmd_arg('--depth', default=1, help='The local directory with transaction templates to seed this guild.')
 def status(args, out=sys.stdout):
     """Print report on guild and member status"""
     try:
         basic_files_exist()
         ensure_members_unique()
-        info("Guild in good standing.", out)
+        if isfile(".transaction"):
+            with open('.transaction', 'r') as tf:
+                tname = tf.read().strip()
+            transaction = load_transaction(tname)
+            template_chooser(transaction, prompt=False)
+            diffs = repo.head.commit.diff()
+            flist = get_diff_file_list(diffs)
+            if len(diffs) > 0:
+                if '.transaction' in flist:
+                    plist = param_chooser(tname, get_param_list(transaction), prompt=False)
+                    validate_transaction_diff(transaction, diffs, plist=plist)
+                    warning("valid '%s' transaction waiting commit" % tname, out)
+                else:
+                    warning("unstaged non-transaction changes", out)
+            tname = repo.head.commit.tree.join('.transaction').data_stream.read().strip()
+            transaction = load_transaction(tname)
+            template_chooser(transaction, commit=repo.head.commit, prompt=False)
+            plist = param_chooser(tname, get_param_list(transaction), repo.head.commit, prompt=False)
+            diffs = repo.commit("^").diff(repo.head.commit)
+            validate_transaction_diff(transaction, diffs, plist=plist)
+            info("valid '%s' transaction for last commit" % tname, out)
+            if hasattr(args, 'depth') and args.depth > 1:
+                print "args.depth %s" % args.depth
+                for d in range(1, args.depth):
+                    com = "^" * int(d)
+                    tname = repo.commit(com).tree.join('.transaction').data_stream.read().strip()
+                    transaction = load_transaction(tname)
+                    template_chooser(transaction, commit=repo.commit(com), prompt=False)
+                    # print transaction
+                    plist = param_chooser(tname, get_param_list(transaction), repo.commit(com), prompt=False)
+                    try:
+                        diffs = repo.commit(com + "^").diff(repo.commit(com))
+                        validate_transaction_diff(transaction, diffs, plist=plist)
+                        info("valid '%s' transaction for previous commit" % tname, out)
+                    except BadName:
+                        info("reached the root of the git tree", out)
+            info("Guild in good standing.", out)
     except AssertionError as e:
         error(str(e), out)
-
 
 
 @command()
@@ -80,9 +119,11 @@ def register(args, out=sys.stdout):
     try:
         transaction = load_transaction('register')
         template_chooser(transaction)
-        plist = param_chooser(get_param_list(transaction))
+        plist = param_chooser('register', get_param_list(transaction), prompt=False)
         apply_transaction(transaction, plist=plist)
     except IOError as e:
         error(e.message, out=out)
         return
-    info("created guild", out=out)
+    except Exception as e:
+        error(e, out=out)
+    info("registered as %s" % get_user_name(), out=out)
