@@ -117,3 +117,11 @@ def prefill_init_templates():
 def prefill_init_params():
     reset_responses()
     input_responses.append('y')
+
+
+def prefill_register_params(local_user_name, local_user_email, local_user_signingkey):
+    reset_responses()
+    input_responses.append(local_user_name)
+    input_responses.append(local_user_email)
+    input_responses.append(local_user_signingkey)
+    input_responses.append('y')

@@ -4,20 +4,22 @@
 	"must_be_member": false,
 	"vote_percent_required": 51.0,
     "directories": {
-      "new": [],
-      "modified": [],
-      "deleted": []
+      "A": [],
+      "M": [],
+      "D": []
     },
     "files": {
-      "new": {},
-      "modified": {
+      "A": {},
+      "M": {
         "AUTHORS": {
           "templates": {
             "register": "transaction/authors/AUTHORS.register"
           },
-          "parameters": ["user_name", "user_email", "user_signingkey"]
+          "parameters": ["user_name", "user_email", "user_signingkey"],
+          "method": "append"
         }
       },
-      "deleted": {}
+      "R": {},
+      "D": {}
     }
 }

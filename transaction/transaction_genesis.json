@@ -3,13 +3,8 @@
 	"description": "Seed a guild with transactions from a local directory or git repository.",
 	"must_be_member": false,
 	"vote_percent_required": 100.0,
-    "directories": {
-      "new": ["transaction", "transaction/license", "transaction/changelog"],
-      "modified": [],
-      "deleted": []
-    },
     "files": {
-      "new": {
+      "A": {
         "transaction/authors/AUTHORS.register": {
           "templates": {
             "register": "transaction/authors/AUTHORS.register"
@@ -51,7 +46,8 @@
           }
         }
       },
-      "modified": {},
-      "deleted": {}
+      "M": {},
+      "R": {},
+      "D": {}
     }
 }

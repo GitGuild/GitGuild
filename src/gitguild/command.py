@@ -3,8 +3,8 @@ import sys
 from os import chdir
 
 from gitguild import cmd_arg, command, error, info, parser, get_user_name, get_user_email, get_user_signingkey, \
-    create_stub_guild
-from gitguild.transaction import load_transaction, apply_transaction, template_chooser
+    create_stub_guild, basic_files_exist, ensure_members_unique
+from gitguild.transaction import load_transaction, apply_transaction, template_chooser, get_param_list, param_chooser
 
 
 def cli(argv=sys.argv[1:], out=sys.stdout):
@@ -59,3 +59,30 @@ def import_transactions(args, out=sys.stdout):
         error(e.message, out=out)
         return
     info("imported transactions", out=out)
+
+
+@command()
+def status(args, out=sys.stdout):
+    """Print report on guild and member status"""
+    try:
+        basic_files_exist()
+        ensure_members_unique()
+        info("Guild in good standing.", out)
+    except AssertionError as e:
+        error(str(e), out)
+
+
+
+@command()
+def register(args, out=sys.stdout):
+    """Register with guild (update member file)"""
+    config(args, out=out)
+    try:
+        transaction = load_transaction('register')
+        template_chooser(transaction)
+        plist = param_chooser(get_param_list(transaction))
+        apply_transaction(transaction, plist=plist)
+    except IOError as e:
+        error(e.message, out=out)
+        return
+    info("created guild", out=out)

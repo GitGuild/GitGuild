@@ -90,7 +90,7 @@ class TestTransactions(TestCase):
         plist = param_chooser(get_param_list(transaction))
         apply_transaction(transaction, plist=plist)
         diffs = repo.head.commit.diff()
-        assert len(diffs) == len(transaction['files']['new'])
+        assert len(diffs) == len(transaction['files']["A"])
         assert basic_files_exist()
         assert repo.active_branch.name == 'voting'
         assert repo.is_dirty()

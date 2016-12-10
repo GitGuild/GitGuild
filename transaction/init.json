@@ -4,12 +4,15 @@
 	"must_be_member": false,
 	"vote_percent_required": 100.0,
     "directories": {
-      "new": [],
-      "modified": [],
-      "deleted": []
+      "A": [],
+      "M": [],
+      "D": []
     },
     "files": {
-      "new": {"AUTHORS": {"parameters": []}, "LICENSE": {
+      "A": {"AUTHORS": {
+        "parameters": [],
+        "templates": {}
+      }, "LICENSE": {
           "templates": {
             "MIT": "transaction/license/LICENSE.MIT",
             "CC4.0": "transaction/license/LICENSE.CC4"
@@ -29,7 +32,8 @@
           "parameters": []
         }
       },
-      "modified": {},
-      "deleted": {}
+      "M": {},
+      "R": {},
+      "D": {}
     }
 }

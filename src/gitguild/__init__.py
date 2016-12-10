@@ -119,6 +119,22 @@ def basic_files_exist():
             isfile('CONTRIBUTING.md'))
 
 
+def ensure_members_unique():
+    users = []
+    emails = []
+    keys = []
+    with open('AUTHORS', 'r') as af:
+        for line in af.readlines():
+            linea = line.split(" ")
+            assert len(linea) == 3
+            assert linea[0] not in users
+            assert linea[1] not in emails
+            assert linea[2] not in keys
+            users.append(linea[0])
+            emails.append(linea[1])
+            keys.append(linea[2])
+
+
 def get_user_name():
     """
     Get the current user's name from git config.
@@ -127,7 +143,7 @@ def get_user_name():
     :return: The git config user.name value
     """
     try:
-        return subprocess.check_output(['git', 'config', 'user.name']).strip()
+        return subprocess.check_output(['git', 'config', 'user.name']).rstrip("\n")
     except subprocess.CalledProcessError:
         raise IOError("Please configure a git user name by running 'git config --add user.name <name>'")
 
@@ -140,7 +156,7 @@ def get_user_email():
     :return: The git config user.email value
     """
     try:
-        return subprocess.check_output(['git', 'config', 'user.email']).strip()
+        return subprocess.check_output(['git', 'config', 'user.email']).rstrip("\n")
     except subprocess.CalledProcessError:
         raise IOError("Please configure a git user email by running 'git config --add user.email <email>'")
 
@@ -153,7 +169,7 @@ def get_user_signingkey():
     :return: The git config user.signingkey value
     """
     try:
-        return subprocess.check_output(['git', 'config', 'user.signingkey']).strip()
+        return subprocess.check_output(['git', 'config', 'user.signingkey']).rstrip("\n")
     except subprocess.CalledProcessError:
         raise IOError("Please configure a git user signing key by running "
                       "'git config --add user.signingkey <signingkey>'")
