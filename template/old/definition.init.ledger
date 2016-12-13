@@ -1,0 +1,52 @@
+commodity XP
+   note Experience Points
+   format 1,000.00 XP
+   nomarket
+
+commodity XGG
+   note Experience Points
+   format 1,000.00 XP
+   nomarket
+
+
+account Liabilities
+
+account Equity
+    note Experience Points issued to contributors
+    assert commodity == 'XP'
+
+account Assets
+    note Assets of the Guild
+
+account Expenses
+    note Expenses of the Guild
+
+account Income
+    note Incomes of the Guild
+
+account m
+    note Member's accounts
+
+account v
+    note Voting accounts, aka transactions
+    assert commodity == 'XP'
+
+account v:init
+    note  {"overwrite":{"template/init/CONTRIBUTING.md":"template/init/CONTRIBUTING.md","template/init/AUTHORS":"template/init/AUTHORS","template/init/CHANGELOG.md":"template/init/CHANGELOG.md","template/init/LICENSE":"template/init/LICENSE","template/init/ledger/commodity.ledger":"template/init/ledger/commodity.ledger","template/init/ledger/account.ledger":"template/init/ledger/account.ledger","template/init/ledger/tag.ledger":"template/init/ledger/tag.ledger","template/init/ledger/transaction.ledger":"template/init/ledger/transaction.ledger","template/init/ledger/chain.ledger":"template/init/ledger/chain.ledger","template/init/ledger/check.ledger":"template/init/ledger/check.ledger","template/init/ledger/commodity.ledger":"ledger/commodity.ledger","template/init/ledger/account.ledger":"ledger/account.ledger","template/init/ledger/tag.ledger":"ledger/tag.ledger","template/init/ledger/transaction.ledger":"ledger/transaction.ledger","template/init/ledger/chain.ledger":"ledger/chain.ledger","template/init/ledger/check.ledger":"ledger/check.ledger","template/init/LICENSE":":LICENSE","template/init/AUTHORS":"AUTHORS","template/init/CONTRIBUTING.md":"CONTRIBUTING.md","template/init/CHANGELOG.md":"CHANGELOG.md","template/register/ledger/definition.ledger":"template/register/ledger/definition.ledger","template/register/ledger/transaction.ledger":"template/register/ledger/transaction.ledger"}}
+    assert tag("XP_percent_required") == '100'
+
+tag user_name
+tag user_email
+tag user_signingkey
+
+tag copyright_years
+    assert value =~ /[0-9]{4}-*[0-9]{0,4}/
+tag copyright_author
+    assert value =~ /[a-Z]*/
+tag LICENSE
+    assert value =~ /(template\/license\/LICENSE.MIT|template\/license\/LICENSE.CC4)/
+tag XP_required
+    assert value =~ /[0-9]*/
+tag XP_percent_required
+    assert value >= 0
+    assert value <= 100

@@ -1,0 +1,7 @@
+
+2016/12/15 * <<< user_name >>> Personal Guild Initialization
+    ; Create XP by giving the founder Equity
+    <<< user_name >>>:Height:<<< user_name >>>:<<< user_name >>>:<<< parent >>>                   1 XP
+    <<< user_name >>>:Depth:<<< user_name >>>:<<< user_name >>>:<<< parent >>>                     -1 XP
+    <<< user_name >>>:Payable:<<< user_name >>>:<<< user_name >>>:<<< parent >>>                   1 XGG
+    gitguild:Receivable:<<< user_name >>>:<<< user_name >>>:<<< parent >>>                        -1 XGG

@@ -1,0 +1,44 @@
+; Account structure is quite complex in the GitGuild, creating a symmetry between this ledger and the git tree itself.
+; A number of complex and potentially long account names may be difficult to read, but they're quite organized.
+; The basic structure is as follows.
+;
+; username:user account:repository:branch:parent commit hash:metadata
+;
+; Most of these are probably self explanatory. User account is the usual suspects of accounting: Income, Expenses, Assets, Liabilities, Equity.
+; User account also has two additional options related to voting: Height, Depth.
+; Metadata might be bitcoin or dash addresses, and/or transaction hashes.
+
+account <<< guild_name >>>
+    note The Guild's own account.
+account <<< guild_name >>>:Expenses
+    note The Guild's Expenses, i.e. Asset redemptions, contribution pay origination
+
+account <<< guild_name >>>:Depth
+    note the Guild's voting account. Votes in XP the amount of qualified Income earned by member(s).
+    assert commodity == "XP"
+account <<< guild_name >>>:Height
+    note the Guild's vote counting area. Votes by members on commits related to this guild are recorded here.
+    assert commodity == "XP"
+account <<< guild_name >>>:Equity
+account <<< guild_name >>>:Income
+account <<< guild_name >>>:Assets
+account <<< guild_name >>>:Liabilities
+    note This guild can only have XGG liabilities, and this is the source of all XGG.
+account <<< guild_name >>>:Expenses
+    note Members earning Income on approved labor can ask to cash in XGG against the Guild's Assets, creating an Expense
+
+account <<< user_name >>>:Depth
+    note The votes that <<< user_name >>> has spent. Cannot spend more than account height on a commit/issue.
+account <<< user_name >>>:Height
+    note The number of votes that <<< user_name >>> has received from the guild and also the XP voting power of <<< user_name >>>.
+; users do not get Equity as members of a shared guild.
+account <<< user_name >>>:Income
+account <<< user_name >>>:Assets
+account <<< user_name >>>:Liabilities
+account <<< user_name >>>:Expenses
+
+account <<< user_name >>>:Equity:init:<<< parent >>>
+
+account <<< user_name >>>:Equity:register:<<< parent >>>
+
+

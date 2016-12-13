@@ -1,0 +1,6 @@
+!include commodity.ledger
+!include account.ledger
+!include tag.ledger
+!include equity.ledger
+!include transaction.ledger
+!include check.ledger

@@ -1,0 +1,57 @@
+account Expenses
+    note The Guild's Expenses, i.e. Asset redemptions, contribution pay origination
+    ; member accounts top level, master requires XP>0
+    ; issue(branch) accounts second level, master requires XP>0
+    ; vote (XP) accounts third level
+
+account Assets
+    note The Guild's Assets, allocated to users by issue
+    ; member accounts top level, master requires XP>0
+    ; issue(branch) accounts second level, master requires XP>0
+    ; vote (XP) accounts third
+
+account Income
+    note The Guild's Income, i.e. Sponsorships, revenues
+    ; member accounts top level, master requires XP>0
+    ; issue(branch) accounts second level, master requires XP>0
+    ; vote (XP) accounts third level
+    ; for each 1 XGG in income a member receives, they have 1 XP reusable vote
+
+account Liabilities
+    note The Guild's Liabilities
+    ; member accounts top level, master requires XP>0
+    ; issue(branch) accounts second level, master requires XP>0
+    ; vote (XP) accounts third level
+
+account Equity
+    note The Guild's Equity
+    ; XP originates here
+    ; Each user gets to vote up to their all time XGG income in XP on each top level non-Equity account, taken from a corresponding Equity sub-account.
+
+account Assets:isysd
+    note Assets allocated to user isysd
+
+account Income:isysd
+    note Income earned by user isysd
+
+account Liabilities:isysd
+    note Liabilities issued to user isysd
+
+account Expenses:isysd
+    note Expenses paid to user isysd
+
+account Assets:isysd:init
+    note  {"overwrite":{"template/init/ledger/equity.ledger":"ledger/equity.ledger","template/init/ledger/commodity.ledger":"ledger/commodity.ledger","template/init/ledger/account.ledger":"ledger/account.ledger","template/init/ledger/tag.ledger":"ledger/tag.ledger","template/init/ledger/transaction.ledger":"ledger/transaction.ledger","template/init/ledger/chain.ledger":"ledger/chain.ledger","template/init/ledger/check.ledger":"ledger/check.ledger","template/init/LICENSE":"LICENSE","template/init/AUTHORS":"AUTHORS","template/init/CONTRIBUTING.md":"CONTRIBUTING.md","template/init/CHANGELOG.md":"CHANGELOG.md"}}
+
+account Income:isysd:init
+account Liabilities:isysd:init
+account Expenses:isysd:init
+
+account Assets:isysd:register
+    note  {"append":{"template/register/ledger/account.ledger":"ledger/account.ledger", "template/register/ledger/transaction.ledger":"ledger/transaction.ledger", "template/init/AUTHORS": "AUTHORS"}}
+
+account Income:isysd:register
+account Liabilities:isysd:register
+account Expenses:isysd:register
+
+

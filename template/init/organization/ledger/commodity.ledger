@@ -1,0 +1,19 @@
+commodity XP
+   note Experience Points, used for voting on members and issues
+   format 1,000.00 XP
+   nomarket
+
+commodity XGG
+   note GitGuild token of value. Transferable and redeemable at bid rate if part of approved Income transaction.
+   format 1,000.0000 XGG
+   nomarket
+
+commodity DASH
+   note See dash.org
+   format 1,000.00000000 DASH
+   nomarket
+
+commodity BTC
+   note See bitcoin.org
+   format 1,000.00000000 BTC
+   nomarket

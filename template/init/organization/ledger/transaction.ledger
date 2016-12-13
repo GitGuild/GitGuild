@@ -1,0 +1,25 @@
+2016/12/15 * Guild Initialization
+    ; gitguild register itself as a guild by paying... itself
+    gitguild:Income:gitguild:isysd:<<< parent >>>              -10 XGG
+    gitguild:Expenses:gitguild:isysd:<<< parent >>>            1010.5 XGG
+    gitguild:Liabilities:gitguild:isysd:<<< parent >>>         -1010.5 XGG
+    gitguild:Assets:gitguild:isysd:<<< parent >>>              10 XGG
+    ; Income sharing with major contributors
+    git:Income:gitguild:isysd:<<< parent >>>                  -0.1 XGG
+    git:Assets:gitguild:isysd:<<< parent >>>                  0.1 XGG
+    gpg:Income:gitguild:isysd:<<< parent >>>                  -0.1 XGG
+    gpg:Assets:gitguild:isysd:<<< parent >>>                  0.1 XGG
+    ledger:Income:gitguild:isysd:<<< parent >>>                  -0.1 XGG
+    ledger:Assets:gitguild:isysd:<<< parent >>>                  0.1 XGG
+    ; isysd gets extra XP as only active, direct contributor
+    isysd:Income:gitguild:isysd:<<< parent >>>                -1000.2 XGG
+    isysd:Assets:gitguild:isysd:<<< parent >>>                 1000.2 XGG
+    ; gitguild votes XP for equivalent to amount of qualified XGG Income
+    gitguild:Depth:gitguild:isysd:<<< parent >>>                  -1000.5 XP
+    git:Height:gitguild:isysd:<<< parent >>>                  0.1 XP
+    gpg:Height:gitguild:isysd:<<< parent >>>                  0.1 XP
+    ledger:Height:gitguild:isysd:<<< parent >>>                  0.1 XP
+    isysd:Height:gitguild:isysd:<<< parent >>>                  1000.2 XP
+    ; isysd votes for this commit using new XP voting power
+    isysd:Depth:gitguild:isysd:<<< parent >>>                  -1000.2 XP
+    gitguild:Height:gitguild:isysd:<<< parent >>>               1000.2 XP
