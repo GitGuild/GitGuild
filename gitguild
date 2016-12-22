@@ -36,7 +36,7 @@ USER_IS_CONFIGURED=true
 GG_DIR=$HOME"/gitguild"
 
 # Normally this should be run inside such a git repo
-GIT_DIR=`git rev-parse -q --git-dir > readlink -f | grep -o ".*[^.git]"`
+GIT_DIR=`readlink -f \$( git rev-parse -q --git-dir )| grep -o ".*[^.git]"`
 ORIG_CWD=`pwd`
 
 # change to the git dir for the duration of the script
@@ -46,10 +46,6 @@ fi
 
 
 #--------------CLI Helpers-----------------------
-# $1 is the command usage col 1
-# $2 is the command usage col 2
-# $3 is the command option col 1
-# $4 is the command option col 2
 
 USAGE_PREAMBLE="
 \t$PROG_NAME\tA helpful blockchain in a script.
@@ -505,6 +501,7 @@ get_template_params() {
 }
 
 # $1 is now sub-command (build, check)
+# $2 is a template
 handle_tx_cmd() {
   case $1 in
     check)
@@ -516,17 +513,22 @@ handle_tx_cmd() {
       for p in $params; do
         cmd_str="$cmd_str $( build_param_replace_command $p $( guess_template_param $p ) )"
       done
-      echo $cmd_str
+      cmd_str="$cmd_str | patch -p2"
+      eval $cmd_str
+      exit
       ;;
   esac
 }
 
 archive_tx_ledger() {
-  ledger -C -f ledger/chain.ledger equity > ledger/equity.ledger
-  sed -i.bak 's/ Opening Balances/ * Cleared Balances/g' ledger/equity.ledger
-  ledger -U -f ledger/chain.ledger equity >> ledger/equity.ledger
-  sed -i.bak 's/Opening Balances/Uncleared Balances/g' ledger/equity.ledger
-  echo '' > ledger/transaction.ledger
+  if [ -f ledger/transaction.ledger ] && \
+     [ "$( cat ledger/transaction.ledger )" != "" ]; then
+    ledger -C -f ledger/chain.ledger equity > ledger/equity.ledger
+    sed -i 's/ Opening Balances/ * Cleared Balances/g' ledger/equity.ledger
+    ledger -U -f ledger/chain.ledger equity >> ledger/equity.ledger
+    sed -i 's/Opening Balances/Uncleared Balances/g' ledger/equity.ledger
+    echo '' > ledger/transaction.ledger
+  fi
 }
 
 # $1 is now sub-command
