@@ -1,4 +1,0 @@
-account Assets:<<< user_name >>>:register
-account Income:<<< user_name >>>:register
-account Liabilities:<<< user_name >>>:register
-account Expenses:<<< user_name >>>:register

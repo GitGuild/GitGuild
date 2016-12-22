@@ -17,7 +17,7 @@ Installing in the specific location shown below is a more permanent and full fea
 ```
 mkdir -r $HOME/gitguild
 git clone https://github.com/isysd/gitguild-cli $HOME/gitguild/gitguild
-cp $HOME/gitguild/gitguild /usr/bin # or similar in PATH location
+ln -sf $HOME/gitguild/gitguild /usr/bin/gitguild # or similar in PATH location
 gitguild setup --gitolite
 ```
 
@@ -49,7 +49,7 @@ Assuming you satisfy the script's prerequisites, it will no longer ask you these
 | File | Directory | Description |
 |------|-----------|-------------|
 | *    | ~/gitguild | The default guild installation directory. Where repos are cloned for local work. |
-| *    | ~/gitguild/<username> | Your personal guild's local clone. |
+| *    | ~/gitguild/\<username\> | Your personal guild's local clone. |
 | *    | ~/gitguild/gitguild | Your clone of the gitguild source w/ templates & ledger. |
 | *    | ~/repositories | The gitolite server repository data dir. DO NOT TOUCH! |
 

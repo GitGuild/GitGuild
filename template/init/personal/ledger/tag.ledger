@@ -1,8 +1,0 @@
-tag init_personal
-; patch init_personal.patch
-
-tag register_personal
-; patch template/register/ledger/account.ledger ledger/account.ledger
-; patch template/register/ledger/transaction.ledger ledger/transaction.ledger
-; patch template/init/personal/AUTHORS  AUTHORS
-
