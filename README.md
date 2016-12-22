@@ -4,80 +4,113 @@ Guild-like governance for a git repository, using PGP identities.
 
 IRC: #gitguild on freenode (see https://freenode.net/kb/answer/chat)
 
-## Configure your user
+## Install
 
-Before using `gg`, you will be required to do some local configuration. This lets `gg` know about your pgp keys and configuration choices.
+##### Try it out
 
-If you do not run `gg configure`, then the first command you attempt will run it for you.
+Since this version of gitguild is a bourne shell script, it should be runnable as a standalone program on linux based systems. Macs and windows machines will definitely work with some work on the prerequisites.
 
-__Example__
-```
-gg configure --name isysd --roles "maintainer contributor" --keyid B5D3D208 --pass-manage prompt --gnupg-home ~/.gnupg
-```
+##### Permanent
 
-## Charter a Guild
-
-To charter a guild in the local directory (should be the top level of a git repo), run `gg charter`. A template must be provided, which contains a charter and role contracts.
+Installing in the specific location shown below is a more permanent and full featured method, providing transaction templates and a subscription to changes in the core.
 
 ```
-$gg charter
-Chartering new guild using template: software
-Passphrase for keyid B5D3D208: 
+mkdir -r $HOME/gitguild
+git clone https://github.com/isysd/gitguild-cli $HOME/gitguild/gitguild
+cp $HOME/gitguild/gitguild /usr/bin # or similar in PATH location
+gitguild setup --gitolite
 ```
 
-## Register User
+### Configure your user
 
-To register your user with the current working guild, use the `gg register` command. This will add your user to the guild membership roles as well as signing the charter and contract for you.
+This should happen during the above setup phase, or the first time gitguild is run. Gitguild has high expectations for the local git configuration, and may ask for some settings to be filled in.
 
 ```
-gg register
+WARNING: Git user.name not configured.
+
+Please enter your git name followed by [ENTER]
 ```
+
+You may also see some guessing or generation helpers. Just walk through it until it stops bothering you for more configuration.
+
+```
+guessing
+Detected one or more keys matching your name or email.
+The one you want is probably among these.
+4E4FBA61 5C3586F6
+
+Please enter your git signingkey followed by [ENTER]
+```
+
+Assuming you satisfy the script's prerequisites, it will no longer ask you these questions.
+
+### System File Structure
+
+| File | Directory | Description |
+|------|-----------|-------------|
+| *    | ~/gitguild | The default guild installation directory. Where repos are cloned for local work. |
+| *    | ~/gitguild/<username> | Your personal guild's local clone. |
+| *    | ~/gitguild/gitguild | Your clone of the gitguild source w/ templates & ledger. |
+| *    | ~/repositories | The gitolite server repository data dir. DO NOT TOUCH! |
+
+By default, all guilds are installed in `~/gitguild`, and your personal one will be in `~/gitguild/<username>`. It is likely that there will also be a local clone of this repo at `~/gitguild/gitguild`.
+
+## Your Guild
+
+Upon installation, a personal guild is created for you at `~/gitguild/<username>`. This is your personal blockchain, accounting, and file storage area. You can chose to share it with select people securely using ssh and gpg authentication.
+
+This sharing will be important as your identity guild is also a permanent record of reference for your perspective on various balances, transactions and contracts.
+
+##### Gitolite Configuration
+
+Each guild is intended to be hosted on a [gitolite](http://gitolite.com/) server. In fact, one should have been installed locally during setup. Gitolite was chosen largely due to it's simple and in-repository configuration system, including permissions and authorisation.
+
+For the most part these files should be automatically managed and you should not change them.
+
+| File | Path from Repo | Description |
+|------|-----------|-------------|
+| gitolite.conf | /conf/ | The guild's gitolite configuration file. Sets permissions for all users and repositories. |
+| *.pub | /keydir/ | The guild's member's public ssh keys. For gitolite authentication. |
+
+##### (Mostly) Standard Documents
+
+The goal of this first release of gitguild is to reach open source developers. Conversion of existing projects is a high priority, and so we've stayed as close to "standards" of open source development as possible. The [GNU standards](https://www.gnu.org/prep/standards/standards.html) were inspirational but not strictly followed.
+
+| File | Path from Repo | Description |
+|------|-----------|-------------|
+| AUTHORS | / | The guild's member registry. All members must register here. |
+| VERSION | / | The guild's version. Differ from gitguild software version. |
+| CHANGELOG.md | / | A log of material changes. |
+| CONTRIBUTING.md | / | Entry document to legal terms of participation and contribution. Any/all others should link from here. |
+
+##### Unique Guild Documents
+
+| File | Path from Repo | Description |
+|------|-----------|-------------|
+| GUILD | / | The guild's description file. Highest level summary data. |
+| * | /ledger/ | The guild's accounting and voting records. (ledger-cli data) |
+| * | /template/ | The guild's transaction templates. (patch files) |
 
 ## Ledger Entries
 
 __This section is still planned...__
 
-### Record a Payment
+## CLI
 
-__This section is still planned...__
+This program is a command line suppliment to git. More effort was put into the help menus than this documentation, so far. ;)
 
 ```
-gg add payment --amount 1 --currency "BTC" --txid "..." --user "Bob" --role "contributor" --reference "PR #27"
+	gitguild           	A helpful blockchain in a script.
+
+	Usage:
+		gitguild user	Manage your gitguild user.
+		gitguild tx	    build and check transactions.
+		gitguild push	git push with extra checks and remotes.
+		gitguild setup	Install pre-requisites and configure gitguild.
+		gitguild template	Create and list tx templates.
+		gitguild help		Show the general help.
+		gitguild version	Show the program version.
+
+	Options:
+		gitguild <cmd> -h	Show command help details.
 ```
-
-### Create a Bounty
-
-__This section is still planned...__
-
-gg add bounty --amount 1 --currency "BTC" --reference "issue #30"
-
-## File Structure
-
-For a repository to be conforming Git Guild, it must have the following file structure:
-
-| Location | Description |
-|----------|-------------|
-| .gg/     | Git Guild data directory |
-| .gg/charter.md | Charter for this repository |
-| .gg/members.csv  | Registry of members, public keys, and roles |
-| .gg/ledger.csv(.gpg) | A (encrypted?) ledger of accounts for this repository. Record of all credits, debits, and promises. |
-| .gg/contracts/ | Directory for contract templates. Signed contracts belong in the signing user's signature directory. |
-| .gg/contracts/$role.md  | Contract governing the responsibilities and benefits pertaining to the role named $role i.e. manager |
-| .gg/users/ | Directory for all user specific documents. |
-| .gg/users/$username/ | Directory storing all documents by the user with name $username |
-| .gg/users/$username/$document.asc | The user's signature for a document i.e. charter.md |
-
-So say we have a relatively simple repository like a website with a manager, two contributors and an arbitrator. Our members.csv might have content that looks like this:
-
-| Name | Roles | Keyfp | Status |
-|------|------|------------|--------|
-|Alice | Manager | 2E945FC151AED70B230AD4DBD811F669651AA3E9 | active |
-|Bob | Contributor | A5AE3894C77DBA19681C3C0B51DB916CBFF82D82 | active |
-|Clair | Contributor | 0A3888126FA9ACA155002C12F8644E58C2F901A8 | active |
-|Dean | Arbitrator | 606465EAE5A7ADDC237C93B9E09688F1B53995C8 | active |
-
-The charter might say something very simple like "The Manager had complete control over membership, the treasury, as well as veto power on Pull Requests (PRs). In case of a dispute, the Arbitrator will judge, and the loser will pay Arbitrator 10% of the recovered amount."
-
-Then each member, Alice, Bob, Clair, and Dean would sign `charter.md` and add the resulting file `charter.md.gpg` to their respective signature directories. Each must also sign the contract that corresponds to their role. For instance, Dean signs `arbitrator.md` and Alice signs `manager.md`. Finally, Alice must sign `roles.md`, as well as maintaining and signing `ledger.csv`.
-
-If all of these files are up to date, the repository is considered in good standing.

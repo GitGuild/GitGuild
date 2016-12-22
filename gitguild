@@ -635,7 +635,6 @@ handle_tpl_cmd() {
 }
 
 
-
 # create patch, preserving some privacy, and the LICENSE
 # $1 the before file or directory (default HEAD~1)
 # $2 the after file or directory (default HEAD of CWD)
@@ -659,7 +658,9 @@ create_patch() {
   fi
   # each patch should start with the license
   if [ -f "./LICENSE" ]; then
-    cat ./LICENSE | sed 's/^/# /'
+    cat ./LICENSE | sed 's/^/#/'
+    echo "#"
+    echo
   fi
   diff -cr -N $INPATH $OUTPATH -x .git -x *.patch | sed s,$INPATH,/old/,g | sed s,$OUTPATH,/new/,g
 }
