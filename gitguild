@@ -148,7 +148,7 @@ setup_gitolite() {
 GL_ADMIN_REPO                   =>  "isysd"/g' src/lib/Gitolite/Rc.pm
     sudo ./install -to /usr/lib/gitolite
     sudo ln -sf /usr/lib/gitolite/gitolite /usr/bin/gitolite
-    gitolite setup -pk $HOME/.ssh/$USER_NAME.pub
+    gitolite setup -pk $HOME/.ssh/$USER_NAME.pub -m "guild seeded w gitolite-admin template"
   fi
 }
 
@@ -176,15 +176,18 @@ setup_ident_repo() {
       url="file://$HOME/repositories/$USER_NAME.git"
     fi
     git clone $url $GG_DIR/$USER_NAME
+    cd $GG_DIR/$USER_NAME
     git checkout -b $USER_NAME
-    grep -rl "origin" .git | xargs sed -i s,origin,$USER_NAME,g
-    handle_tx_cmd build ./template/init_personal.patch
+    grep -rl "origin" $GG_DIR/$USER_NAME/.git | xargs sed -i s,origin,$USER_NAME,g
+    handle_tx_cmd build $GG_DIR/gitguild/template/init_personal.patch
+    git add -A
+    git commit -m "initialize identity guild"
     gg_push
   fi
 }
 
 setup_basics() {
-  git config commit.gpgsign true
+  git config --global commit.gpgsign true
   check_or_install_prereqs
   get_or_set_all_cfg_values
   setup_ssh
@@ -224,6 +227,7 @@ to clone repositories.)\n"
     setup_gitolite
     echo "Installed gitolite."
   fi
+  setup_gitguild_repo
   setup_ident_repo
 }
 
@@ -395,13 +399,14 @@ ensure_members_uniq() {
     emails=$( cat AUTHORS | grep -o ' [^ ]* ' | tr -d ' ' | sort | uniq | \
       wc -l )
     sigkeys=$( cat AUTHORS | grep -o '[^ ]*$' | sort | uniq | wc -l )
-    if [ "$total" != "$names" ]; then
+    # the following all have +1 due to the expected empty line before EOF
+    if [ "$total" != "$( expr $names + 1 )" ]; then
       echo "ERROR: found duplicate names" 1>&2
       exit 1
-    elif [ "$total" != "$emails" ]; then
+    elif [ "$total" != "$( expr $emails + 1 )" ]; then
       echo "ERROR: found duplicate emails" 1>&2
       exit 1
-    elif [ "$total" != "$sigkeys" ]; then
+    elif [ "$total" != "$( expr $sigkeys + 1 )" ]; then
       echo "ERROR: found duplicate sigkey" 1>&2
       exit 1
     fi
@@ -510,7 +515,11 @@ guess_template_param() {
     ;;
     version)
       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
-        cat VERSION
+        if [ -f VERSION ]; then
+          cat VERSION
+        else
+          echo "0.0.1"  # default starting version number
+        fi
       else
         git show $2:VERSION
       fi
@@ -562,9 +571,8 @@ handle_tx_cmd() {
       for p in $params; do
         cmd_str="$cmd_str $( build_param_replace_command $p $( guess_template_param $p HEAD) )"
       done
-      cmd_str="$cmd_str | patch -p2"
+      cmd_str="$cmd_str | patch -p2"  # TODO what p level to set?
       eval $cmd_str
-      exit
       ;;
     archive)
       archive_tx_ledger
@@ -612,11 +620,9 @@ handle_tpl_cmd() {
     create)
       shift 1
       create_patch $@
-      exit
       ;;
     list)
       ls ./template/*.patch
-      exit
       ;;
     *)
       cmdl="$( subcommand_usage_line create Create a stub template for future \
@@ -644,7 +650,7 @@ create_patch() {
     cp -fR ./* /tmp/gitguild_working_dir/
     OLD_TOO_MANY_DIRS=$( pwd )
     cd /tmp/gitguild_working_dir
-    git checkout $headm1
+    $( git checkout $headm1 )
     cd $OLD_TOO_MANY_DIRS
     INPATH="/tmp/gitguild_working_dir"
   fi
@@ -653,7 +659,7 @@ create_patch() {
   fi
   # each patch should start with the license
   if [ -f "./LICENSE" ]; then
-    cat ./LICENSE
+    cat ./LICENSE | sed 's/^/# /'
   fi
   diff -cr -N $INPATH $OUTPATH -x .git -x *.patch | sed s,$INPATH,/old/,g | sed s,$OUTPATH,/new/,g
 }
