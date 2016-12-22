@@ -18,7 +18,7 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/AUTHORS /new/AUTHORS
+SOFTWARE.diff -cr -N -x .git -x '*.patch' /old/AUTHORS /new/AUTHORS
 *** /old/AUTHORS	1969-12-31 19:00:00.000000000 -0500
 --- /new/AUTHORS	2016-12-21 19:15:05.011980080 -0500
 ***************
@@ -26,7 +26,7 @@ SOFTWARE.diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/AUTHORS /n
 --- 1,2 ----
 + <<< user_name >>> <<< user_email >>> <<< user_signingkey >>>
 + 
-diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/CHANGELOG.md /new/CHANGELOG.md
+diff -cr -N -x .git -x '*.patch' /old/CHANGELOG.md /new/CHANGELOG.md
 *** /old/CHANGELOG.md	1969-12-31 19:00:00.000000000 -0500
 --- /new/CHANGELOG.md	2016-12-21 19:15:04.975980081 -0500
 ***************
@@ -48,8 +48,8 @@ diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/CHANGELOG.md /new/C
 + 
 + *   Install and configure gitguild
 + *   Register patch
-diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/conf/gitolite.conf /new/conf/gitolite.conf
-*** /old/conf/gitolite.conf	2016-12-21 20:30:25.359899129 -0500
+diff -cr -N -x .git -x '*.patch' /old/conf/gitolite.conf /new/conf/gitolite.conf
+*** /old/conf/gitolite.conf	2016-12-22 11:48:07.636856356 -0500
 --- /new/conf/gitolite.conf	2016-12-21 19:15:05.011980080 -0500
 ***************
 *** 1,5 ****
@@ -62,7 +62,7 @@ diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/conf/gitolite.conf 
   repo isysd
 !     RW     =   isysd
   
-diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/CONTRIBUTING.md /new/CONTRIBUTING.md
+diff -cr -N -x .git -x '*.patch' /old/CONTRIBUTING.md /new/CONTRIBUTING.md
 *** /old/CONTRIBUTING.md	1969-12-31 19:00:00.000000000 -0500
 --- /new/CONTRIBUTING.md	2016-12-21 19:15:05.011980080 -0500
 ***************
@@ -71,7 +71,7 @@ diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/CONTRIBUTING.md /ne
 + # A GitGuild Project
 + 
 + This project uses [GitGuild](https://github.com/GitGuild/gitguild-cli) software to govern itself and all contributions. Please install the client to ensure you meet the strict configuration and usage requirements.
-diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/GUILD /new/GUILD
+diff -cr -N -x .git -x '*.patch' /old/GUILD /new/GUILD
 *** /old/GUILD	1969-12-31 19:00:00.000000000 -0500
 --- /new/GUILD	2016-12-21 19:15:05.011980080 -0500
 ***************
@@ -82,7 +82,7 @@ diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/GUILD /new/GUILD
 + LAST_TRANSACTION <<< last_transaction >>>
 + EPOCH_TIME <<< epoch >>>
 + 
-diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/ledger/account.ledger /new/ledger/account.ledger
+diff -cr -N -x .git -x '*.patch' /old/ledger/account.ledger /new/ledger/account.ledger
 *** /old/ledger/account.ledger	1969-12-31 19:00:00.000000000 -0500
 --- /new/ledger/account.ledger	2016-12-21 19:15:04.975980081 -0500
 ***************
@@ -132,7 +132,7 @@ diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/ledger/account.ledg
 + account <<< user_name >>>:Equity:register:<<< parent >>>
 + 
 + 
-diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/ledger/chain.ledger /new/ledger/chain.ledger
+diff -cr -N -x .git -x '*.patch' /old/ledger/chain.ledger /new/ledger/chain.ledger
 *** /old/ledger/chain.ledger	1969-12-31 19:00:00.000000000 -0500
 --- /new/ledger/chain.ledger	2016-12-21 19:15:04.975980081 -0500
 ***************
@@ -144,7 +144,7 @@ diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/ledger/chain.ledger
 + !include equity.ledger
 + !include transaction.ledger
 + !include check.ledger
-diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/ledger/check.ledger /new/ledger/check.ledger
+diff -cr -N -x .git -x '*.patch' /old/ledger/check.ledger /new/ledger/check.ledger
 *** /old/ledger/check.ledger	1969-12-31 19:00:00.000000000 -0500
 --- /new/ledger/check.ledger	2016-12-21 19:15:04.975980081 -0500
 ***************
@@ -176,7 +176,7 @@ diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/ledger/check.ledger
 + check branch_vote_check("<<< guild_name >>>", "<<< guild_name >>>", "<<< guild_name >>>")
 + check user_issue_vote_check("<<< guild_name >>>", "<<< guild_name >>>", "<<< guild_name >>>", "<<< vote_parent >>>")
 + 
-diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/ledger/commodity.ledger /new/ledger/commodity.ledger
+diff -cr -N -x .git -x '*.patch' /old/ledger/commodity.ledger /new/ledger/commodity.ledger
 *** /old/ledger/commodity.ledger	1969-12-31 19:00:00.000000000 -0500
 --- /new/ledger/commodity.ledger	2016-12-21 19:15:04.975980081 -0500
 ***************
@@ -201,7 +201,14 @@ diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/ledger/commodity.le
 +    note See bitcoin.org
 +    format 1,000.00000000 BTC
 +    nomarket
-diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/ledger/tag.ledger /new/ledger/tag.ledger
+diff -cr -N -x .git -x '*.patch' /old/ledger/equity.ledger /new/ledger/equity.ledger
+*** /old/ledger/equity.ledger	1969-12-31 19:00:00.000000000 -0500
+--- /new/ledger/equity.ledger	2016-12-22 11:31:26.964874276 -0500
+***************
+*** 0 ****
+--- 1 ----
++ # This file should have an 'equity' summary of all history up to the parent commit.
+diff -cr -N -x .git -x '*.patch' /old/ledger/tag.ledger /new/ledger/tag.ledger
 *** /old/ledger/tag.ledger	1969-12-31 19:00:00.000000000 -0500
 --- /new/ledger/tag.ledger	2016-12-21 19:15:04.975980081 -0500
 ***************
@@ -225,7 +232,7 @@ diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/ledger/tag.ledger /
 + ; patch template/register/ledger/transaction.ledger ledger/transaction.ledger
 + ; patch template/init/personal/AUTHORS  AUTHORS
 + 
-diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/ledger/transaction.ledger /new/ledger/transaction.ledger
+diff -cr -N -x .git -x '*.patch' /old/ledger/transaction.ledger /new/ledger/transaction.ledger
 *** /old/ledger/transaction.ledger	1969-12-31 19:00:00.000000000 -0500
 --- /new/ledger/transaction.ledger	2016-12-21 19:15:04.975980081 -0500
 ***************
@@ -237,3 +244,10 @@ diff -cr --unidirectional-new-file -x .git -x '*.patch' /old/ledger/transaction.
 +     <<< user_name >>>:Height:<<< user_name >>>:<<< user_name >>>:<<< parent >>>    1 XP
 +     <<< user_name >>>:Depth:<<< user_name >>>:<<< user_name >>>:<<< parent >>>    -1 XP
 + 
+diff -cr -N -x .git -x '*.patch' /old/VERSION /new/VERSION
+*** /old/VERSION	1969-12-31 19:00:00.000000000 -0500
+--- /new/VERSION	2016-12-22 11:36:33.260868791 -0500
+***************
+*** 0 ****
+--- 1 ----
++ <<< version >>>

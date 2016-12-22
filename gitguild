@@ -27,17 +27,17 @@ PROG_NAME=$( echo $0 | grep -o "[^/]*$" )
 COMMAND=$1
 
 # Git user configuration is a pre-requisite of this script.
-USER_NAME=`git config user.name`
-USER_EMAIL=`git config user.email`
-USER_SIGNINGKEY=`git config user.signingkey`
+USER_NAME=$( git config user.name )
+USER_EMAIL=$( git config user.email )
+USER_SIGNINGKEY=$( git config user.signingkey )
 USER_IS_CONFIGURED=true
 
 # default working directory, where repos are cloned
 GG_DIR=$HOME"/gitguild"
 
 # Normally this should be run inside such a git repo
-GIT_DIR=`readlink -f \$( git rev-parse -q --git-dir )| grep -o ".*[^.git]"`
-ORIG_CWD=`pwd`
+GIT_DIR=$( readlink -f $( git rev-parse -q --git-dir )| grep -o ".*[^.git]" )
+ORIG_CWD=$( pwd )
 
 # change to the git dir for the duration of the script
 if [ -d "$GIT_DIR" ]; then
@@ -52,16 +52,13 @@ USAGE_PREAMBLE="
 
 \tUsage:
 "
-GENERAL_USAGE="\t\t$PROG_NAME <cmd> -h\tCommand help
-\t\t$PROG_NAME -h|--help
-\t\t$PROG_NAME --version
+GENERAL_USAGE="\t\t$PROG_NAME help\t\tShow the general help.
+\t\t$PROG_NAME version\tShow the program version.
 
 \tOptions:
 "
 
-USAGE_SUFFIX="\t\t-h|--help\t\tShow a help message, like this one.
-\t\t--version\t\tShow the program version.
-"
+USAGE_SUFFIX="\t\t$PROG_NAME <cmd> -h\tShow command help details."
 
 command_usage_line() {
   echo "\t\t$PROG_NAME $COMMAND\t$@"
@@ -96,7 +93,7 @@ check_or_install_prereqs() {
   ledger=$( which ledger )
   if [ "$ledger" = "" ]; then
     # install missing ledger... assuming ubuntu for now
-    releasestr=`cat /etc/*-release`
+    releasestr=$( cat /etc/*-release )
     if [ "$( echo '$releasestr' | grep 'Ubuntu' )" != "" ]; then
       echo "install ledger from PPA?"
       read ledgerppa
@@ -155,6 +152,20 @@ GL_ADMIN_REPO                   =>  "isysd"/g' src/lib/Gitolite/Rc.pm
   fi
 }
 
+# $1 is optional remote to clone from. Assumed to be isysd's github for now.
+setup_gitguild_repo() {
+  if [ ! -d "$GG_DIR/gitguild" ]; then
+    mkdir -p $GG_DIR
+    if [ "$1" != "" ]; then
+      url="https://github.com/isysd/gitguild-cli.git"
+    else
+      url=$1
+    fi
+    git clone $url $GG_DIR/gitguild
+    grep -rl "origin" $GG_DIR/gitguild/.git | xargs sed -i s,origin,isysd,g
+  fi
+}
+
 # $1 is optional remote to clone from. Assumed to be $HOME/repositories
 setup_ident_repo() {
   if [ ! -d "$GG_DIR/$USER_NAME" ]; then
@@ -165,6 +176,10 @@ setup_ident_repo() {
       url="file://$HOME/repositories/$USER_NAME.git"
     fi
     git clone $url $GG_DIR/$USER_NAME
+    git checkout -b $USER_NAME
+    grep -rl "origin" .git | xargs sed -i s,origin,$USER_NAME,g
+    handle_tx_cmd build ./template/init_personal.patch
+    gg_push
   fi
 }
 
@@ -269,7 +284,7 @@ user_cfg_error() {
 # $1 is the username to search for
 guess_cfg_from_authors_by_name() {
   if [ -f ./AUTHORS ]; then
-    cfginfo=`grep "$1" ./AUTHORS`
+    cfginfo=$( grep "$1" ./AUTHORS )
     if [ "$cfginfo" != "" ]; then
       USER_EMAIL="$( echo $cfginfo | grep -o ' [^ ]* ' | tr -d ' ' )"
       git config --global --add user.email $USER_EMAIL
@@ -281,11 +296,11 @@ guess_cfg_from_authors_by_name() {
 
 print_sig_guesses() {
   if [ "$USER_EMAIL" != "" ]; then
-    keylist=`gpg --list-secret-keys --fast-list-mode $USER_EMAIL | grep sec | \
-      grep -o "[A-Z0-9]\{8\} "`
+    keylist=$( gpg --list-secret-keys --fast-list-mode $USER_EMAIL | grep sec | \
+      grep -o "[A-Z0-9]\{8\} " )
   elif [ "$USER_NAME" != "" ]; then
-    keylist=`gpg --list-secret-keys --fast-list-mode $USER_NAME | grep sec | \
-      grep -o "[A-Z0-9]\{8\} "`
+    keylist=$( gpg --list-secret-keys --fast-list-mode $USER_NAME | grep sec | \
+      grep -o "[A-Z0-9]\{8\} " )
   fi
   if [ "$keylist" != "" ]; then
     echo "Detected one or more keys matching your name or email."
@@ -447,37 +462,70 @@ build_param_replace_command() {
   echo " | sed 's/<<< $1 >>>/$2/g'"
 }
 
+# $1 is a param to guess
+# $2 is a commit hash or HEAD where the tx is described
 guess_template_param() {
   case $1 in
     user_name)
-      echo "$USER_NAME"
+      if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
+        echo "$USER_NAME"
+      else
+        git log -n 1 $s~.. --pretty="%cn"
+      fi
     ;;
     user_email)
-      echo "$USER_EMAIL"
+      if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
+        echo "$USER_EMAIL"
+      else
+        git log -n 1 $s~.. --pretty="%ce"
+      fi
     ;;
     user_signingkey)
-      echo "$USER_SIGNINGKEY"
+      if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
+        echo "$USER_SIGNINGKEY"
+      else
+        git log -n 1 $s~.. --pretty="%GK"
+      fi
     ;;
     date)
-      DATE=`date -u +%F`
-      echo "$DATE"
+      if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
+        date -u +%F
+      else
+        date -u +%F --date='@$( git log -n 1 $s~.. --pretty="%ct" )'
+      fi
     ;;
     epoch)
-      EPOCH=`date +%s`
-      echo "$EPOCH"
+      if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
+        date -u +%s
+      else
+        git log -n 1 $s~.. --pretty="%ct"
+      fi
     ;;
     vote_parent|parent)
-      # TODO separate vote_parent out
-      PARENT_HASH=`git log HEAD~.. --pretty="%H"`
-      echo "$PARENT_HASH"
+      if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
+        git log HEAD --pretty="%H"
+      else
+        git log -n 1 $2~~.. --pretty="%H"
+      fi
+    ;;
+    version)
+      if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
+        cat VERSION
+      else
+        git show $2:VERSION
+      fi
     ;;
     guild_name)
-      GUILD_NAME=`head -n 1 GUILD | grep -o "[^NAME].*" | tr -d " "`
-      echo "$GUILD_NAME"
+      if [ ! -f GUILD ]; then
+        # assume we're at initialization phase of personal guild
+        echo $USER_NAME
+      else # otherwise it must exist and never change!
+        head -n 1 GUILD | grep -o "[^NAME ].*"
+      fi
     ;;
     height)
       if [ -d ledger ]; then
-        echo "TODO print and filter ledger output"
+        ledger -f ledger/chain.ledger bal $USER_NAME:Height
       else
          echo 1
       fi
@@ -501,20 +549,47 @@ get_template_params() {
 }
 
 # $1 is now sub-command (build, check)
-# $2 is a template
 handle_tx_cmd() {
   case $1 in
     check)
       get_template_params $2
       ;;
     build)
+      # $2 is a template
+      archive_tx_ledger
       params=$( get_template_params $2 )
       cmd_str="cat $2"
       for p in $params; do
-        cmd_str="$cmd_str $( build_param_replace_command $p $( guess_template_param $p ) )"
+        cmd_str="$cmd_str $( build_param_replace_command $p $( guess_template_param $p HEAD) )"
       done
       cmd_str="$cmd_str | patch -p2"
       eval $cmd_str
+      exit
+      ;;
+    archive)
+      archive_tx_ledger
+      ;;
+    reset)
+      # $2 is an optional flag to pass to git clean
+      flag="-i"
+      if [ "$2" != "" ]; then
+        flag=$2
+      fi
+      git clean $flag -d
+      git reset --hard HEAD
+      git reset --hard HEAD~1
+      git pull
+      ;;
+    *)
+      cmdl="$( subcommand_usage_line check Check the tx at HEAD or the given \
+commit hash. )\n"
+      cmdl="$cmdl$( subcommand_usage_line archive Archive any current transactions \
+\(put in equity.ledger\). )\n"
+      cmdl="$cmdl$( subcommand_usage_line build \<template\> Build the given tx \
+template. )\n"
+      cmdl="$cmdl$( subcommand_usage_line clean Clean and reset to latest )\n"
+
+      echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
       exit
       ;;
   esac
@@ -523,10 +598,9 @@ handle_tx_cmd() {
 archive_tx_ledger() {
   if [ -f ledger/transaction.ledger ] && \
      [ "$( cat ledger/transaction.ledger )" != "" ]; then
-    ledger -C -f ledger/chain.ledger equity > ledger/equity.ledger
-    sed -i 's/ Opening Balances/ * Cleared Balances/g' ledger/equity.ledger
-    ledger -U -f ledger/chain.ledger equity >> ledger/equity.ledger
-    sed -i 's/Opening Balances/Uncleared Balances/g' ledger/equity.ledger
+    echo "# This file should have an 'equity' summary of all history up to the parent commit." > ledger/equity.ledger
+    ledger -C -f ledger/chain.ledger equity | sed 's/ Opening Balances/ * Cleared Balances/g' >> ledger/equity.ledger
+    ledger -U -f ledger/chain.ledger equity | sed 's/Opening Balances/Uncleared Balances/g' >> ledger/equity.ledger
     echo '' > ledger/transaction.ledger
   fi
 }
@@ -563,7 +637,7 @@ create_patch() {
   INPATH=$1
   OUTPATH=$2
   if [ "$1" = "" ]; then
-    headm1=$( git log HEAD~.. --pretty="%H" )
+    headm1=$( git log HEAD --pretty="%H" )
     rm -fR /tmp/gitguild_working_dir
     mkdir /tmp/gitguild_working_dir
     cp -fR ./.git /tmp/gitguild_working_dir/
@@ -581,24 +655,45 @@ create_patch() {
   if [ -f "./LICENSE" ]; then
     cat ./LICENSE
   fi
-  diff -cr --unidirectional-new-file $INPATH $OUTPATH -x .git -x *.patch | sed s,$INPATH,/old/,g | sed s,$OUTPATH,/new/,g
+  diff -cr -N $INPATH $OUTPATH -x .git -x *.patch | sed s,$INPATH,/old/,g | sed s,$OUTPATH,/new/,g
+}
+
+# $1 remote name to check
+use_gitolite_push() {
+  if [ "$( git remote get-url $1 | grep \"file://\")" != "" ] && [ "$( which gitolite )" != "" ]; then
+    echo 1
+  else
+    echo 0
+  fi
 }
 
 ### push
 gg_push() {
-  branch=`git branch | grep "\*" | tr -d "* "`
-  if [ "$branch" = $USER_NAME ]; then
-    git push $USER_NAME $branch
+  branch=$( git branch | grep "\*" | tr -d "* " )
+  if [ "$branch" = "$USER_NAME" ]; then
+    if [ $( use_gitolite_push $USER_NAME ) ]; then
+      gitolite push $USER_NAME $branch
+    else
+      git push $USER_NAME $branch
+    fi
     git checkout master
     git merge $USER_NAME
-    git push $USER_NAME master
+    if [ $( use_gitolite_push $USER_NAME ) ]; then
+      gitolite push $USER_NAME master
+    else
+      git push $USER_NAME master
+    fi
     git checkout $USER_NAME
   else
     echo "You are not on your own branch. Are you sure you want to push?"
     read writeob
     echo
     if [ "$( echo '$writeob' | grep '[yY].*' )" != "" ]; then
-      git push $USER_NAME $branch
+      if [ $( use_gitolite_push $USER_NAME ) ]; then
+        gitolite push $USER_NAME $branch
+      else
+        git push $USER_NAME $branch
+      fi
     fi
   fi
 }
@@ -608,7 +703,7 @@ gg_pull() {
   git pull $USER_NAME
 
   ### commit
-  branch=`git branch | grep "\*" | tr -d "* "`
+  branch=$(  git branch | grep "\*" | tr -d "* " )
   docommit=false
   if [ $1 = "" ]; then
     1="automated gitguild commit"
@@ -617,7 +712,7 @@ gg_pull() {
     # assumes $1 is the commit message
     docommit=true
   else
-    istransaction=`git status | grep "modified:[ ]*ledger/transaction.ledger"`
+    istransaction=$( git status | grep "modified:[ ]*ledger/transaction.ledger" )
     if [ "$istransaction" != "" ]; then
       echo "You are not on your own branch. Are you sure you want to commit this transaction?"
       read writeob
@@ -639,33 +734,35 @@ case $1 in
   setup)
     shift 1
     handle_setup_cmd $@
-  ;;
+    ;;
   tx)
     shift 1
     handle_tx_cmd $@
-  ;;
+    ;;
   template)
     shift 1
     handle_tpl_cmd $@
-  ;;
+    ;;
   push)
     shift 1
     gg_push
-  ;;
+    ;;
+  version|--version)
+    cat VERSION
+    ;;
   *)
     ORIG_COMMAND=$COMMAND
     COMMAND="user"
     cmdl="$( command_usage_line Manage your gitguild user.)\n"
     COMMAND="tx"
-    cmdl="$cmdl$( command_usage_line Create, and check transactions.)\n"
+    cmdl="$cmdl$( command_usage_line build and check transactions.)\n"
     COMMAND="push"
     cmdl="$cmdl$( command_usage_line git push with extra checks and remotes. )\n"
-    COMMAND="create-patch"
-    cmdl="$cmdl$( command_usage_line \<before-path\> \<after-path\> )\n"
     COMMAND="setup"
     cmdl="$cmdl$( command_usage_line Install pre-requisites and configure gitguild.)\n"
+    COMMAND="template"
+    cmdl="$cmdl$( command_usage_line Create and list tx templates. )\n"
     echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
     exit
-  ;;
+   ;;
 esac
-
