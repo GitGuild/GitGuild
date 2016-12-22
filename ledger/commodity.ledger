@@ -1,0 +1,9 @@
+commodity XP
+   note Experience Points, used for voting on members and issues
+   format 1,000.00 XP
+   nomarket
+
+commodity XGG
+   note Guild token of value. Transferable and potentially redeemable.
+   format 1,000.0000 XGG
+   nomarket

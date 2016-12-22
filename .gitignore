@@ -1,38 +1,19 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
 # C extensions
 *.so
 
 # Distribution / packaging
-.Python
 env/
 build/
+src/build/
 develop-eggs/
+src/develop-eggs/
 dist/
+src/dist/
 downloads/
-eggs/
-.eggs/
-lib/
 lib64/
 parts/
 sdist/
 var/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
 
 # Unit test / coverage reports
 htmlcov/
@@ -45,24 +26,28 @@ coverage.xml
 *,cover
 .hypothesis/
 
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-
-#Ipython Notebook
-.ipynb_checkpoints
-
-# temporary files
+# temporary and working files
 *~
+.idea
 
-# gg configuration
+# old gg configuration
 gg.ini
+gg.ini*
+
+# backup files
+*.bak
+
+Makefile.in
+configure
+compile
+aclocal.m4
+autom4te.cache
+depcomp
+config.status
+
+# autotools disabled for now
+#Makefile
+Makefile.am
+configure.ac
+*.in
+template/back

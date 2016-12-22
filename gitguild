@@ -1,0 +1,778 @@
+#!/bin/sh
+#MIT License
+#
+#Copyright (c) 2016 GitGuild developers
+#
+#Permission is hereby granted, free of charge, to any person obtaining a copy
+#of this software and associated documentation files (the "Software"), to deal
+#in the Software without restriction, including without limitation the rights
+#to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#copies of the Software, and to permit persons to whom the Software is
+#furnished to do so, subject to the following conditions:
+#
+#The above copyright notice and this permission notice shall be included in all
+#copies or substantial portions of the Software.
+#
+#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#SOFTWARE.
+
+# Save $0 so we can shift
+# $1 must be a cmd.
+PROG_NAME=$( echo $0 | grep -o "[^/]*$" )
+COMMAND=$1
+
+# Git user configuration is a pre-requisite of this script.
+USER_NAME=$( git config user.name )
+USER_EMAIL=$( git config user.email )
+USER_SIGNINGKEY=$( git config user.signingkey )
+USER_IS_CONFIGURED=true
+
+# default working directory, where repos are cloned
+GG_DIR=$HOME"/gitguild"
+
+# Normally this should be run inside such a git repo
+GIT_DIR=$( readlink -f $( git rev-parse -q --git-dir )| grep -o ".*[^.git]" )
+ORIG_CWD=$( pwd )
+
+# change to the git dir for the duration of the script
+if [ -d "$GIT_DIR" ]; then
+  cd $GIT_DIR
+fi
+
+
+#--------------CLI Helpers-----------------------
+
+USAGE_PREAMBLE="
+\t$PROG_NAME\tA helpful blockchain in a script.
+
+\tUsage:
+"
+GENERAL_USAGE="\t\t$PROG_NAME help\t\tShow the general help.
+\t\t$PROG_NAME version\tShow the program version.
+
+\tOptions:
+"
+
+USAGE_SUFFIX="\t\t$PROG_NAME <cmd> -h\tShow command help details."
+
+command_usage_line() {
+  echo "\t\t$PROG_NAME $COMMAND\t$@"
+}
+subcommand_usage_line() {
+  SUBCMD=$1
+  shift
+  echo "\t\t$PROG_NAME $COMMAND\t$SUBCMD\t$@"
+}
+# $1 the arg string
+# $2 the help
+command_option_line() {
+  OPTSTR=$1
+  shift 1
+  echo "\t\t$OPTSTR\t\t$@"
+}
+
+
+
+#--------Checks, setup, and installation helpers----------
+# These should probably be part of the autotools files.
+# On the other hand, other packages did or didn't use autotools already.
+# This helper script is meant to suppliment during the alpha phase.
+
+check_or_install_prereqs() {
+  gpg=$( which gpg )
+  if [ "$gpg" = "" ]; then
+    # install missing gpg... assuming ubuntu for now
+    sudo apt-get install gnupg2
+  fi
+
+  ledger=$( which ledger )
+  if [ "$ledger" = "" ]; then
+    # install missing ledger... assuming ubuntu for now
+    releasestr=$( cat /etc/*-release )
+    if [ "$( echo '$releasestr' | grep 'Ubuntu' )" != "" ]; then
+      echo "install ledger from PPA?"
+      read ledgerppa
+      echo
+      if [ "$( echo '$ledgerppa' | grep '[yY].*' )" != "" ]; then
+        sudo add-apt-repository ppa:mbudde/ledger
+        sudo apt-get update
+        sudo apt-get install ledger
+      fi
+    # TODO other distros and OSes
+    fi
+  fi
+}
+
+setup_ssh() {
+  # create and/or arrange ssh keys
+  ssh=$( which ssh )
+  if [ "$ssh" = "" ]; then
+    # install missing ssh... assuming ubuntu for now
+    sudo apt-get install ssh
+  fi
+
+  if [ -f $HOME/.ssh/$USER_NAME.pub ]; then
+    echo "found ssh key to use $HOME/.ssh/$USER_NAME.pub"
+  elif [ -f $HOME/.ssh/id_rsa.pub ]; then
+    # create symbolic links from username keys to id_rsa keys
+    echo "found default id_rsa.pub ssh key to use, making a symbolic link with \
+    username"
+    ln -sf $HOME/.ssh/id_rsa $HOME/.ssh/$USER_NAME
+    ln -sf $HOME/.ssh/id_rsa.pub $HOME/.ssh/$USER_NAME.pub
+  else
+    ssh-keygen -t rsa -b 4096 -C "$USER_EMAIL" -f $HOME/.ssh/$USER_NAME
+  fi
+}
+
+# Optional for now, but gitolite is the server of choice for gitguild.
+# Gitguild will build toward a p2p architecture where all users
+# will run gitolite on their primary devices.
+setup_gitolite() {
+  # check for gitguild-style gitolite installation
+  if [ ! -d /usr/lib/gitolite ]; then
+    # install gitolite
+    cd /tmp
+    # otherwise this probably was just cloned...
+    if [ ! -d gitolite ]; then
+      # use isysd branch pending gitolite-admin rename PR
+      git clone https://github.com/isysd/gitolite.git
+    fi
+    cd gitolite
+    sudo mkdir -p /usr/lib/gitolite
+    sed -z -i.bak "s/# GL_ADMIN_REPO                   =>  \"gitolite-admin\"/ \
+GL_ADMIN_REPO                   =>  \""$USER_NAME"\"/g" src/lib/Gitolite/Rc.pm
+    sudo ./install -to /usr/lib/gitolite
+    sudo ln -sf /usr/lib/gitolite/gitolite /usr/bin/gitolite
+    gitolite setup -pk $HOME/.ssh/$USER_NAME.pub -m "guild seeded w gitolite-admin template"
+    # install once to get proper .rc file then again to implement it...
+    rm -fR ~/repositories ~/.gitolite
+    gitolite setup -pk $HOME/.ssh/$USER_NAME.pub -m "guild seeded w gitolite-admin template"
+  fi
+}
+
+# $1 is optional remote to clone from. Assumed to be isysd's github for now.
+setup_gitguild_repo() {
+  if [ ! -d "$GG_DIR/gitguild" ]; then
+    mkdir -p $GG_DIR
+    if [ "$1" != "" ]; then
+      url="https://github.com/isysd/gitguild-cli.git"
+    else
+      url=$1
+    fi
+    git clone $url $GG_DIR/gitguild
+    grep -rl "origin" $GG_DIR/gitguild/.git | xargs sed -i s,origin,isysd,g
+  fi
+}
+
+# $1 is optional remote to clone from. Assumed to be $HOME/repositories
+setup_ident_repo() {
+  if [ ! -d "$GG_DIR/$USER_NAME" ]; then
+    mkdir -p $GG_DIR
+    if [ "$1" != "" ]; then
+      url=$1
+    else
+      url="file://$HOME/repositories/$USER_NAME.git"
+    fi
+    git clone $url $GG_DIR/$USER_NAME
+    cd $GG_DIR/$USER_NAME
+    git checkout -b $USER_NAME
+    grep -rl "origin" $GG_DIR/$USER_NAME/.git | xargs sed -i s,origin,$USER_NAME,g
+    handle_tx_cmd build $GG_DIR/gitguild/template/init_personal.patch
+    git add -A
+    git commit -m "initialize identity guild"
+    gg_push
+  fi
+}
+
+setup_basics() {
+  git config --global commit.gpgsign true
+  check_or_install_prereqs
+  get_or_set_all_cfg_values
+  setup_ssh
+}
+
+handle_setup_cmd() {
+  USE_GITOLITE=false
+  while [ "$1" != "" ]; do
+    case $1 in
+#      repo|--repo)
+#        echo "TODO set up remotes and hooks when called inside repo"
+#        exit 1
+#      ;;
+      --gitolite|-g)
+        USE_GITOLITE=true
+      ;;
+      --work-dir|-w)
+        shift 1
+        GG_DIR=$1
+      ;;
+      help|--help|h|-h)
+        cmdl="$( subcommand_usage_line repo set up remotes and hooks from \
+inside git repo)\n"
+        optl="$( command_option_line -g\|--gitolite Install \
+the gitolite server.)\n"
+        optl="$optl$( command_option_line -w\|--work-dir Working directory \
+to clone repositories.)\n"
+        echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$optl$USAGE_SUFFIX"
+        exit
+      ;;
+    esac
+    shift 1
+  done
+  setup_basics
+  echo "Basics set up for local use."
+  if [ "$USE_GITOLITE" = true ]; then
+    setup_gitolite
+    echo "Installed gitolite."
+  fi
+  setup_gitguild_repo
+  setup_ident_repo
+}
+
+# $1 the name of the guild to change to
+# remaining params in standard optional format. See help.
+change_guild_dir() {
+  GNAME=$1
+  shift 1
+  while [ "$1" != "" ]; do
+    case $1 in
+      --work-dir|-w)
+        shift 1
+        GG_DIR=$1
+      ;;
+    esac
+    shift 1
+  done
+  cd $GG_DIR/$GNAME
+}
+
+#-----------config-user prep and command section--------------------------
+
+gpgkeygen() {
+  echo "The gpg --gen-key walk-through is about to be run."
+  echo "For GitGuild to function, a dual key (RSA and RSA or DSA and Elgamal)"
+  echo "is required. Other parameters (name, email) should match your"
+  echo "git identity."
+  echo
+  echo "It is highly recommended to create a passphrase for your security!"
+  echo "Your passphrase is what stops someone using your machine"
+  echo "from stealing your identity."
+  echo "Use a strong password, back it up and create a revocation key."
+  echo
+  echo "The developers recommend using a free and open source password manager."
+  echo "The pass program is used internally, and if you like the command line,"
+  echo "it could be for you even outside of gitguild."
+  echo ""
+  echo "OK, ready to generate keys?"
+  read readyono
+  echo
+  if [ "$( echo '$readyono' | grep '[yY].*' )" != "" ]; then
+      gpg --gen-key
+  else
+    user_cfg_error "signingkey" "gpg key id"
+  fi
+}
+
+# $1 is the official git config format
+# $2 is the user understandable format
+user_cfg_error() {
+  echo "OK, to try setting your git $1 at any time, run:" 1>&2
+  echo 1>&2
+  echo "git config --global --add user.$1 <$2>" 1>&2
+  echo 1>&2
+  USER_IS_CONFIGURED=false
+}
+
+# $1 is the username to search for
+guess_cfg_from_authors_by_name() {
+  if [ -f ./AUTHORS ]; then
+    cfginfo=$( grep "$1" ./AUTHORS )
+    if [ "$cfginfo" != "" ]; then
+      USER_EMAIL="$( echo $cfginfo | grep -o ' [^ ]* ' | tr -d ' ' )"
+      git config --global --add user.email $USER_EMAIL
+      USER_SIGNINGKEY="$( echo $cfginfo | grep -o '[^ ]*$' )"
+      git config --global --add user.signingkey $USER_SIGNINGKEY
+    fi
+  fi
+}
+
+print_sig_guesses() {
+  if [ "$USER_EMAIL" != "" ]; then
+    keylist=$( gpg --list-secret-keys --fast-list-mode $USER_EMAIL | grep sec | \
+      grep -o "[A-Z0-9]\{8\} " )
+  elif [ "$USER_NAME" != "" ]; then
+    keylist=$( gpg --list-secret-keys --fast-list-mode $USER_NAME | grep sec | \
+      grep -o "[A-Z0-9]\{8\} " )
+  fi
+  if [ "$keylist" != "" ]; then
+    echo "Detected one or more keys matching your name or email."
+    echo "The one you want is probably among these."
+    echo $keylist
+    echo
+  elif [ "$USER_EMAIL" != "" ] && [ "$USER_NAME" != "" ]; then
+    echo "Could not detect a key matching your name or email."
+    echo
+    gpgkeygen
+  fi
+}
+
+# $1 the git config name of the field
+get_cfg_by_name() {
+  case $1 in
+    name)
+      echo "$USER_NAME"
+      ;;
+    email)
+      echo "$USER_EMAIL"
+      ;;
+    signingkey)
+      echo "$USER_SIGNINGKEY"
+      ;;
+  esac
+}
+
+# $1 the git config name of the field
+# $2 the value to set
+set_cfg_by_name() {
+  case $1 in
+    name)
+      USER_NAME=$2
+      ;;
+    email)
+      USER_EMAIL=$2
+      ;;
+    signingkey)
+      USER_SIGNINGKEY=$2
+      ;;
+  esac
+}
+
+# $1 is the official git config format of the field name 
+# $2 is the user understandable format
+get_or_set_cfg_value() {
+  if [ "$( get_cfg_by_name $1 )" = "" ]; then
+    echo "WARNING: Git user.$1 not configured."
+    echo
+    if [ "$1" != "name" ] && [ "$( get_cfg_by_name $1 )" = "" ]; then
+      # try to guess based on name
+      echo "guessing"
+      guess_cfg_from_authors_by_name $USER_NAME
+    fi
+    if [ "$( get_cfg_by_name $1 )" = "" ] && [ "$1" = "signingkey" ]; then
+      print_sig_guesses
+    elif [ "$1" = "signingkey" ]; then
+      return 
+    fi
+    if [ "$( get_cfg_by_name $1 )" = "" ]; then
+      echo "Please enter your git $1 followed by [ENTER]"
+      read userval
+      if [ "$userval" != "" ]; then
+        git config --global --add user.$1 $userval
+        echo
+        set_cfg_by_name $1 $userval
+      else
+        user_cfg_error $2 $3
+      fi
+    fi
+  fi
+}
+
+get_or_set_all_cfg_values() {
+  get_or_set_cfg_value "name" "user name"
+  get_or_set_cfg_value "email" "email"
+  get_or_set_cfg_value "signingkey" "gpg key id"
+}
+
+# This is a user-related check function that can be run at any point.
+# Exits with error status and message if members are not unique.
+ensure_members_uniq() {
+  if [ -f ./AUTHORS ]; then
+    USR_STR=$( grep "$USER_NAME $USER_EMAIL $USER_SIGNINGKEY" ./AUTHORS )
+    if [ "$USR_STR" != "$USER_NAME $USER_EMAIL $USER_SIGNINGKEY" ]; then
+      echo "ERROR: current user not found in AUTHORS" 1>&2
+      exit 1
+    fi
+    total=$( cat AUTHORS | wc -l )
+    names=$( cat AUTHORS | grep -o '^[^ ]*' | sort | uniq | wc -l )
+    emails=$( cat AUTHORS | grep -o ' [^ ]* ' | tr -d ' ' | sort | uniq | \
+      wc -l )
+    sigkeys=$( cat AUTHORS | grep -o '[^ ]*$' | sort | uniq | wc -l )
+    # the following all have +1 due to the expected empty line before EOF
+    if [ "$total" != "$( expr $names + 1 )" ]; then
+      echo "ERROR: found duplicate names" 1>&2
+      exit 1
+    elif [ "$total" != "$( expr $emails + 1 )" ]; then
+      echo "ERROR: found duplicate emails" 1>&2
+      exit 1
+    elif [ "$total" != "$( expr $sigkeys + 1 )" ]; then
+      echo "ERROR: found duplicate sigkey" 1>&2
+      exit 1
+    fi
+  else
+    echo "ERROR: unable to find the required AUTHORS file" 1>&2
+    exit 1
+  fi
+}
+
+
+#------- WARNING IMPLICIT SUB-COMMAND HANDLER---------
+# Directly references positional argument from user.
+# Unlike surrounding functions.
+# This is to ensure configuration before taking any other action.
+if [ "$1" = "user" ]; then
+  case $2 in
+    keygen)
+      gpgkeygen
+      setup_ssh
+      exit
+      ;;
+    unset)
+      git config --global --unset user.name
+      git config --global --unset user.email
+      git config --global --unset user.signingkey
+      exit
+      ;;
+    status)
+      get_or_set_all_cfg_values
+      USERSTR="$USER_NAME $USER_EMAIL $USER_SIGNINGKEY"
+      echo "Operating as user: $USERSTR"
+      ensure_members_uniq
+      exit
+      ;;
+    *)
+      cmdl="$( subcommand_usage_line keygen Generate and/or configure gpg \
+ and ssh keys)\n"
+      cmdl="$cmdl$( subcommand_usage_line unset Unset git user configs.)\n"
+      cmdl="$cmdl$( subcommand_usage_line status Print user status.)\n"
+      echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
+      exit
+      ;;
+  esac
+fi
+
+get_or_set_all_cfg_values
+if [ ! $USER_IS_CONFIGURED ]; then
+  exit 1
+fi
+
+#---------------tx (transaction) section----------------
+# Functions and handlers related to building, checking, 
+# and managing transactions.
+
+# $1 is a parameter
+# $2 is a value for $1
+build_param_replace_command() {
+  echo " | sed 's/<<< $1 >>>/$2/g'"
+}
+
+# $1 is a param to guess
+# $2 is a commit hash or HEAD where the tx is described
+guess_template_param() {
+  case $1 in
+    user_name)
+      if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
+        echo "$USER_NAME"
+      else
+        git log -n 1 $s~.. --pretty="%cn"
+      fi
+    ;;
+    user_email)
+      if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
+        echo "$USER_EMAIL"
+      else
+        git log -n 1 $s~.. --pretty="%ce"
+      fi
+    ;;
+    user_signingkey)
+      if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
+        echo "$USER_SIGNINGKEY"
+      else
+        git log -n 1 $s~.. --pretty="%GK"
+      fi
+    ;;
+    date)
+      if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
+        date -u +%F
+      else
+        date -u +%F --date='@$( git log -n 1 $s~.. --pretty="%ct" )'
+      fi
+    ;;
+    epoch)
+      if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
+        date -u +%s
+      else
+        git log -n 1 $s~.. --pretty="%ct"
+      fi
+    ;;
+    vote_parent|parent)
+      if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
+        git log HEAD --pretty="%H"
+      else
+        git log -n 1 $2~~.. --pretty="%H"
+      fi
+    ;;
+    version)
+      if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
+        if [ -f VERSION ]; then
+          cat VERSION
+        else
+          echo "0.0.1"  # default starting version number
+        fi
+      else
+        git show $2:VERSION
+      fi
+    ;;
+    guild_name)
+      if [ ! -f GUILD ]; then
+        # assume we're at initialization phase of personal guild
+        echo $USER_NAME
+      else # otherwise it must exist and never change!
+        head -n 1 GUILD | grep -o "[^NAME ].*"
+      fi
+    ;;
+    height)
+      if [ -d ledger ]; then
+        ledger -f ledger/chain.ledger bal $USER_NAME:Height
+      else
+         echo 1
+      fi
+    ;;
+  esac
+}
+
+get_template_params() {
+  # first argument should be a file or directory to look for templates
+  if [ -e $1 ]; then
+    tdir=$1
+  elif [ -d "./template" ]; then
+    # if no argument given, assume current directory is base of repo
+    tdir=./template
+  else
+    echo "Unable to find template(s) at: $1" 1>&2
+    echo 1>&2
+  fi
+  # Find all param tags in file(s), remove brackets, and filter
+  grep -roh '<<< [a-zA-Z0-9_-.]\{1,80\} >>>' $tdir | tr -d '<> ' | sort | uniq
+}
+
+# $1 is now sub-command (build, check)
+handle_tx_cmd() {
+  case $1 in
+    check)
+      get_template_params $2
+      ;;
+    build)
+      # $2 is a template
+      archive_tx_ledger
+      params=$( get_template_params $2 )
+      cmd_str="cat $2"
+      for p in $params; do
+        cmd_str="$cmd_str $( build_param_replace_command $p $( guess_template_param $p HEAD) )"
+      done
+      cmd_str="$cmd_str | patch -p2"  # TODO what p level to set?
+      eval $cmd_str
+      ;;
+    archive)
+      archive_tx_ledger
+      ;;
+    reset)
+      # $2 is an optional flag to pass to git clean
+      flag="-i"
+      if [ "$2" != "" ]; then
+        flag=$2
+      fi
+      git clean $flag -d
+      git reset --hard HEAD
+      git reset --hard HEAD~1
+      git pull
+      ;;
+    *)
+      cmdl="$( subcommand_usage_line check Check the tx at HEAD or the given \
+commit hash. )\n"
+      cmdl="$cmdl$( subcommand_usage_line archive Archive any current transactions \
+\(put in equity.ledger\). )\n"
+      cmdl="$cmdl$( subcommand_usage_line build \<template\> Build the given tx \
+template. )\n"
+      cmdl="$cmdl$( subcommand_usage_line clean Clean and reset to latest )\n"
+
+      echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
+      exit
+      ;;
+  esac
+}
+
+archive_tx_ledger() {
+  if [ -f ledger/transaction.ledger ] && \
+     [ "$( cat ledger/transaction.ledger )" != "" ]; then
+    echo "# This file should have an 'equity' summary of all history up to the parent commit." > ledger/equity.ledger
+    ledger -C -f ledger/chain.ledger equity | sed 's/ Opening Balances/ * Cleared Balances/g' >> ledger/equity.ledger
+    ledger -U -f ledger/chain.ledger equity | sed 's/Opening Balances/Uncleared Balances/g' >> ledger/equity.ledger
+    echo '' > ledger/transaction.ledger
+  fi
+}
+
+# $1 is now sub-command
+# $2 and $3 are probably template files or dirs, depending
+handle_tpl_cmd() {
+  case $1 in
+    create)
+      shift 1
+      create_patch $@
+      ;;
+    list)
+      ls ./template/*.patch
+      ;;
+    *)
+      cmdl="$( subcommand_usage_line create Create a stub template for future \
+      transactions. )\n"
+      cmdl="$cmdl$( subcommand_usage_line list List the available templates. )\n"
+      echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
+      exit
+      ;;
+  esac
+}
+
+
+# create patch, preserving some privacy, and the LICENSE
+# $1 the before file or directory (default HEAD~1)
+# $2 the after file or directory (default HEAD of CWD)
+create_patch() {
+  INPATH=$1
+  OUTPATH=$2
+  if [ "$1" = "" ]; then
+    headm1=$( git log HEAD --pretty="%H" )
+    rm -fR /tmp/gitguild_working_dir
+    mkdir /tmp/gitguild_working_dir
+    cp -fR ./.git /tmp/gitguild_working_dir/
+    cp -fR ./* /tmp/gitguild_working_dir/
+    OLD_TOO_MANY_DIRS=$( pwd )
+    cd /tmp/gitguild_working_dir
+    $( git checkout $headm1 )
+    cd $OLD_TOO_MANY_DIRS
+    INPATH="/tmp/gitguild_working_dir"
+  fi
+  if [ "$2" = "" ]; then
+    OUTPATH=$( readlink -f . )
+  fi
+  # each patch should start with the license
+  if [ -f "./LICENSE" ]; then
+    cat ./LICENSE | sed 's/^/#/'
+    echo "#"
+    echo
+  fi
+  diff -cr -N $INPATH $OUTPATH -x .git -x *.patch | sed s,$INPATH,/old/,g | sed s,$OUTPATH,/new/,g
+}
+
+# $1 remote name to check
+use_gitolite_push() {
+  if [ "$( git remote get-url $1 | grep \"file://\")" != "" ] && [ "$( which gitolite )" != "" ]; then
+    echo 1
+  else
+    echo 0
+  fi
+}
+
+### push
+gg_push() {
+  branch=$( git branch | grep "\*" | tr -d "* " )
+  if [ "$branch" = "$USER_NAME" ]; then
+    if [ $( use_gitolite_push $USER_NAME ) ]; then
+      gitolite push $USER_NAME $branch
+    else
+      git push $USER_NAME $branch
+    fi
+    git checkout master
+    git merge $USER_NAME
+    if [ $( use_gitolite_push $USER_NAME ) ]; then
+      gitolite push $USER_NAME master
+    else
+      git push $USER_NAME master
+    fi
+    git checkout $USER_NAME
+  else
+    echo "You are not on your own branch. Are you sure you want to push?"
+    read writeob
+    echo
+    if [ "$( echo '$writeob' | grep '[yY].*' )" != "" ]; then
+      if [ $( use_gitolite_push $USER_NAME ) ]; then
+        gitolite push $USER_NAME $branch
+      else
+        git push $USER_NAME $branch
+      fi
+    fi
+  fi
+}
+
+### pull
+gg_pull() {
+  git pull $USER_NAME
+
+  ### commit
+  branch=$(  git branch | grep "\*" | tr -d "* " )
+  docommit=false
+  if [ $1 = "" ]; then
+    1="automated gitguild commit"
+  fi
+  if [ "$branch" = "$USER_NAME" ]; then
+    # assumes $1 is the commit message
+    docommit=true
+  else
+    istransaction=$( git status | grep "modified:[ ]*ledger/transaction.ledger" )
+    if [ "$istransaction" != "" ]; then
+      echo "You are not on your own branch. Are you sure you want to commit this transaction?"
+      read writeob
+      echo
+      if [ "$( echo '$writeob' | grep '[yY].*' )" != "" ]; then
+        docommit=true
+      fi
+    fi
+  fi
+
+  if [ $docommit ]; then
+    git commit -S -m $1
+  fi
+}
+
+### main handler
+case $1 in
+  # user commands handled above
+  setup)
+    shift 1
+    handle_setup_cmd $@
+    ;;
+  tx)
+    shift 1
+    handle_tx_cmd $@
+    ;;
+  template)
+    shift 1
+    handle_tpl_cmd $@
+    ;;
+  push)
+    shift 1
+    gg_push
+    ;;
+  version|--version)
+    cat VERSION
+    ;;
+  *)
+    ORIG_COMMAND=$COMMAND
+    COMMAND="user"
+    cmdl="$( command_usage_line Manage your gitguild user.)\n"
+    COMMAND="tx"
+    cmdl="$cmdl$( command_usage_line build and check transactions.)\n"
+    COMMAND="push"
+    cmdl="$cmdl$( command_usage_line git push with extra checks and remotes. )\n"
+    COMMAND="setup"
+    cmdl="$cmdl$( command_usage_line Install pre-requisites and configure gitguild.)\n"
+    COMMAND="template"
+    cmdl="$cmdl$( command_usage_line Create and list tx templates. )\n"
+    echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
+    exit
+   ;;
+esac
