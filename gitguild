@@ -145,7 +145,7 @@ setup_gitolite() {
     cd gitolite
     sudo mkdir -p /usr/lib/gitolite
     sed -z -i.bak 's/# GL_ADMIN_REPO                   =>  "gitolite-admin"/ \
-GL_ADMIN_REPO                   =>  "isysd"/g' src/lib/Gitolite/Rc.pm
+GL_ADMIN_REPO                   =>  "$USER_NAME"/g' src/lib/Gitolite/Rc.pm
     sudo ./install -to /usr/lib/gitolite
     sudo ln -sf /usr/lib/gitolite/gitolite /usr/bin/gitolite
     gitolite setup -pk $HOME/.ssh/$USER_NAME.pub -m "guild seeded w gitolite-admin template"
