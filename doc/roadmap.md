@@ -52,7 +52,7 @@ v0.0.2.5
 Each user is to run their own git server, using gitolite.
 The gitolite admin repo will be merged with the guild identity repo, keeping the ledger and permissions in the same area.
 
- + [ ] gitolite server setup and configuration
+ + [x] gitolite server setup and configuration
  + [x] gitolite admin repo merged with identity repo
  + [ ] Mirror to github
 

@@ -165,7 +165,15 @@ setup_gitguild_repo() {
       url=$1
     fi
     git clone $url $GG_DIR/gitguild
-    grep -rl "origin" $GG_DIR/gitguild/.git | xargs sed -i s,origin,isysd,g
+    setup_repo gitguild
+  fi
+}
+
+# $1 is the name of the guild
+setup_repo() {
+  grep -rl "origin" $GG_DIR/$1/.git | xargs sed -i s,origin,$1,g
+  if [ "$( git branch | grep $USER_NAME )" = "" ]; then
+    git checkout -b $USER_NAME
   fi
 }
 
@@ -181,7 +189,7 @@ setup_ident_repo() {
     git clone $url $GG_DIR/$USER_NAME
     cd $GG_DIR/$USER_NAME
     git checkout -b $USER_NAME
-    grep -rl "origin" $GG_DIR/$USER_NAME/.git | xargs sed -i s,origin,$USER_NAME,g
+    setup_repo $USER_NAME
     handle_tx_cmd build $GG_DIR/gitguild/template/init_personal.patch
     git add -A
     git commit -m "initialize identity guild"
@@ -251,7 +259,7 @@ change_guild_dir() {
   cd $GG_DIR/$GNAME
 }
 
-#-----------config-user prep and command section--------------------------
+#-------------------user prep and command section--------------------------
 
 gpgkeygen() {
   echo "The gpg --gen-key walk-through is about to be run."
@@ -598,8 +606,7 @@ commit hash. )\n"
 \(put in equity.ledger\). )\n"
       cmdl="$cmdl$( subcommand_usage_line build \<template\> Build the given tx \
 template. )\n"
-      cmdl="$cmdl$( subcommand_usage_line clean Clean and reset to latest )\n"
-
+      cmdl="$cmdl$( subcommand_usage_line reset Clean and reset to latest )\n"
       echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
       exit
       ;;
@@ -639,8 +646,8 @@ handle_tpl_cmd() {
 
 
 # create patch, preserving some privacy, and the LICENSE
-# $1 the before file or directory (default HEAD~1)
-# $2 the after file or directory (default HEAD of CWD)
+# $1 the before file or directory (default clean HEAD)
+# $2 the after file or directory (default any uncommitted changes in pwd)
 create_patch() {
   INPATH=$1
   OUTPATH=$2
@@ -652,7 +659,8 @@ create_patch() {
     cp -fR ./* /tmp/gitguild_working_dir/
     OLD_TOO_MANY_DIRS=$( pwd )
     cd /tmp/gitguild_working_dir
-    $( git checkout $headm1 )
+    silent=$( git clean -f )
+    silent=$( git reset --hard HEAD )
     cd $OLD_TOO_MANY_DIRS
     INPATH="/tmp/gitguild_working_dir"
   fi
@@ -738,6 +746,26 @@ gg_pull() {
   fi
 }
 
+# $1 the name of the guild to fork
+# $2+ remote(s). If none provided, github is guessed.
+gg_fork() {
+  if [ "$1" = "" ] || [ -d $GG_DIR/$1 ]; then
+    echo "Cannot fork $1. Try forking something else."
+    echo
+    cmdl="$( subcommand_usage_line fork \<remote\> Fork a guild. )\n"
+    echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
+    exit 1
+  elif [ "$2" = "" ]; then # guess github
+    git clone git@github.com:$1/$1.git $GG_DIR/$1
+  else
+    git clone $2 $GG_DIR/$1
+  fi
+  if [ -d $GG_DIR/$1/.git ]; then
+    cd $GG_DIR/$USER_NAME
+    # TODO fork template
+  fi
+}
+
 ### main handler
 case $1 in
   # user commands handled above
@@ -757,6 +785,10 @@ case $1 in
     shift 1
     gg_push
     ;;
+  fork)
+    shift 1
+    gg_fork $@
+    ;;
   version|--version)
     cat VERSION
     ;;
@@ -768,6 +800,8 @@ case $1 in
     cmdl="$cmdl$( command_usage_line build and check transactions.)\n"
     COMMAND="push"
     cmdl="$cmdl$( command_usage_line git push with extra checks and remotes. )\n"
+    COMMAND="fork"
+    cmdl="$( subcommand_usage_line fork \<remote\> Fork a guild with one or more remotes. )\n"
     COMMAND="setup"
     cmdl="$cmdl$( command_usage_line Install pre-requisites and configure gitguild.)\n"
     COMMAND="template"
