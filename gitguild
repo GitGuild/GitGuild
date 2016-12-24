@@ -23,7 +23,7 @@
 
 # Save $0 so we can shift
 # $1 must be a cmd.
-PROG_NAME=$( echo $0 | grep -o "[^/]*$" )
+PROG_NAME=$( echo "$0" | grep -o "[^/]*$" )
 COMMAND=$1
 
 # Git user configuration is a pre-requisite of this script.
@@ -36,12 +36,11 @@ USER_IS_CONFIGURED=true
 GG_DIR=$HOME"/gitguild"
 
 # Normally this should be run inside such a git repo
-GIT_DIR=$( readlink -f $( git rev-parse -q --git-dir )| grep -o ".*[^.git]" )
-ORIG_CWD=$( pwd )
+GIT_DIR=$( readlink -f "$( git rev-parse -q --git-dir )" | grep -o ".*[^.git]" )
 
 # change to the git dir for the duration of the script
 if [ -d "$GIT_DIR" ]; then
-  cd $GIT_DIR
+  cd "$GIT_DIR"
 fi
 
 
@@ -94,11 +93,11 @@ check_or_install_prereqs() {
   if [ "$ledger" = "" ]; then
     # install missing ledger... assuming ubuntu for now
     releasestr=$( cat /etc/*-release )
-    if [ "$( echo '$releasestr' | grep 'Ubuntu' )" != "" ]; then
+    if [ "$( echo "$releasestr" | grep 'Ubuntu' )" != "" ]; then
       echo "install ledger from PPA?"
       read ledgerppa
       echo
-      if [ "$( echo '$ledgerppa' | grep '[yY].*' )" != "" ]; then
+      if [ "$( echo "$ledgerppa" | grep '[yY].*' )" != "" ]; then
         sudo add-apt-repository ppa:mbudde/ledger
         sudo apt-get update
         sudo apt-get install ledger
@@ -116,16 +115,16 @@ setup_ssh() {
     sudo apt-get install ssh
   fi
 
-  if [ -f $HOME/.ssh/$USER_NAME.pub ]; then
+  if [ -f "$HOME/.ssh/$USER_NAME.pub" ]; then
     echo "found ssh key to use $HOME/.ssh/$USER_NAME.pub"
-  elif [ -f $HOME/.ssh/id_rsa.pub ]; then
+  elif [ -f "$HOME/.ssh/id_rsa.pub" ]; then
     # create symbolic links from username keys to id_rsa keys
     echo "found default id_rsa.pub ssh key to use, making a symbolic link with \
     username"
-    ln -sf $HOME/.ssh/id_rsa $HOME/.ssh/$USER_NAME
-    ln -sf $HOME/.ssh/id_rsa.pub $HOME/.ssh/$USER_NAME.pub
+    ln -sf "$HOME/.ssh/id_rsa $HOME/.ssh/$USER_NAME"
+    ln -sf "$HOME/.ssh/id_rsa.pub $HOME/.ssh/$USER_NAME.pub"
   else
-    ssh-keygen -t rsa -b 4096 -C "$USER_EMAIL" -f $HOME/.ssh/$USER_NAME
+    ssh-keygen -t rsa -b 4096 -C "$USER_EMAIL -f $HOME/.ssh/$USER_NAME"
   fi
 }
 
@@ -145,58 +144,58 @@ setup_gitolite() {
     cd gitolite
     sudo mkdir -p /usr/lib/gitolite
     sed -z -i.bak "s/# GL_ADMIN_REPO                   =>  \"gitolite-admin\"/ \
-GL_ADMIN_REPO                   =>  \""$USER_NAME"\"/g" src/lib/Gitolite/Rc.pm
+GL_ADMIN_REPO                   =>  ""$USER_NAME"/g src/lib/Gitolite/Rc.pm
     sudo ./install -to /usr/lib/gitolite
     sudo ln -sf /usr/lib/gitolite/gitolite /usr/bin/gitolite
-    gitolite setup -pk $HOME/.ssh/$USER_NAME.pub -m "guild seeded w gitolite-admin template"
+    gitolite setup -pk "$HOME/.ssh/$USER_NAME".pub -m "guild seeded w gitolite-admin template"
     # install once to get proper .rc file then again to implement it...
     rm -fR ~/repositories ~/.gitolite
-    gitolite setup -pk $HOME/.ssh/$USER_NAME.pub -m "guild seeded w gitolite-admin template"
+    gitolite setup -pk "$HOME/.ssh/$USER_NAME".pub -m "guild seeded w gitolite-admin template"
   fi
 }
 
 # $1 is optional remote to clone from. Assumed to be isysd's github for now.
 setup_gitguild_repo() {
   if [ ! -d "$GG_DIR/gitguild" ]; then
-    mkdir -p $GG_DIR
+    mkdir -p "$GG_DIR"
     if [ "$1" != "" ]; then
       url="https://github.com/isysd/gitguild-cli.git"
     else
       url=$1
     fi
-    git clone $url $GG_DIR/gitguild
+    git clone "$url $GG_DIR"/gitguild
     setup_repo gitguild
   fi
 }
 
 # $1 is the name of the guild
 setup_repo() {
-  grep -rl "origin" $GG_DIR/$1/.git | xargs sed -i s,origin,$1,g
-  if [ "$( git branch | grep $USER_NAME )" = "" ]; then
-    git checkout -b $USER_NAME
+  grep -rl "origin" "$GG_DIR/$1"/.git | xargs sed -i s,origin,"$1",g
+  if [ "$( git branch | grep "$USER_NAME" )" = "" ]; then
+    git checkout -b "$USER_NAME"
   fi
 }
 
 # $1 is optional remote to clone from. Assumed to be $HOME/repositories
 setup_ident_repo() {
   if [ ! -d "$GG_DIR/$USER_NAME" ]; then
-    mkdir -p $GG_DIR
+    mkdir -p "$GG_DIR"
     if [ "$1" != "" ]; then
       url=$1
     else
       url="file://$HOME/repositories/$USER_NAME.git"
     fi
-    git clone $url $GG_DIR/$USER_NAME
-    cd $GG_DIR/$USER_NAME
-    git checkout -b $USER_NAME
-    setup_repo $USER_NAME
-    handle_tpl_cmd build $GG_DIR/gitguild/template/clean_gitolite_admin.patch
-    handle_tpl_cmd build $GG_DIR/gitguild/template/add_member_authors.patch
-    handle_tpl_cmd build $GG_DIR/gitguild/template/add_general_project_files.patch
-    handle_tpl_cmd build $GG_DIR/gitguild/template/ledger_basics.patch
-    handle_tpl_cmd build $GG_DIR/gitguild/template/personal_ledger_init.patch
+    git clone "$url $GG_DIR/$USER_NAME"
+    cd "$GG_DIR/$USER_NAME"
+    git checkout -b "$USER_NAME"
+    setup_repo "$USER_NAME"
+    handle_tpl_cmd build "$GG_DIR"/gitguild/template/clean_gitolite_admin.patch
+    handle_tpl_cmd build "$GG_DIR"/gitguild/template/add_member_authors.patch
+    handle_tpl_cmd build "$GG_DIR"/gitguild/template/add_general_project_files.patch
+    handle_tpl_cmd build "$GG_DIR"/gitguild/template/ledger_basics.patch
+    handle_tpl_cmd build "$GG_DIR"/gitguild/template/personal_ledger_init.patch
     LAST_TRANSACTION='init_personal' # couldn't run proper tx build here
-    handle_tpl_cmd build $GG_DIR/gitguild/template/tx_post_process.patch
+    handle_tpl_cmd build "$GG_DIR"/gitguild/template/tx_post_process.patch
     git add -A
     git commit -m "initialize identity guild"
     gg_push
@@ -262,7 +261,7 @@ change_guild_dir() {
     esac
     shift 1
   done
-  cd $GG_DIR/$GNAME
+  cd "$GG_DIR/$GNAME"
 }
 
 #-------------------user prep and command section--------------------------
@@ -285,7 +284,7 @@ gpgkeygen() {
   echo "OK, ready to generate keys?"
   read readyono
   echo
-  if [ "$( echo '$readyono' | grep '[yY].*' )" != "" ]; then
+  if [ "$( echo "$readyono" | grep '[yY].*' )" != "" ]; then
       gpg --gen-key
   else
     user_cfg_error "signingkey" "gpg key id"
@@ -307,26 +306,26 @@ guess_cfg_from_authors_by_name() {
   if [ -f ./AUTHORS ]; then
     cfginfo=$( grep "$1" ./AUTHORS )
     if [ "$cfginfo" != "" ]; then
-      USER_EMAIL="$( echo $cfginfo | grep -o ' [^ ]* ' | tr -d ' ' )"
-      git config --global --add user.email $USER_EMAIL
-      USER_SIGNINGKEY="$( echo $cfginfo | grep -o '[^ ]*$' )"
-      git config --global --add user.signingkey $USER_SIGNINGKEY
+      USER_EMAIL="$( echo "$cfginfo" | grep -o ' [^ ]* ' | tr -d ' ' )"
+      git config --global --add user.email "$USER_EMAIL"
+      USER_SIGNINGKEY="$( echo "$cfginfo" | grep -o '[^ ]*$' )"
+      git config --global --add user.signingkey "$USER_SIGNINGKEY"
     fi
   fi
 }
 
 print_sig_guesses() {
   if [ "$USER_EMAIL" != "" ]; then
-    keylist=$( gpg --list-secret-keys --fast-list-mode $USER_EMAIL | grep sec | \
+    keylist=$( gpg --list-secret-keys --fast-list-mode "$USER_EMAIL" | grep sec | \
       grep -o "[A-Z0-9]\{8\} " )
   elif [ "$USER_NAME" != "" ]; then
-    keylist=$( gpg --list-secret-keys --fast-list-mode $USER_NAME | grep sec | \
+    keylist=$( gpg --list-secret-keys --fast-list-mode "$USER_NAME" | grep sec | \
       grep -o "[A-Z0-9]\{8\} " )
   fi
   if [ "$keylist" != "" ]; then
     echo "Detected one or more keys matching your name or email."
     echo "The one you want is probably among these."
-    echo $keylist
+    echo "$keylist"
     echo
   elif [ "$USER_EMAIL" != "" ] && [ "$USER_NAME" != "" ]; then
     echo "Could not detect a key matching your name or email."
@@ -369,28 +368,28 @@ set_cfg_by_name() {
 # $1 is the official git config format of the field name 
 # $2 is the user understandable format
 get_or_set_cfg_value() {
-  if [ "$( get_cfg_by_name $1 )" = "" ]; then
+  if [ "$( get_cfg_by_name "$1" )" = "" ]; then
     echo "WARNING: Git user.$1 not configured."
     echo
-    if [ "$1" != "name" ] && [ "$( get_cfg_by_name $1 )" = "" ]; then
+    if [ "$1" != "name" ] && [ "$( get_cfg_by_name "$1" )" = "" ]; then
       # try to guess based on name
       echo "guessing"
-      guess_cfg_from_authors_by_name $USER_NAME
+      guess_cfg_from_authors_by_name "$USER_NAME"
     fi
-    if [ "$( get_cfg_by_name $1 )" = "" ] && [ "$1" = "signingkey" ]; then
+    if [ "$( get_cfg_by_name "$1" )" = "" ] && [ "$1" = "signingkey" ]; then
       print_sig_guesses
     elif [ "$1" = "signingkey" ]; then
       return 
     fi
-    if [ "$( get_cfg_by_name $1 )" = "" ]; then
+    if [ "$( get_cfg_by_name "$1" )" = "" ]; then
       echo "Please enter your git $1 followed by [ENTER]"
       read userval
       if [ "$userval" != "" ]; then
-        git config --global --add user.$1 $userval
+        git config --global --add user."$1 $userval"
         echo
-        set_cfg_by_name $1 $userval
+        set_cfg_by_name "$1 $userval"
       else
-        user_cfg_error $2 $3
+        user_cfg_error "$2 $3"
       fi
     fi
   fi
@@ -411,19 +410,19 @@ ensure_members_uniq() {
       echo "ERROR: current user not found in AUTHORS" 1>&2
       exit 1
     fi
-    total=$( cat AUTHORS | wc -l )
-    names=$( cat AUTHORS | grep -o '^[^ ]*' | sort | uniq | wc -l )
-    emails=$( cat AUTHORS | grep -o ' [^ ]* ' | tr -d ' ' | sort | uniq | \
+    total=$( wc -l AUTHORS )
+    names=$( grep -o '^[^ ]*' AUTHORS | sort | uniq | wc -l )
+    emails=$( grep -o ' [^ ]* ' AUTHORS | tr -d ' ' | sort | uniq | \
       wc -l )
-    sigkeys=$( cat AUTHORS | grep -o '[^ ]*$' | sort | uniq | wc -l )
+    sigkeys=$( grep -o '[^ ]*$' AUTHORS | sort | uniq | wc -l )
     # the following all have +1 due to the expected empty line before EOF
     if [ "$total" != "$( expr $names + 1 )" ]; then
       echo "ERROR: found duplicate names" 1>&2
       exit 1
-    elif [ "$total" != "$( expr $emails + 1 )" ]; then
+    elif [ "$total" != "$( expr "$emails" + 1 )" ]; then
       echo "ERROR: found duplicate emails" 1>&2
       exit 1
-    elif [ "$total" != "$( expr $sigkeys + 1 )" ]; then
+    elif [ "$total" != "$(( "$sigkeys" + 1 ))" ]; then
       echo "ERROR: found duplicate sigkey" 1>&2
       exit 1
     fi
@@ -492,42 +491,42 @@ guess_template_param() {
       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
         echo "$USER_NAME"
       else
-        git log -n 1 $s~.. --pretty="%cn"
+        git log -n 1 "$2"~.. --pretty="%cn"
       fi
     ;;
     user_email)
       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
         echo "$USER_EMAIL"
       else
-        git log -n 1 $s~.. --pretty="%ce"
+        git log -n 1 "$2"~.. --pretty="%ce"
       fi
     ;;
     user_signingkey)
       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
         echo "$USER_SIGNINGKEY"
       else
-        git log -n 1 $s~.. --pretty="%GK"
+        git log -n 1 "$2"~.. --pretty="%GK"
       fi
     ;;
     date)
       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
         date -u +%F
       else
-        date -u +%F --date='@$( git log -n 1 $s~.. --pretty="%ct" )'
+        date -u +%F --date="@$( git log -n 1 "$2"~.. --pretty=\"%ct\" )"
       fi
     ;;
     epoch)
       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
         date -u +%s
       else
-        git log -n 1 $s~.. --pretty="%ct"
+        git log -n 1 "$2"~.. --pretty="%ct"
       fi
     ;;
     vote_parent|parent)
       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
         git log HEAD --pretty="%H"
       else
-        git log -n 1 $2~~.. --pretty="%H"
+        git log -n 1 "$2"~~.. --pretty="%H"
       fi
     ;;
     version)
@@ -538,29 +537,29 @@ guess_template_param() {
           echo "0.0.1"  # default starting version number
         fi
       else
-        git show $2:VERSION
+        git show "$2":VERSION
       fi
     ;;
     guild_name)
       if [ ! -f GUILD ]; then
         # assume we're at initialization phase of personal guild
-        echo $USER_NAME
+        echo "$USER_NAME"
       else # otherwise it must exist and never change!
         head -n 1 GUILD | grep -o "[^NAME ].*"
       fi
     ;;
     height)
       if [ -d ledger ]; then
-        ledger -f ledger/chain.ledger bal $USER_NAME:Height | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
+        ledger -f ledger/chain.ledger bal "$USER_NAME":Height | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
       else
          echo 1
       fi
     ;;
     last_transaction)
       if [ "$LAST_TRANSACTION" = "" ]; then
-        cat GUILD | grep "LAST_TRANSACTION" | grep -o "[^ ].*$"
+        grep "LAST_TRANSACTION" GUILD | grep -o "[^ ].*$"
       else
-        echo $LAST_TRANSACTION
+        echo "$LAST_TRANSACTION"
       fi
     ;;
   esac
@@ -568,21 +567,21 @@ guess_template_param() {
 
 get_template_params() {
   # first argument should be a file or directory to look for templates
-  if [ -e $1 ]; then
+  if [ -e "$1" ]; then
     tdir=$1
   elif [ -d "./template" ]; then
     # if no argument given, assume current directory is base of repo
     tdir=./template
   else
-    echo "Unable to find template(s) at: $1" 1>&2
+    echo "Unable to find template(s) at: ""$1" 1>&2
     echo 1>&2
   fi
   # Find all param tags in file(s), remove brackets, and filter
-  grep -roh '<<< [a-zA-Z0-9_-.]\{1,80\} >>>' $tdir | tr -d '<> ' | sort | uniq
+  grep -roh '<<< [a-zA-Z0-9_-.]\{1,80\} >>>' "$tdir" | tr -d '<> ' | sort | uniq
 }
 
 list_tx_tags() {
-  cat ledger/tag.ledger | grep tag | grep -o "[^tag ].*$"
+  grep tag ledger/tag.ledger | grep -o "[^tag ].*$"
 }
 
 # $1 the name of the tag to list templates for
@@ -592,7 +591,7 @@ list_tx_tag_templates() {
     if [ "$line" = "tag $1" ]; then
       INTAG=true
     elif [ "$INTAG" = "true" ]; then
-      echo $line | grep -o "[^: ].*$"
+      echo "$line" | grep -o "[^: ].*$"
     fi
   done < ledger/tag.ledger
 }
@@ -601,17 +600,17 @@ list_tx_tag_templates() {
 handle_tx_cmd() {
   case $1 in
     check)
-      get_template_params $2
+      get_template_params "$2"
       ;;
     build)
       # $2 is a tag name
       archive_tx_ledger
-      for tpl in $( list_tx_tag_templates ); do
-        echo $tpl
-        if [ "$( grep \"^patch template.*patch$\" $tpl )" != "" ]; then
-          handle_tpl_cmd build "$( grep \"[^ ].*$\" $tpl )"
-        elif [ "$( grep \"^gitguild .*\" $tpl )" != "" ]; then
-          eval $tpl
+      for tpl in $( list_tx_tag_templates "$2" ); do
+        echo "$tpl"
+        if [ "$( grep \"^patch template.*patch$\" "$tpl" )" != "" ]; then
+          handle_tpl_cmd build "$( grep \"[^ ].*$\" "$tpl" )"
+        elif [ "$( grep \"^gitguild .*\" "$tpl" )" != "" ]; then
+          eval "$tpl"
         fi
       done
       LAST_TRANSACTION=$2
@@ -628,7 +627,7 @@ handle_tx_cmd() {
       if [ "$2" != "" ]; then
         flag=$2
       fi
-      git clean $flag -d
+      git clean "$flag" -d
       git reset --hard HEAD
       git reset --hard HEAD~1
       git pull
@@ -664,16 +663,16 @@ handle_tpl_cmd() {
   case $1 in
     create)
       shift 1
-      create_patch $@
+      create_patch "$@"
       ;;
     build)
-      params=$( get_template_params $2 )
+      params=$( get_template_params "$2" )
       cmd_str="cat $2"
       for p in $params; do
-        cmd_str="$cmd_str $( build_param_replace_command $p $( guess_template_param $p HEAD) )"
+        cmd_str="$cmd_str $( build_param_replace_command "$p" "$( guess_template_param "$p" HEAD)" )"
       done
       cmd_str="$cmd_str | patch -p2"  # TODO what p level to set?
-      eval $cmd_str
+      eval "$cmd_str"
       ;;
     list)
       ls ./template/*.patch
@@ -698,33 +697,32 @@ create_patch() {
   INPATH=$1
   OUTPATH=$2
   if [ "$1" = "" ]; then
-    headm1=$( git log HEAD --pretty="%H" )
     rm -fR /tmp/gitguild_working_dir
     mkdir /tmp/gitguild_working_dir
     cp -fR ./.git /tmp/gitguild_working_dir/
     cp -fR ./* /tmp/gitguild_working_dir/
     OLD_TOO_MANY_DIRS=$( pwd )
     cd /tmp/gitguild_working_dir
-    silent=$( git clean -f )
-    silent=$( git reset --hard HEAD )
-    cd $OLD_TOO_MANY_DIRS
+    _=$( git clean -f )
+    _=$( git reset --hard HEAD )
+    cd "$OLD_TOO_MANY_DIRS"
     INPATH="/tmp/gitguild_working_dir"
   fi
   if [ "$2" = "" ]; then
-    OUTPATH=$( readlink -f . )
+    OUTPATH="$( readlink -f . )"
   fi
   # each patch should start with the license
   if [ -f "./LICENSE" ]; then
-    cat ./LICENSE | sed 's/^/#/'
+    sed 's/^/#/' ./LICENSE
     echo "#"
     echo
   fi
-  diff -cr -N $INPATH $OUTPATH -x .git -x *.patch | sed s,$INPATH,/old/,g | sed s,$OUTPATH,/new/,g
+  diff -cr -N "$INPATH" "$OUTPATH" -x .git -x ./template/*.patch | sed s,"$INPATH",/old/,g | sed s,"$OUTPATH",/new/,g
 }
 
 # $1 remote name to check
 use_gitolite_push() {
-  if [ "$( git remote get-url $1 | grep \"file://\")" != "" ] && [ "$( which gitolite )" != "" ]; then
+  if [ "$( git remote get-url "$1" | grep \"file://\")" != "" ] && [ "$( which gitolite )" != "" ]; then
     echo 1
   else
     echo 0
@@ -735,28 +733,28 @@ use_gitolite_push() {
 gg_push() {
   branch=$( git branch | grep "\*" | tr -d "* " )
   if [ "$branch" = "$USER_NAME" ]; then
-    if [ $( use_gitolite_push $USER_NAME ) ]; then
-      gitolite push $USER_NAME $branch
+    if [ "$( use_gitolite_push "$USER_NAME" )" ]; then
+      gitolite push "$USER_NAME $branch"
     else
-      git push $USER_NAME $branch
+      git push "$USER_NAME $branch"
     fi
     git checkout master
-    git merge $USER_NAME
-    if [ $( use_gitolite_push $USER_NAME ) ]; then
-      gitolite push $USER_NAME master
+    git merge "$USER_NAME"
+    if [ "$( use_gitolite_push "$USER_NAME" )" ]; then
+      gitolite push "$USER_NAME" master
     else
-      git push $USER_NAME master
+      git push "$USER_NAME" master
     fi
-    git checkout $USER_NAME
+    git checkout "$USER_NAME"
   else
     echo "You are not on your own branch. Are you sure you want to push?"
     read writeob
     echo
-    if [ "$( echo '$writeob' | grep '[yY].*' )" != "" ]; then
-      if [ $( use_gitolite_push $USER_NAME ) ]; then
-        gitolite push $USER_NAME $branch
+    if [ "$( echo "$writeob" | grep '[yY].*' )" != "" ]; then
+      if [ "$( use_gitolite_push "$USER_NAME" )" ]; then
+        gitolite push "$USER_NAME $branch"
       else
-        git push $USER_NAME $branch
+        git push "$USER_NAME $branch"
       fi
     fi
   fi
@@ -764,12 +762,12 @@ gg_push() {
 
 ### pull
 gg_pull() {
-  git pull $USER_NAME
+  git pull "$USER_NAME"
 
   ### commit
   branch=$(  git branch | grep "\*" | tr -d "* " )
   docommit=false
-  if [ $1 = "" ]; then
+  if [ "$1" = "" ]; then
     1="automated gitguild commit"
   fi
   if [ "$branch" = "$USER_NAME" ]; then
@@ -781,33 +779,33 @@ gg_pull() {
       echo "You are not on your own branch. Are you sure you want to commit this transaction?"
       read writeob
       echo
-      if [ "$( echo '$writeob' | grep '[yY].*' )" != "" ]; then
+      if [ "$( echo \""$writeob"\" | grep '[yY].*' )" != "" ]; then
         docommit=true
       fi
     fi
   fi
 
-  if [ $docommit ]; then
-    git commit -S -m $1
+  if [ "$docommit" = "true" ]; then
+    git commit -S -m "$1"
   fi
 }
 
 # $1 the name of the guild to fork
 # $2+ remote(s). If none provided, github is guessed.
 gg_fork() {
-  if [ "$1" = "" ] || [ -d $GG_DIR/$1 ]; then
+  if [ "$1" = "" ] || [ -d "$GG_DIR/$1" ]; then
     echo "Cannot fork $1. Try forking something else."
     echo
     cmdl="$( subcommand_usage_line fork \<remote\> Fork a guild. )\n"
     echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
     exit 1
   elif [ "$2" = "" ]; then # guess github
-    git clone git@github.com:$1/$1.git $GG_DIR/$1
+    git clone git@github.com:"$1/$1".git "$GG_DIR/$1"
   else
-    git clone $2 $GG_DIR/$1
+    git clone "$2" "$GG_DIR/$1"
   fi
-  if [ -d $GG_DIR/$1/.git ]; then
-    cd $GG_DIR/$USER_NAME
+  if [ -d "$GG_DIR/$1"/.git ]; then
+    cd "$GG_DIR/$USER_NAME"
     # TODO fork template
   fi
 }
@@ -817,15 +815,15 @@ case $1 in
   # user commands handled above
   setup)
     shift 1
-    handle_setup_cmd $@
+    handle_setup_cmd "$@"
     ;;
   tx)
     shift 1
-    handle_tx_cmd $@
+    handle_tx_cmd "$@"
     ;;
   template)
     shift 1
-    handle_tpl_cmd $@
+    handle_tpl_cmd "$@"
     ;;
   push)
     shift 1
@@ -833,13 +831,12 @@ case $1 in
     ;;
   fork)
     shift 1
-    gg_fork $@
+    gg_fork "$@"
     ;;
   version|--version)
     cat VERSION
     ;;
   *)
-    ORIG_COMMAND=$COMMAND
     COMMAND="user"
     cmdl="$( command_usage_line Manage your gitguild user.)\n"
     COMMAND="tx"
@@ -847,7 +844,7 @@ case $1 in
     COMMAND="push"
     cmdl="$cmdl$( command_usage_line git push with extra checks and remotes. )\n"
     COMMAND="fork"
-    cmdl="$( subcommand_usage_line fork \<remote\> Fork a guild with one or more remotes. )\n"
+    cmdl="$cmdl$( subcommand_usage_line fork \<remote\> Fork a guild with one or more remotes. )\n"
     COMMAND="setup"
     cmdl="$cmdl$( command_usage_line Install pre-requisites and configure gitguild.)\n"
     COMMAND="template"
