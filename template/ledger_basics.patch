@@ -1,0 +1,133 @@
+diff -cr -N -x .git -x '*.patch' /old//ledger/account.ledger /new//ledger/account.ledger
+*** /old//ledger/account.ledger	1969-12-31 19:00:00.000000000 -0500
+--- /new//ledger/account.ledger	2016-12-23 20:15:11.367512488 -0500
+***************
+*** 0 ****
+--- 1,28 ----
++ ; Account structure is quite complex in the GitGuild, creating a symmetry between this ledger and the git tree itself.
++ ; A number of complex and potentially long account names may be difficult to read, but they're quite organized.
++ ; The basic structure is as follows.
++ ;
++ ; username:user account:repository:branch:parent commit hash:metadata
++ ;
++ ; Most of these are probably self explanatory. User account is the usual suspects of accounting: Income, Expenses, Assets, Liabilities, Equity.
++ ; User account also has two additional options related to voting: Height, Depth.
++ ; Metadata might be bitcoin or dash addresses, and/or transaction hashes.
++ 
++ account <<< guild_name >>>
++     note The Guild's main account. If a personal guild, the owner's account.
++ 
++ ; Consensus accounts, for voting.
++ account <<< guild_name >>>:Depth
++     note the Guild's voting account. XP originates here, given out by the guild to deserving members.
++     assert commodity == "XP"
++ account <<< guild_name >>>:Height
++     note the Guild's vote counting area. Votes by members on commits related to this guild are recorded here.
++     assert commodity == "XP"
++ 
++ ; Normal accounting categories. Each guild/user has these.
++ account <<< guild_name >>>:Expenses
++ account <<< guild_name >>>:Equity
++ account <<< guild_name >>>:Income
++ account <<< guild_name >>>:Assets
++ account <<< guild_name >>>:Liabilities
++ 
+diff -cr -N -x .git -x '*.patch' /old//ledger/chain.ledger /new//ledger/chain.ledger
+*** /old//ledger/chain.ledger	1969-12-31 19:00:00.000000000 -0500
+--- /new//ledger/chain.ledger	2016-12-23 20:15:53.519511733 -0500
+***************
+*** 0 ****
+--- 1,6 ----
++ !include commodity.ledger
++ !include account.ledger
++ !include tag.ledger
++ !include equity.ledger
++ !include transaction.ledger
++ !include check.ledger
+diff -cr -N -x .git -x '*.patch' /old//ledger/check.ledger /new//ledger/check.ledger
+*** /old//ledger/check.ledger	1969-12-31 19:00:00.000000000 -0500
+--- /new//ledger/check.ledger	2016-12-23 20:13:47.011513999 -0500
+***************
+*** 0 ****
+--- 1,21 ----
++ ; TODO lots of assertions and checks go here to ensure proper behavior
++ ; How can we add loops to make checks more generic?
++ 
++ define GUILD_DEPTH = (-account("<<< guild_name >>>:Depth:<<< guild_name >>>").total)
++ define GUILD_HEIGHT = (account("<<< guild_name >>>:Height:<<< guild_name >>>").total)
++ 
++ ; Each user must have net positive score
++ define user_vote_check(user_name) = (account(user_name + ":Height").total >= GUILD_DEPTH / 2)
++ 
++ ; Each branch of this guild must have net positive score
++ define branch_vote_check(user_name, vote_guild_name, vote_branch) = (account(user_name + ":Height:" + vote_guild_name + ":" + vote_branch).total >= GUILD_DEPTH / 2)
++ 
++ ; Each issue must have net positive score
++ define issue_vote_check(user_name, vote_guild_name, vote_branch, vote_parent) = (account(user_name + ":Height:" + vote_guild_name + ":" + vote_branch + ":" + vote_parent).total >= GUILD_DEPTH / 2)
++ 
++ ; user has not spent more XP than allowed on this issue
++ define user_issue_vote_check(user_name, vote_guild_name, vote_branch, vote_parent) = (account(user_name + ":Height").total >= abs(account(user_name + ":Depth:" + vote_guild_name + ":" + vote_branch + ":" + vote_parent).total))
++ 
++ ; Guild itself must have positive height
++ check user_vote_check("<<< guild_name >>>")
++ 
+diff -cr -N -x .git -x '*.patch' /old//ledger/commodity.ledger /new//ledger/commodity.ledger
+*** /old//ledger/commodity.ledger	1969-12-31 19:00:00.000000000 -0500
+--- /new//ledger/commodity.ledger	2016-12-23 20:34:48.739491404 -0500
+***************
+*** 0 ****
+--- 1,19 ----
++ commodity XP
++    note Experience Points, used for voting on members and issues
++    format 1,000.00 XP
++    nomarket
++ 
++ commodity XGG
++    note GitGuild token of value. Transferable and redeemable at bid rate if part of approved Income transaction.
++    format 1,000.0000 XGG
++    nomarket
++ 
++ commodity DASH
++    note See dash.org
++    format 1,000.00000000 DASH
++    nomarket
++ 
++ commodity BTC
++    note See bitcoin.org
++    format 1,000.00000000 BTC
++    nomarket
+diff -cr -N -x .git -x '*.patch' /old//ledger/equity.ledger /new//ledger/equity.ledger
+*** /old//ledger/equity.ledger	1969-12-31 19:00:00.000000000 -0500
+--- /new//ledger/equity.ledger	2016-12-23 20:14:47.879512909 -0500
+***************
+*** 0 ****
+--- 1 ----
++ # This file should have an 'equity' summary of all history up to the parent commit.
+diff -cr -N -x .git -x '*.patch' /old//ledger/tag.ledger /new//ledger/tag.ledger
+*** /old//ledger/tag.ledger	1969-12-31 19:00:00.000000000 -0500
+--- /new//ledger/tag.ledger	2016-12-23 20:15:02.071512655 -0500
+***************
+*** 0 ****
+--- 1,15 ----
++ tag init_personal
++ ; patch template/clean_gitolite_admin.patch
++ ; patch template/add_member_authors.patch
++ ; patch template/add_general_project_files.patch
++ ; patch template/add_ledger_basics.patch
++ ; patch template/personal_ledger_init.patch
++ ; patch template/tx_post_process.patch
++ 
++ tag register_member
++ ; gitguild tx archive
++ ; patch template/add_member_authors.patch
++ ; patch template/add_member_ledger.patch
++ ; patch template/add_member_gitolite.patch
++ ; patch template/tx_post_process.patch
++ 
+diff -cr -N -x .git -x '*.patch' /old//ledger/transaction.ledger /new//ledger/transaction.ledger
+*** /old//ledger/transaction.ledger	1969-12-31 19:00:00.000000000 -0500
+--- /new//ledger/transaction.ledger	2016-12-23 20:15:08.539512539 -0500
+***************
+*** 0 ****
+--- 1 ----
++ # This file should have any transactions in the current commit.

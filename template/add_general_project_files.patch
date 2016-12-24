@@ -1,0 +1,49 @@
+diff -cr -N -x .git -x '*.patch' /old//CHANGELOG.md /new//CHANGELOG.md
+*** /old//CHANGELOG.md	1969-12-31 19:00:00.000000000 -0500
+--- /new//CHANGELOG.md	2016-12-23 16:31:48.615752000 -0500
+***************
+*** 0 ****
+--- 1,16 ----
++ # Change Log
++ 
++ All notable changes to this project will be documented in this file.
++ This project adheres to [Semantic Versioning](http://semver.org/).
++ 
++ This Change Log format is suggested by
++ <https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md>
++ 
++ <a name="<<< version >>>"></a>
++ ## <<< version >>> (<<< date >>>)
++ 
++ #### Added
++ 
++ *   Install and configure gitguild
++ *   Ledger for this guild
++ *   <<< user_name >>> becomes member
+\ No newline at end of file
+diff -cr -N -x .git -x '*.patch' /old//CONTRIBUTING.md /new//CONTRIBUTING.md
+*** /old//CONTRIBUTING.md	1969-12-31 19:00:00.000000000 -0500
+--- /new//CONTRIBUTING.md	2016-12-21 19:15:05.011980000 -0500
+***************
+*** 0 ****
+--- 1,3 ----
++ # A GitGuild Project
++ 
++ This project uses [GitGuild](https://github.com/GitGuild/gitguild-cli) software to govern itself and all contributions. Please install the client to ensure you meet the strict configuration and usage requirements.
+diff -cr -N -x .git -x '*.patch' /old//README.md /new//README.md
+*** /old//README.md	1969-12-31 19:00:00.000000000 -0500
+--- /new//README.md	2016-12-23 16:35:42.051748000 -0500
+***************
+*** 0 ****
+--- 1,3 ----
++ # <<< guild_name >>>
++ 
++ This document should provide an introduction to your guild/project for the first time visitor.
+\ No newline at end of file
+diff -cr -N -x .git -x '*.patch' /old//VERSION /new//VERSION
+*** /old//VERSION	1969-12-31 19:00:00.000000000 -0500
+--- /new//VERSION	2016-12-22 11:36:33.260868000 -0500
+***************
+*** 0 ****
+--- 1 ----
++ <<< version >>>

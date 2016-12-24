@@ -1,0 +1,26 @@
+diff -cr -N -x .git -x '*.patch' /old//ledger/check.ledger /new//ledger/check.ledger
+*** /old//ledger/check.ledger	2016-12-23 19:04:16.631588682 -0500
+--- /new//ledger/check.ledger	2016-12-23 19:03:45.759589235 -0500
+***************
+*** 19,21 ****
+--- 19,26 ----
+  ; Guild itself must have positive height
+  check user_vote_check("<<< guild_name >>>")
+  
++ check branch_vote_check("<<< guild_name >>>", "<<< guild_name >>>", "<<< guild_name >>>")
++ check issue_vote_check("<<< guild_name >>>", "<<< guild_name >>>", "<<< guild_name >>>", "<<< vote_parent >>>")
++ check branch_vote_check("<<< guild_name >>>", "<<< guild_name >>>", "<<< guild_name >>>")
++ check user_issue_vote_check("<<< guild_name >>>", "<<< guild_name >>>", "<<< guild_name >>>", "<<< vote_parent >>>")
++ 
+diff -cr -N -x .git -x '*.patch' /old//ledger/transaction.ledger /new//ledger/transaction.ledger
+*** /old//ledger/transaction.ledger	2016-12-23 19:04:16.631588682 -0500
+--- /new//ledger/transaction.ledger	2016-12-23 19:03:47.423589205 -0500
+***************
+*** 1 ****
+! # This file should have any transactions in the current commit.
+--- 1,5 ----
+! 
+! <<< date >>> * <<< user_name >>> Personal Guild Initialization
+!     ; Create XP by giving the founder Equity
+!     <<< user_name >>>:Height:<<< user_name >>>:<<< user_name >>>:<<< parent >>>    1 XP
+!     <<< user_name >>>:Depth:<<< user_name >>>:<<< user_name >>>:<<< parent >>>    -1 XP

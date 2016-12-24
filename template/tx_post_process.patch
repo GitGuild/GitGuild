@@ -1,0 +1,11 @@
+diff -cr -N -x .git -x '*.patch' /old//GUILD /new//GUILD
+*** /old//GUILD	1969-12-31 19:00:00.000000000 -0500
+--- /new//GUILD	2016-12-24 08:12:25.989834640 -0500
+***************
+*** 0 ****
+--- 1,5 ----
++ NAME <<< guild_name >>>
++ HEIGHT <<< height >>>
++ LAST_TRANSACTION <<< last_transaction >>>
++ EPOCH_TIME <<< epoch >>>
++ 

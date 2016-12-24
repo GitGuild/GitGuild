@@ -190,7 +190,13 @@ setup_ident_repo() {
     cd $GG_DIR/$USER_NAME
     git checkout -b $USER_NAME
     setup_repo $USER_NAME
-    handle_tx_cmd build $GG_DIR/gitguild/template/init_personal.patch
+    handle_tpl_cmd build $GG_DIR/gitguild/template/clean_gitolite_admin.patch
+    handle_tpl_cmd build $GG_DIR/gitguild/template/add_member_authors.patch
+    handle_tpl_cmd build $GG_DIR/gitguild/template/add_general_project_files.patch
+    handle_tpl_cmd build $GG_DIR/gitguild/template/ledger_basics.patch
+    handle_tpl_cmd build $GG_DIR/gitguild/template/personal_ledger_init.patch
+    LAST_TRANSACTION='init_personal' # couldn't run proper tx build here
+    handle_tpl_cmd build $GG_DIR/gitguild/template/tx_post_process.patch
     git add -A
     git commit -m "initialize identity guild"
     gg_push
@@ -545,9 +551,16 @@ guess_template_param() {
     ;;
     height)
       if [ -d ledger ]; then
-        ledger -f ledger/chain.ledger bal $USER_NAME:Height
+        ledger -f ledger/chain.ledger bal $USER_NAME:Height | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
       else
          echo 1
+      fi
+    ;;
+    last_transaction)
+      if [ "$LAST_TRANSACTION" = "" ]; then
+        cat GUILD | grep "LAST_TRANSACTION" | grep -o "[^ ].*$"
+      else
+        echo $LAST_TRANSACTION
       fi
     ;;
   esac
@@ -568,6 +581,22 @@ get_template_params() {
   grep -roh '<<< [a-zA-Z0-9_-.]\{1,80\} >>>' $tdir | tr -d '<> ' | sort | uniq
 }
 
+list_tx_tags() {
+  cat ledger/tag.ledger | grep tag | grep -o "[^tag ].*$"
+}
+
+# $1 the name of the tag to list templates for
+list_tx_tag_templates() {
+  INTAG=false
+  while read line; do
+    if [ "$line" = "tag $1" ]; then
+      INTAG=true
+    elif [ "$INTAG" = "true" ]; then
+      echo $line | grep -o "[^: ].*$"
+    fi
+  done < ledger/tag.ledger
+}
+
 # $1 is now sub-command (build, check)
 handle_tx_cmd() {
   case $1 in
@@ -575,15 +604,20 @@ handle_tx_cmd() {
       get_template_params $2
       ;;
     build)
-      # $2 is a template
+      # $2 is a tag name
       archive_tx_ledger
-      params=$( get_template_params $2 )
-      cmd_str="cat $2"
-      for p in $params; do
-        cmd_str="$cmd_str $( build_param_replace_command $p $( guess_template_param $p HEAD) )"
+      for tpl in $( list_tx_tag_templates ); do
+        echo $tpl
+        if [ "$( grep \"^patch template.*patch$\" $tpl )" != "" ]; then
+          handle_tpl_cmd build "$( grep \"[^ ].*$\" $tpl )"
+        elif [ "$( grep \"^gitguild .*\" $tpl )" != "" ]; then
+          eval $tpl
+        fi
       done
-      cmd_str="$cmd_str | patch -p2"  # TODO what p level to set?
-      eval $cmd_str
+      LAST_TRANSACTION=$2
+      ;;
+    list)
+      list_tx_tags
       ;;
     archive)
       archive_tx_ledger
@@ -604,9 +638,10 @@ handle_tx_cmd() {
 commit hash. )\n"
       cmdl="$cmdl$( subcommand_usage_line archive Archive any current transactions \
 \(put in equity.ledger\). )\n"
-      cmdl="$cmdl$( subcommand_usage_line build \<template\> Build the given tx \
-template. )\n"
-      cmdl="$cmdl$( subcommand_usage_line reset Clean and reset to latest )\n"
+      cmdl="$cmdl$( subcommand_usage_line build \<tag\> Build the given tx \
+tag, which probably is multiple patches. )\n"
+      cmdl="$cmdl$( subcommand_usage_line list List the available tx tags. )\n"
+      cmdl="$cmdl$( subcommand_usage_line reset Clean and reset to HEAD. )\n"
       echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
       exit
       ;;
@@ -631,12 +666,23 @@ handle_tpl_cmd() {
       shift 1
       create_patch $@
       ;;
+    build)
+      params=$( get_template_params $2 )
+      cmd_str="cat $2"
+      for p in $params; do
+        cmd_str="$cmd_str $( build_param_replace_command $p $( guess_template_param $p HEAD) )"
+      done
+      cmd_str="$cmd_str | patch -p2"  # TODO what p level to set?
+      eval $cmd_str
+      ;;
     list)
       ls ./template/*.patch
       ;;
     *)
       cmdl="$( subcommand_usage_line create Create a stub template for future \
       transactions. )\n"
+      cmdl="$cmdl$( subcommand_usage_line build \<patch file\> Build the given \
+template. )\n"
       cmdl="$cmdl$( subcommand_usage_line list List the available templates. )\n"
       echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
       exit
