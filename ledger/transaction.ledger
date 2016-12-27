@@ -1,27 +1,13 @@
-2016/12/12 * initialize Guild
-    ; Create XGG as a Liability
-    ; Then create XP by giving the XGG as Income
-    Assets:isysd:init                 1 XGG
-    Expenses:isysd:init                1 XGG
-    Income:isysd:init                  -1 XGG
-    Liabilities:isysd:init            -1 XGG
-    ; vote for own accounts
-    Assets:isysd:init:isysd          1 XP
-    Expenses:isysd:init:isysd          1 XP
-    Income:isysd:init:isysd          1 XP
-    Liabilities:isysd:init:isysd          1 XP
-    ; count votes
-    Equity:init:isysd:Assets:isysd      -1 XP
-    Equity:init:isysd:Expenses:isysd     -1 XP
-    Equity:init:isysd:Income:isysd      -1 XP
-    Equity:init:isysd:Liabilities:isysd  -1 XP
-    ; also register the founder
-    Assets:isysd:register:isysd         -0.01 XP
-    Expenses:isysd:register:isysd       -0.01 XP
-    Income:isysd:register:isysd         -0.01 XP
-    Liabilities:isysd:register:isysd    -0.01 XP
-    ; count founder registration votes
-    Equity:register:isysd:Assets:isysd      0.01 XP
-    Equity:register:isysd:Expenses:isysd     0.01 XP
-    Equity:register:isysd:Income:isysd      0.01 XP
-    Equity:register:isysd:Liabilities:isysd  0.01 XP
+
+2016-12-27 * GitGuild Initialization
+    ; pay founder Income for contributing this
+    gitguild:Expenses:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6       1000 XGG
+    gitguild:Liabilities:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6    -1000 XGG
+    isysd:Income:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6        1000 XGG
+    isysd:Assets:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6        -1000 XGG
+    ; Create XP by giving to the founder
+    isysd:Height:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6    1000 XP
+    gitguild:Depth:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6    -1000 XP
+    ; Founder votes using new XP
+    gitguild:Height:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6    1000 XP
+    isysd:Depth:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6         -1000 XP

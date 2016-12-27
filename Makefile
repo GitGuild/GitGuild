@@ -98,7 +98,7 @@ git commit -m "initialize identity guild"; \
 gitguild push
 
 fork_gitguild = if [ ! -d "$(GG_DIR)/gitguild" ]; then \
-	gitguild clone "gitguild" https://github.com/gitguild/gitguild.git; \
+	gitguild clone "gitguild" git://mirror.gitguild.com:gitguild; \
 fi
 
 rm_user_dir = if [ "$(USER_NAME)" != "" ]; then \
