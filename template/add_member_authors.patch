@@ -1,0 +1,7 @@
+diff -cr -N -x .git -x '*.patch' /old//AUTHORS /new//AUTHORS
+*** /old//AUTHORS	1969-12-31 19:00:00.000000000 -0500
+--- /new//AUTHORS	2016-12-23 11:00:15.859360525 -0500
+***************
+*** 0 ****
+--- 1 ----
++ <<< user_name >>> <<< user_email >>> <<< user_signingkey >>>
