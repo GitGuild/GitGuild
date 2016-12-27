@@ -325,6 +325,26 @@ gg_push() {
   fi
 }
 
+# $1 the name of the guild to fork
+# $2 remote If none is provided, github is guessed.
+gg_fork() {
+  if [ "$1" = "" ] || [ -d "$GG_DIR/$1" ]; then
+    echo "Cannot fork $1. Try forking something else."
+    echo
+    cmdl="$( subcommand_usage_line fork \<remote\> Fork a guild. )\n"
+    echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
+    exit 1
+  elif [ "$2" = "" ]; then # guess github
+    git clone https://github.com:"$1/$1".git "$GG_DIR/$1"
+  else
+    git clone "$2" "$GG_DIR/$1"
+  fi
+  if [ -d "$GG_DIR/$1"/.git ]; then
+    cd "$GG_DIR/$USER_NAME"
+    # TODO fork template
+  fi
+}
+
 #--------------Checks, setup, and installation helpers---------------
 
 # $1 is the name of the guild
@@ -339,6 +359,10 @@ setup_repo() {
   fi
   if [ "$(git remote -v) | grep origin" != "" ]; then
     grep -rl "origin" "$GG_DIR/$1/.git" | xargs sed -i s,origin,"$1",g
+  fi
+  if [ "$USE_GITOLITE" != "" ] && [ "$(git remote -v) | grep file://" = "" ]; then
+    git remote add "$USER_NAME" "file://$HOME/repositories/$1.git"
+    # TODO fork in gitolite-admin
   fi
   if [ "$( git branch | grep "$USER_NAME" )" = "" ]; then
     git checkout -b "$USER_NAME"
@@ -693,26 +717,6 @@ use_gitolite_push() {
 ### pull
 gg_pull() {
   git pull "$USER_NAME"
-}
-
-# $1 the name of the guild to fork
-# $2 remote If none is provided, github is guessed.
-gg_fork() {
-  if [ "$1" = "" ] || [ -d "$GG_DIR/$1" ]; then
-    echo "Cannot fork $1. Try forking something else."
-    echo
-    cmdl="$( subcommand_usage_line fork \<remote\> Fork a guild. )\n"
-    echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
-    exit 1
-  elif [ "$2" = "" ]; then # guess github
-    git clone https://github.com:"$1/$1".git "$GG_DIR/$1"
-  else
-    git clone "$2" "$GG_DIR/$1"
-  fi
-  if [ -d "$GG_DIR/$1"/.git ]; then
-    cd "$GG_DIR/$USER_NAME"
-    # TODO fork template
-  fi
 }
 
 __main "$@"

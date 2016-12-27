@@ -112,9 +112,9 @@ install:
 	$(call setup_ssh)
 	$(call setup_gitolite)
 	$(call setup_github)
-	sudo ln -sf $(GG_DIR)/gitguild/gitguild $(DESTDIR)/gitguild
 	cd $(HOME)/gitguild
 	$(call fork_gitguild)
+	sudo ln -sf $(GG_DIR)/gitguild/gitguild $(DESTDIR)/gitguild
 
 installpersonal:
 	$(call clone_ident)
