@@ -21,6 +21,8 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 
+ORIG_IFS=$IFS
+
 # Save $0 so we can shift
 # $1 must be a cmd.
 export PROG_NAME=$( echo "$0" | grep -o "[^/]*$" )
@@ -31,6 +33,10 @@ export USER_NAME=$( git config user.name )
 export USER_EMAIL=$( git config user.email )
 export USER_SIGNINGKEY=$( git config user.signingkey )
 USER_IS_CONFIGURED=true
+
+# gitolite user home, where repos are hosted
+# shellcheck disable=SC2116
+export GIT_HOME=$(echo ~git)
 
 # default working directory, where repos are cloned
 export GG_DIR=$HOME"/gitguild"
@@ -82,7 +88,7 @@ subcommand_usage_line() {
 # $2 the help
 command_option_line() {
   OPTSTR=$1
-  shift 1
+  shift
   printf "\t\t%s\t\t%s" "$OPTSTR" "$*"
 }
 
@@ -90,64 +96,81 @@ command_option_line() {
 #------------------------CLI Handlers-----------------------------
 
 # The main handler. Takes raw user input from command line.
-# $1 is the 
+# $1 is the command
 __main() {
   case $1 in
     user)
-      shift 1
-      handle_user_cmd $@
+      shift
+      handle_user_cmd "$@"
+      ;;
+    ledger)
+      shift
+      get_or_set_all_cfg_values
+      if [ ! $USER_IS_CONFIGURED ]; then
+        exit 1
+      fi
+      handle_ledger_cmd "$@"
       ;;
     tx)
-      shift 1
+      shift
       get_or_set_all_cfg_values
       if [ ! $USER_IS_CONFIGURED ]; then
         exit 1
       fi
-      handle_tx_cmd $@
+      handle_tx_cmd "$@"
       ;;
     template)
-      shift 1
-      handle_tpl_cmd $@
+      shift
+      handle_tpl_cmd "$@"
       ;;
     push)
-      shift 1
+      shift
       get_or_set_all_cfg_values
       if [ ! $USER_IS_CONFIGURED ]; then
         exit 1
       fi
-      gg_push $@
+      gg_push "$@"
       ;;
     clone)
-      shift 1
+      shift
       get_or_set_all_cfg_values
       if [ ! $USER_IS_CONFIGURED ]; then
         exit 1
       fi
-      echo "$@"
-      clone_guild $@
+      clone_guild "$@"
       ;;
     fork)
-      shift 1
+      shift
       get_or_set_all_cfg_values
       if [ ! $USER_IS_CONFIGURED ]; then
         exit 1
       fi
-      gg_fork $@
+      gg_fork "$@"
       ;;
     version|--version)
       cat VERSION
       ;;
+    setup-repo)
+      gname=$(guess_template_param guild_name)
+      if [ "$gname" != "" ]; then
+        setup_repo "$gname"
+      fi
+      ;;
     *)
       COMMAND="user"
-      cmdl="$( command_usage_line Manage your gitguild user.)\n"
+      cmdl="$( command_usage_line Manage guild users.)\n"
       COMMAND="tx"
       cmdl="$cmdl$( command_usage_line build and check transactions.)\n"
+      COMMAND="ledger"
+      cmdl="$cmdl$( command_usage_line Perform guild-related ledger actions. )\n"
       COMMAND="clone"
       cmdl="$cmdl$( subcommand_usage_line \<guild\> \(\<remote\>\) Clone a guild from optional remote. )\n"
       COMMAND="push"
       cmdl="$cmdl$( command_usage_line git push with extra checks and remotes. )\n"
       COMMAND="fork"
-      cmdl="$cmdl$( subcommand_usage_line fork \<remote\> Fork a guild with one or more remotes. )\n"
+      cmdl="$cmdl$( subcommand_usage_line \<remote\> Fork a guild with one or more remotes. )\n"
+      COMMAND="setup-repo"
+      cmdl="$cmdl$( subcommand_usage_line Setup remotes and hooks in current git repo. )\n"
       COMMAND="template"
       cmdl="$cmdl$( command_usage_line Create and list tx templates. )\n"
       echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
@@ -191,26 +214,23 @@ handle_user_cmd() {
 handle_tx_cmd() {
   case $1 in
     check)
-      get_template_params "$2"
+      shift
+      check_tx "$@"
       ;;
     build)
-      # $2 is a tag name
-      archive_tx_ledger
-      for tpl in $( list_tx_tag_templates "$2" ); do
-        echo "$tpl"
-        if [ "$( grep "^patch template.*patch$" "$tpl" )" != "" ]; then
-          handle_tpl_cmd build "$( grep "[^ ].*$" "$tpl" )"
-        elif [ "$( grep "^gitguild .*" "$tpl" )" != "" ]; then
-          eval "$tpl"
-        fi
-      done
-      LAST_TRANSACTION=$2
+      shift
+      # $1 is now a tag name
+      build_tx "$@"
       ;;
     list)
       list_tx_tags
       ;;
     archive)
-      archive_tx_ledger
+      shift
+      archive_tx_ledger "$@"
+      ;;
+    finish)
+      finish_tx
       ;;
     reset)
       # $2 is an optional flag to pass to git clean
@@ -219,9 +239,8 @@ handle_tx_cmd() {
         flag=$2
       fi
       git clean "$flag" -d
-      git reset --hard HEAD
-      git reset --hard HEAD~1
-      git pull
+      git reset -q --hard HEAD^
+      git pull -q "$USER_NAME" "$USER_NAME"
       ;;
     *)
       cmdl="$( subcommand_usage_line check Check the tx at HEAD or the given \
@@ -230,6 +249,7 @@ commit hash. )\n"
 \(put in equity.ledger\). )\n"
       cmdl="$cmdl$( subcommand_usage_line build \<tag\> Build the given tx \
 tag, which probably is multiple patches. )\n"
+      cmdl="$cmdl$( subcommand_usage_line finish Perform TX finishing actions, i.e. equity.ledger. )\n"
       cmdl="$cmdl$( subcommand_usage_line list List the available tx tags. )\n"
       cmdl="$cmdl$( subcommand_usage_line reset Clean and reset to HEAD. )\n"
       echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
@@ -239,24 +259,32 @@ tag, which probably is multiple patches. )\n"
 }
 
 # $1 is now sub-command
-# $2 and $3 are probably template files or dirs, depending
+# $@ are params for the sub-command
 handle_tpl_cmd() {
   case $1 in
     create)
-      shift 1
+      shift
       create_patch "$@"
       ;;
     build)
-      params=$( get_template_params "$2" )
-      cmd_str="cat $2"
-      for p in $params; do
-        cmd_str="$cmd_str $( build_param_replace_command "$p" "$( guess_template_param "$p" HEAD)" )"
-      done
-      cmd_str="$cmd_str | patch -p2"  # TODO what p level to set?
-      eval "$cmd_str"
+      shift
+      tname="$1"
+      shift
+      if [ "$1" != "" ] && [ "$(echo "$1" | grep .patch$ )" = "" ]; then
+        phash="$1"
+        shift
+        build_tpl "$tname" "$phash" "$@"
+      else
+        build_tpl "$tname" "HEAD" "$@"
+      fi
       ;;
     list)
-      ls ./template/*.patch
+      if [ "$2" = "" ]; then
+        ls "$GG_DIR"/*/template/*.patch
+      else
+        shift
+        list_tx_tag_templates "$@"
+      fi
       ;;
     *)
       cmdl="$( subcommand_usage_line create Create a stub template for future \
@@ -273,8 +301,8 @@ template. )\n"
 # $1 is the name of the guild to clone
 # $2 is optional remote to clone from. Assumed to be github if not specified.
 clone_guild() {
-  if [ ! -d "$GG_DIR/$1" ]; then
-    mkdir -p "$GG_DIR"
+  exists=$( [ ! -d "$GG_DIR/$1" ] || echo true )
+  if [ "$(echo "$1" | grep -E '^[-]{1,2}h[elp]{0,3}$')" = "" ] && [ "$exists" != "true" ]; then
     if [ "$2" = "" ]; then
       url="https://github.com/$1/$1.git"
     else
@@ -283,7 +311,10 @@ clone_guild() {
     git clone "$url" "$GG_DIR/$1"
     setup_repo "$1"
   else
-    cmdl="$( subcommand_usage_line \<guild\> \(\<remote\>\) Clone a guild from optional remote. )\n"
+    if [ "$exists" = "true" ]; then
+      echo "$GG_DIR/$1 exists. Will not overwrite it."
+    fi
+    cmdl="$( subcommand_usage_line clone \<guild\> \(\<remote\>\) Clone a guild from optional remote. )\n"
     echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
     exit
   fi
@@ -294,78 +325,184 @@ gg_push() {
   branch=$( git branch | grep "\*" | tr -d "* " )
   if [ "$branch" = "$USER_NAME" ]; then
     for remote in $( git remote ); do
-      if [ $( use_gitolite_push "$remote" ) ]; then
-        gitolite push "$remote" "$branch"
+      if [ "$( use_gitolite_push "$remote" )" ]; then
+        gitolite push -q "$remote" "$branch"
       else
-        git push "$remote" "$branch"
+        git push -q "$remote" "$branch"
       fi
     done
-    git checkout master
-    git merge "$USER_NAME"
+    git checkout -q master
+    git merge -q "$USER_NAME"
     # only push master to your own gitolite and github
-    for remote in $( git remote | grep "($USER_NAME|github)" ); do
-      if [ $( use_gitolite_push "$remote" ) ]; then
-        gitolite push "$remote" master
+    remotes=$( git remote | grep "$USER_NAME" | uniq)
+    for remote in $remotes; do
+      if [ "$( use_gitolite_push "$remote" )" ]; then
+        gitolite push -q "$remote" master
       else
-        git push "$remote" master
+        git push -q "$remote" master
       fi
     done
-    git checkout "$USER_NAME"
+    git checkout -q "$USER_NAME"
   else
     echo "You are not on your own branch. Are you sure you want to push?"
     read writeob
     echo
     if [ "$( echo "$writeob" | grep '[yY].*' )" != "" ]; then
       if [ "$( use_gitolite_push "$USER_NAME" )" ]; then
-        gitolite push "$USER_NAME" "$branch"
+        gitolite push -q "$USER_NAME" "$branch"
       else
-        git push "$USER_NAME" "$branch"
+        git push -q "$USER_NAME" "$branch"
       fi
     fi
   fi
 }
 
+fork_help() {
+  cmdl="$( subcommand_usage_line fork \<remote\> Fork a guild. )\n"
+  echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
+}
+
 # $1 the name of the guild to fork
 # $2 remote If none is provided, github is guessed.
 gg_fork() {
-  if [ "$1" = "" ] || [ -d "$GG_DIR/$1" ]; then
-    echo "Cannot fork $1. Try forking something else."
-    echo
-    cmdl="$( subcommand_usage_line fork \<remote\> Fork a guild. )\n"
-    echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
+  if [ "$1" = "" ]; then
+    fork_help
     exit 1
-  elif [ "$2" = "" ]; then # guess github
-    git clone https://github.com:"$1/$1".git "$GG_DIR/$1"
-  else
-    git clone "$2" "$GG_DIR/$1"
   fi
-  if [ -d "$GG_DIR/$1"/.git ]; then
-    cd "$GG_DIR/$USER_NAME"
-    # TODO fork template
+  remote=$2
+  if [ "$remote" = "" ]; then # guess github
+    remote=https://github.com/"$1/$1".git
+    if "$(github_repo_exists "$1" "$1")" = "false"; then
+      echo "Cannot fork $1. Try forking something else."
+      echo
+      fork_help
+      exit 1
+    fi
   fi
+  # try to fork using ok.sh's github fork
+  if [ "$USE_GITHUB" = "true" ]; then
+    if [ "$( echo "$remote" | grep github.com )" != "" ]; then
+      _=$( ok.sh fork_repo "$1" "$1" ) # ignore, since always returns repo data
+    else
+      _=$( ok.sh create_repo "$1" 2>&1 )
+    fi
+  fi
+  if [ "$USE_GITOLITE" = "true" ]; then
+    # clone locally if necessary
+    if [ "$( gitolite list-phy-repos | grep "$1" )" = "" ]; then
+      git clone -q --bare "$remote" "$GIT_HOME/repositories/$1.git"
+      gitolite setup
+    fi
+    # add to gitolite.conf
+    # shellcheck disable=SC2016
+    if [ "$( grep 'repo "$1"' "$GG_DIR"/"$USER_NAME"/conf/gitolite.conf )" = "" ]; then
+      cd "$GG_DIR/$USER_NAME"
+      git checkout -q "$USER_NAME"
+      build_tx fork_repo "other_guild=$1"
+      git add -A
+      git commit -m "forked $1"
+      gitguild push
+    fi
+  fi
+  if [ ! -d "$GG_DIR/$1" ]; then
+    git clone "$remote" "$GG_DIR/$1"
+  fi
+  # setup remotes
+  setup_repo "$1"
+  # register?
+}
+
+ledger_help() {
+  cmdl="$( subcommand_usage_line equity Print the equity gitguild style)\n"
+  cmdl="$cmdl$( subcommand_usage_line build Build the ledger for the current commit.)\n"
+  echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
+}
+
+# $1 subcommand
+handle_ledger_cmd() {
+  case $1 in
+    equity)
+      ledger_equity
+    ;;
+    build)
+      ledger_build
+    ;;
+    *)
+      ledger_help
+      exit
+    ;;
+  esac
 }
 
 #--------------Checks, setup, and installation helpers---------------
 
+# $1 is the github user to search
+github_list_user_repos() {
+  ok.sh list_repos gitguild | grep clone_url | tr -d "\"," | grep -o '[^ ]*$'
+}
+
+# $1 is the github user
+# $2 is the repo name
+github_repo_exists() {
+  rf=$( ok.sh list_repos gitguild | grep github.com/"$1"/"$2" )
+  if [ "$rf" = "" ]; then
+    echo "false"
+  else
+    echo "true"
+  fi
+}
+
 # $1 is the name of the guild
 setup_repo() {
   cd "$GG_DIR/$1"
-  ghr=$(git remote -v) | grep 'github.com/$1' | grep -o "$.* "
-  echo "github remote $ghr"
-  if [ "$ghr" != "" ]; then
-    grep -rl "$ghr" "$GG_DIR/$1/.git" | xargs sed -i s,"$ghr",github,g
-  elif [ "$USE_GITHUB" = "true" ]; then
-    git remote add github "https://github.com/$1/$1.git"
+  # sense official github remote
+  ghr=$(git remote -v | grep "github.com/$1/$1" | grep -o "^\w*" | uniq)
+  if [ "$ghr" != "" ] && [ "$ghr" != "github" ]; then
+    grep -rl "$ghr" "$GG_DIR/$1/.git" | xargs sed -i "s,$ghr,github,g"
+  elif [ "$ghr" = "" ] && [ "$USE_GITHUB" = "true" ] && [ "$(github_repo_exists "$1" "$1")" = "true" ]; then
+    git remote add github https://github.com/"$1"/"$1".git
   fi
-  if [ "$(git remote -v) | grep origin" != "" ]; then
-    grep -rl "origin" "$GG_DIR/$1/.git" | xargs sed -i s,origin,"$1",g
+  # sense personal github remote
+  if [ "$1" != "$USER_NAME" ]; then
+    pghr=$(git remote -v | grep "github.com/$USER_NAME/$1" | grep -o "^\w*" | uniq)
+    if [ "$USE_GITHUB" = "true" ]; then
+      if [ "$pghr" != "" ] && [ "$pghr" != "$USER_NAME"_gh ]; then
+        grep -rl "$pghr" "$GG_DIR/$1/.git" | xargs sed -i "s,$pghr,$USER_NAME_gh,g"
+      elif [ "$ghr" = "" ] && [ "$USE_GITHUB" = "true" ] && [ "$(github_repo_exists "$USER_NAME" "$1")" = "true" ]; then
+        git remote add "$USER_NAME"_gh https://github.com/"$USER_NAME"/"$1".git
+      fi
+    fi
   fi
-  if [ "$USE_GITOLITE" != "" ] && [ "$(git remote -v) | grep file://" = "" ]; then
-    git remote add "$USER_NAME" "file://$HOME/repositories/$1.git"
-    # TODO fork in gitolite-admin
+  # sense local gitolite remote
+  if [ "$USE_GITOLITE" = "true" ]; then
+    lgor=$(git remote -v | grep "file://.*$1" | grep -o "^\w*" | uniq)
+    if [ "$lgor" != "" ] && [ "$lgor" != "$USER_NAME" ]; then
+      grep -rl "$lgor" "$GG_DIR/$1/.git" | xargs sed -i "s,$lgor,$USER_NAME,g"
+    elif [ "$lgor" = "" ] && [ "$( gitolite list-phy-repos | grep "$1" )" = "" ]; then
+      git remote add "$USER_NAME" "file://$GIT_HOME/repositories/$1.git"
+    fi
   fi
+  # sense other gitolite remotes
+  ogor=$(git remote -v | grep fetch | grep "git@.*:$1" | grep -o "^\w*" )
+  for lname in $ogor; do
+    url=$(git remote get-url "$lname" | grep -o "^[^:]*")
+    # shellcheck disable=SC2029
+    ginfo=$( ssh "$url" info "$1" )
+    gname=$( echo "$ginfo" | grep -o '@[^ ]*' | tr -d "@" )
+    if [ "$lname" != "$gname" ] && [ "$( echo "$ginfo" | grep -v 'this is' | grep "$1" )" != "" ]; then
+      grep -rl "$lname" "$GG_DIR/$1/.git" | xargs sed -i "s,$lname,$gname,g"
+    fi
+  done
   if [ "$( git branch | grep "$USER_NAME" )" = "" ]; then
     git checkout -b "$USER_NAME"
+  fi
+  # add hooks
+  if [ -d ./h ]; then
+    for hook in ./h/*; do
+      if [ "$(echo "$hook" | grep pre-commit)" = "" ]; then
+        cp "h/$hook" .git/hooks/pre-commit
+      fi
+    done
   fi
 }
 
@@ -401,16 +538,17 @@ gpgkeygen() {
 user_cfg_error() {
   echo "OK, to try setting your git $1 at any time, run:" 1>&2
   echo 1>&2
-  echo "git config --global --add user.$1 <$2>" 1>&2
-  echo 1>&2
+  echo "gitguild user status" 1>&2
   USER_IS_CONFIGURED=false
 }
 
 # $1 is the username to search for
-guess_cfg_from_authors_by_name() {
+guess_cfg_from_authors_by_value() {
   if [ -f ./AUTHORS ]; then
     cfginfo=$( grep "$1" ./AUTHORS )
     if [ "$cfginfo" != "" ]; then
+      USER_NAME="$( echo "$cfginfo" | grep -o '^[^ ]*')"
+      git config --global --add user.email "$USER_EMAIL"
       USER_EMAIL="$( echo "$cfginfo" | grep -o ' [^ ]* ' | tr -d ' ' )"
       git config --global --add user.email "$USER_EMAIL"
       USER_SIGNINGKEY="$( echo "$cfginfo" | grep -o '[^ ]*$' )"
@@ -479,7 +617,7 @@ get_or_set_cfg_value() {
     if [ "$1" != "name" ] && [ "$( get_cfg_by_name "$1" )" = "" ]; then
       # try to guess based on name
       echo "guessing"
-      guess_cfg_from_authors_by_name "$USER_NAME"
+      guess_cfg_from_authors_by_value "$USER_NAME"
     fi
     if [ "$( get_cfg_by_name "$1" )" = "" ] && [ "$1" = "signingkey" ]; then
       print_sig_guesses
@@ -521,7 +659,6 @@ ensure_members_uniq() {
     emails=$( grep -o ' [^ ]* ' AUTHORS | tr -d ' ' | sort | uniq | \
       wc -l )
     sigkeys=$( grep -o '[^ ]*$' AUTHORS | sort | uniq | wc -l )
-    # the following all have +1 due to the expected empty line before EOF
     if [ "$total" != "$names" ]; then
       echo "ERROR: found duplicate names" 1>&2
       exit 1
@@ -546,7 +683,8 @@ ensure_members_uniq() {
 # $1 is a parameter
 # $2 is a value for $1
 build_param_replace_command() {
-  echo " | sed 's/<<< $1 >>>/$2/g'"
+  esc_str=$(echo "$2" | sed "s/\,/\\\\,/g")
+  echo " | sed 's,<<< $1 >>>,$esc_str,g'"
 }
 
 # $1 is a param to guess
@@ -557,42 +695,50 @@ guess_template_param() {
       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
         echo "$USER_NAME"
       else
-        git log -n 1 "$2"~.. --pretty="%cn"
+        git log -n 1 "$2".. --pretty="%cn"
       fi
     ;;
     user_email)
       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
         echo "$USER_EMAIL"
       else
-        git log -n 1 "$2"~.. --pretty="%ce"
+        git log -n 1 "$2".. --pretty="%ce"
       fi
     ;;
     user_signingkey)
       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
         echo "$USER_SIGNINGKEY"
       else
-        git log -n 1 "$2"~.. --pretty="%GK"
+        git log -n 1 "$2".. --pretty="%GK"
+      fi
+    ;;
+    user_height)
+      if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
+        ledger -f ledger/equity.parent bal "$USER_NAME":Height | head -n 1 | grep -o "[^ ][0-9.,]* XP" | tr -d " XP"
+      else
+        OTHER_USER=$(git log -n 1 "$2".. --pretty="%cn")
+        ledger -f ledger/equity.parent bal "$OTHER_USER":Height | head -n 1 | grep -o "[^ ][0-9.,]* XP" | tr -d " XP"
       fi
     ;;
     date)
       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
         date -u +%F
       else
-        date -u +%F --date="@$( git log -n 1 "$2"~.. --pretty=\"%ct\" )"
+        date -u +%F --date="@$( git log -n 1 "$2".. --pretty='%ct' )"
       fi
     ;;
     epoch)
       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
         date -u +%s
       else
-        git log -n 1 "$2"~.. --pretty="%ct"
+        git log -n 1 "$2".. --pretty="%ct"
       fi
     ;;
     vote_parent|parent)
-      if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
-        git log HEAD --pretty="%H"
+      if [ "$2" = "" ]; then
+        git log -n 1 HEAD --pretty="%H"
       else
-        git log -n 1 "$2"~~.. --pretty="%H"
+        git log -n 1 "$2" --pretty="%H"
       fi
     ;;
     version)
@@ -614,11 +760,20 @@ guess_template_param() {
         head -n 1 GUILD | grep -o "[^NAME ].*"
       fi
     ;;
+    other_guild)
+      if [ "$2" = "" ]; then
+        exit 1
+      else
+        gdate=$(guess_template_param 'date' "$2")
+        grep "$gdate" ledger/transaction.ledger | grep -o "[^ ]*$"
+      fi
+    ;;
     height)
       if [ -d ledger ]; then
-        ledger -f ledger/chain.ledger bal "$USER_NAME":Height | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
+        GUILD_NAME=guess_template_param "guild_name"
+        ledger -f ledger/chain.ledger bal "$GUILD_NAME":Height | head -n 1 | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
       else
-         echo 1
+         echo 0
       fi
     ;;
     last_transaction)
@@ -628,16 +783,48 @@ guess_template_param() {
         echo "$LAST_TRANSACTION"
       fi
     ;;
+    patch_path)
+      grep ".*\; wild_patch:" ledger/transaction.ledger | grep -o "[^ ]*$"
+    ;;
+    XGG_amount)
+      highest=0
+      IFS="<literal linefeed here>"
+      # shellcheck disable=SC2013
+      for line in $(cat ledger/transaction.ledger); do
+        amt=$( echo "$line" | grep -o "[0-9.] *XGG$" | tr -d "XG " )
+        if [ "$(echo "$amt > $highest" | bc)" != "0" ]; then
+          highest=$amt
+        fi
+      done
+      IFS=$ORIG_IFS
+      echo "$highest"
+    ;;
+    patch_path)
+      grep ".*\; wild_patch:" ledger/transaction.ledger | grep -o "[^ ]*$"
+    ;;
+    XGG_amount)
+      highest=0
+      IFS="<literal linefeed here>"
+      # shellcheck disable=SC2013
+      for line in $(cat ledger/transaction.ledger); do
+        amt=$( echo "$line" | grep -o "[0-9.] *XGG$" | tr -d "XG " )
+        if [ "$(echo "$amt > $highest" | bc)" != "0" ]; then
+          highest=$amt
+        fi
+      done
+      IFS=$ORIG_IFS
+      echo "$highest"
+    ;;
   esac
 }
 
 get_template_params() {
   # first argument should be a file or directory to look for templates
-  if [ -e "$1" ]; then
-    tdir=$1
-  elif [ -d "./template" ]; then
+  if [ -e "$GG_DIR/$1" ]; then
+    tdir=$GG_DIR/$1
+  elif [ -d ./template ]; then
     # if no argument given, assume current directory is base of repo
-    tdir=./template
+    tdir=$( readlink -f ./template )
   else
     echo "Unable to find template(s) at: ""$1" 1>&2
     echo 1>&2
@@ -646,30 +833,192 @@ get_template_params() {
   grep -roh '<<< [a-zA-Z0-9_-.]\{1,80\} >>>' "$tdir" | tr -d '<> ' | sort | uniq
 }
 
+# $1 is the name of the template
+# $2 is the revision (default to HEAD)
+# $@ are param values to use, as pairs (key=val), preceded by optional flags (--flag)
+build_tpl() {
+  tpl_name="$1"
+  shift
+  revision="$1"
+  shift
+  reverse=""  
+  if [ "$1" = "--reverse" ]; then
+    reverse="--reverse"
+    shift
+  fi
+  params=$( get_template_params "$tpl_name" )
+  cmd_str="cat $GG_DIR/$tpl_name"
+  for kv in "$@"; do
+    key="$(echo "$kv" | grep -o '^[^=]*')"
+    val="$(echo "$kv" | grep -o '[^=]*$')"
+    IFS=" "
+    # shellcheck disable=SC2016
+    if [ "$(echo "$params" | grep '^"$key"$')" = "" ]; then
+      cmd_str="$cmd_str $( build_param_replace_command "$key" "$val" )"
+      params=$(echo "$params" | sed "s,^$key$,,g")
+    fi
+    IFS=$ORIG_IFS
+  done
+  for p in $params; do
+    if [ "$p" != "" ]; then
+      cmd_str="$cmd_str $( build_param_replace_command "$p" "$( guess_template_param "$p" "$revision")" )"
+    fi
+  done
+  if [ "$reverse" = "" ]; then
+    cmd_str="$cmd_str | patch -s -p2"  # TODO what p level to set?
+  else
+    cmd_str="$cmd_str | patch -s -R -p2"  # TODO what p level to set?
+  fi
+  eval "$cmd_str"
+}
+
 list_tx_tags() {
-  grep tag ledger/tag.ledger | grep -o "[^tag ].*$"
+  grep tag ledger/tag.ledger | grep -o "[^ ].*$"
 }
 
 # $1 the name of the tag to list templates for
+# $2 to reverse the list, set this to "--reverse"
 list_tx_tag_templates() {
   INTAG=false
-  while read line; do
-    if [ "$line" = "tag $1" ]; then
-      INTAG=true
-    elif [ "$INTAG" = "true" ]; then
-      echo "$line" | grep -o "[^: ].*$"
+  if [ "$2" = "--reverse" ]; then
+    tac ledger/tag.ledger
+  else
+    cat ledger/tag.ledger
+  fi | while read line; do
+    if [ "$(echo "$line" | grep -E "[\;# ]*[end]{0,3}tag $1")" != "" ]; then
+      if [ "$INTAG" = "true" ]; then
+        return
+      else
+        INTAG=true
+      fi
+    elif [ "$INTAG" = "true" ] && [ "$(echo "$line" | grep \;)" != "" ]; then
+      echo "$line" | grep -o "[^; ].*$"
     fi
-  done < ledger/tag.ledger
+  done
 }
 
-
+# $1 to reverse the archive action, set this to "--reverse"
+# $2 is an optional commit hash (should always be HEAD or HEAD^)
 archive_tx_ledger() {
-  if [ -f ledger/transaction.ledger ] && \
-     [ "$( cat ledger/transaction.ledger )" != "" ]; then
-    echo "# This file should have an 'equity' summary of all history up to the parent commit." > ledger/equity.ledger
-    ledger -C -f ledger/chain.ledger equity | sed 's/ Opening Balances/ * Cleared Balances/g' >> ledger/equity.ledger
-    ledger -U -f ledger/chain.ledger equity | sed 's/Opening Balances/Uncleared Balances/g' >> ledger/equity.ledger
-    echo '' > ledger/transaction.ledger
+  if [ "$1" = "--reverse" ]; then
+    if [ "$2" = "HEAD^" ]; then
+      phash="HEAD^"
+    fi
+    # also "unfinishes" the tx by resetting GUILD
+    rm ledger/equity.parent ledger/equity.ledger ledger/transaction.ledger GUILD
+    git checkout "$phash" ledger/equity.ledger ledger/equity.parent ledger/transaction.ledger GUILD
+    ledger_build
+  else
+    ledger_build
+    cp ledger/equity.ledger ledger/equity.parent
+    echo "" > ledger/transaction.ledger
+  fi
+}
+
+finish_tx() {
+  ledger_build
+  sed -i GUILD -e "s,EPOCH_TIME.*,EPOCH_TIME $(date -u +%s),g" \
+    -e "s,LAST_TRANSACTION.*,LAST_TRANSACTION $LAST_TRANSACTION,g"
+  ledger_equity > ledger/equity.ledger
+}
+
+# $1 is a tag name
+# $@ are build tpl params or flags with no '=' (i.e. --reverse)
+build_tx() {
+  export LAST_TRANSACTION="$1"
+  shift
+  reverse=""
+  phash="HEAD"
+  if [ "$1" = "--reverse" ]; then
+    reverse="--reverse"
+    shift
+    if [ "$(git status --short)" = "" ]; then
+      phash="HEAD^"
+    fi
+  else
+    archive_tx_ledger
+  fi
+  list_tx_tag_templates "$LAST_TRANSACTION" "$reverse" | while read tpl; do
+    if [ "$( echo "$tpl" | grep '^patch .*patch$' )" != "" ]; then
+      ptpl="$( echo "$tpl" | grep -o '[^ ]*$' )"
+      build_tpl "$ptpl" "$phash" "$reverse" "$@"
+    elif [ "$( echo "$tpl" | grep '^wild_patch' )" != "" ]; then
+      # fild patch_path from transaction tag
+      patch_path=$(grep ".*\; wild_patch:" ledger/transaction.ledger | grep -o "[^ ]*$")
+      build_tpl "$patch_path" "$phash" "$reverse" "$@"
+    fi
+  done
+  if [  "$reverse" = "" ]; then
+    finish_tx
+  else
+    archive_tx_ledger "$reverse" "$phash"
+  fi
+}
+
+# $1 is the parent commit to check against (default HEAD, then HEAD^)
+check_tx() {
+  if [ "$1" = "" ]; then
+    wdelta=$(git status --short)
+    if [ "$wdelta" = "" ]; then
+      phash="HEAD^"
+    else
+      phash="HEAD"
+      git stash --keep-index
+    fi
+  else
+    phash="$1"
+    git checkout "$phash" || exit 1
+  fi
+  # if committed, check signer
+  if [ "$phash" != "HEAD" ]; then
+    sigkey="$(git log "$phash^..$phash" --pretty="%GK" | grep -o '.\{8\}$')"
+    if [ "$sigkey" = "" ]; then
+      echo "No gpg signature found for tx at $1" 1>&2
+      exit 1
+    fi
+    signer=$(grep " $sigkey$" ./AUTHORS)
+    if [ "$signer" = "" ]; then
+      echo "Signer $signer is not known to this guild." 1>&2
+      exit 1
+    fi
+  fi
+  gdata=$(cat GUILD)
+  #parent_gdata=$(git show "$phash":GUILD)
+  # lookup last tx in GUILD
+  last_tx=$(echo "$gdata" | grep "LAST_TRANSACTION" | grep -o "[^ ]*$")
+  # ensure equity.parent is same as parent's equity.ledger
+  parent_equity="$(git show "$phash":ledger/equity.ledger)"
+  equity_parent="$(cat ledger/equity.parent)"
+  if [ "$parent_equity" != "$equity_parent" ]; then
+    #echo "$parent_equity" 1>&2
+    #echo "$equity_parent" 1>&2
+    echo "Equity of parent was not used for this commit" 1>&2
+    exit 1
+  fi
+  # ensure height increased
+  height=$(ledger -f ledger/equity.ledger bal "$GUILD_NAME:Height:$GUILD_NAME" | head -n 1 | grep -o "[0-9.]* *XP" | tr -d "XP ")
+  parent_height=$(ledger -f ledger/equity.parent bal "$GUILD_NAME:Height:$GUILD_NAME" | head -n 1 | grep -o "[0-9.]* *XP" | tr -d "XP ")
+  if [ "$(echo "$height > $parent_height" | bc)" = "0" ]; then
+    echo "Height $height not greater than parent $parent_height" 1>&2
+    exit 1
+  fi
+  tpl_list=$(list_tx_tag_templates "$last_tx")
+  if [ "$tpl_list" = "" ]; then
+    echo "Last transaction tag $last_tx is unknown" 1>&2
+    exit 1
+  fi
+  # ensure tag instructions were followed
+  # ensure output matches exactly
+  build_tx "$last_tx" --reverse
+  git diff "$phash"
+  if [ "$(git diff "$phash")" != "" ]; then
+    echo "Reverse tx build of $last_tx failed." 1>&2
+    exit 1
+  fi
+  if [ "$phash" = "HEAD" ]; then
+    git stash apply
+  else
+    git reset --hard HEAD
   fi
 }
 
@@ -681,16 +1030,16 @@ create_patch() {
   INPATH=$1
   OUTPATH=$2
   if [ "$1" = "" ]; then
-    rm -fR /tmp/gitguild_working_dir
-    mkdir /tmp/gitguild_working_dir
-    cp -fR ./.git /tmp/gitguild_working_dir/
-    cp -fR ./* /tmp/gitguild_working_dir/
+    rm -fR "$GG_DIR/tmp"
+    mkdir "$GG_DIR/tmp"
+    cp -fR ./.git "$GG_DIR/tmp"/
+    cp -fR ./* "$GG_DIR/tmp"/
     OLD_TOO_MANY_DIRS=$( pwd )
-    cd /tmp/gitguild_working_dir
+    cd "$GG_DIR/tmp"
     _=$( git clean -f )
     _=$( git reset --hard HEAD )
     cd "$OLD_TOO_MANY_DIRS"
-    INPATH="/tmp/gitguild_working_dir"
+    INPATH="$GG_DIR/tmp"
   fi
   if [ "$2" = "" ]; then
     OUTPATH="$( readlink -f . )"
@@ -701,7 +1050,7 @@ create_patch() {
     echo "#"
     echo
   fi
-  diff -cr -N "$INPATH" "$OUTPATH" -x .git -x ./template/*.patch | sed s,"$INPATH",/old/,g | sed s,"$OUTPATH",/new/,g
+  diff -cr -N "$INPATH" "$OUTPATH" -x .git -x .\*template/\*.patch -x \*generated_check.ledger | sed "s,$INPATH,/old/,g" | sed "s,$OUTPATH,/new/,g"
 }
 
 # $1 remote name to check
@@ -713,10 +1062,84 @@ use_gitolite_push() {
   fi
 }
 
-
 ### pull
 gg_pull() {
   git pull "$USER_NAME"
+}
+
+#-----------------------ledger section---------------------------
+
+# print the equity splitting confirmed and unconfirmed
+ledger_equity() {
+  if [ -f ledger/transaction.ledger ]; then
+    ledger -C -f ledger/chain.ledger equity | sed 's/ Opening Balances/ * Cleared Balances/g'
+    ledger -U -f ledger/chain.ledger equity | sed 's/Opening Balances/Uncleared Balances/g'
+  fi
+}
+
+# $1 the account prefix (check or assert)
+# $2 an account line from ledger
+generate_checks_from_accounts() {
+  IFS=":"
+  level="0"
+  user=""
+  guild=""
+  branch=""
+  top=""
+  for account in $2; do
+    # shellcheck disable=SC2003
+    level=$(expr "$level" + 1)
+    case $level in
+      1)
+        user="$account"
+        echo "assert user_vote_check(\"$user\")"
+        ;;
+      # skip 2, as no checks to run
+      3)
+        guild="$account"
+        ;;
+      4)
+        branch="$account"
+        echo "assert branch_vote_check(\"$user\", \"$guild\", \"$branch\" ) "
+        ;;
+      5)
+        top="$account"
+        echo "assert user_issue_vote_check(\"$user\", \"$guild\", \"$branch\", \"$top\")"
+        IFS=$ORIG_IFS
+        return
+        ;;
+    esac
+  done
+  IFS=$ORIG_IFS
+}
+
+# build local ledger files for running (i.e. generate check file)
+ledger_build() {
+  ACCT_PREFIX="assert"
+  while read line
+  do
+    if [ "$(echo "$line" | grep '^#')" != "" ]; then
+      continue
+    elif [ "$(echo "$line" | grep '\* Cleared Balances')" != "" ]; then
+      ACCT_PREFIX="assert"
+    elif [ "$(echo "$line" | grep ' Uncleared Balances')" != "" ]; then
+      ACCT_PREFIX="check"
+    elif [ "$line" != "" ]; then
+      acline="$(echo "$line" | grep -o '^ *[0-9a-zA-Z:]*' | tr -d ' ')"
+      generate_checks_from_accounts "$ACCT_PREFIX" "$acline"
+      if [ "$(grep "$acline" ledger/transaction.ledger )" != "" ]; then
+        grep \; ledger/transaction.ledger | grep -o "[^ ]*$" | while read txl
+        do
+          if [ "$(grep "$txl" ledger/tag.ledger)" != "" ]; then
+            min_votes=$(list_tx_tag_templates "$txl" | grep min_votes | grep -o '[^ ]*$')
+            if [ "$min_votes" != "" ]; then
+              echo "$ACCT_PREFIX issue_vote_check(\"$user\", \"$guild\", \"$branch\", \"$top\", $min_votes XP)"
+            fi
+          fi
+        done
+      fi
+    fi
+  done < ledger/equity.ledger | sort | uniq > ledger/generated_check.ledger
 }
 
 __main "$@"

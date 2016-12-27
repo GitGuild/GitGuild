@@ -1,0 +1,3675 @@
+#MIT License
+#
+#Copyright (c) 2016 GitGuild developers
+#
+#Permission is hereby granted, free of charge, to any person obtaining a copy
+#of this software and associated documentation files (the "Software"), to deal
+#in the Software without restriction, including without limitation the rights
+#to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#copies of the Software, and to permit persons to whom the Software is
+#furnished to do so, subject to the following conditions:
+#
+#The above copyright notice and this permission notice shall be included in all
+#copies or substantial portions of the Software.
+#
+#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#SOFTWARE.
+#
+
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//CHANGELOG.md /new//CHANGELOG.md
+*** /old//CHANGELOG.md	2017-01-01 11:35:02.788178706 -0500
+--- /new//CHANGELOG.md	2017-01-01 11:30:27.252182375 -0500
+***************
+*** 5,7 ****
+--- 5,16 ----
+  
+  This Change Log format is suggested by
+  <https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md>
++ 
++ <a name="0.2.9"></a>
++ ## 0.2.9 (2017-01-01)
++ 
++ #### Added
++ 
++ *   Install and configure gitguild
++ *   Ledger for this guild
++ *   isysd becomes member
+\ No newline at end of file
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//conf/gitolite.conf /new//conf/gitolite.conf
+*** /old//conf/gitolite.conf	2017-01-01 11:35:02.788178706 -0500
+--- /new//conf/gitolite.conf	2017-01-01 11:30:27.252182375 -0500
+***************
+*** 1,6 ****
+  @admins    =   isysd
+  
+  repo gitguild
+-     RW     =   @admins
+      RW isysd = isysd
+-     R     = @all
+--- 1,8 ----
+  @admins    =   isysd
+  
++ repo @all
++     RW   refs/.*  =   @admins
++     R      =   @all
++ 
+  repo gitguild
+      RW isysd = isysd
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//CONTRIBUTING.md /new//CONTRIBUTING.md
+*** /old//CONTRIBUTING.md	2017-01-01 11:35:02.788178706 -0500
+--- /new//CONTRIBUTING.md	2017-01-01 11:30:27.252182375 -0500
+***************
+*** 2,14 ****
+  
+  Feedback and contributions are very welcome!
+  
+! ## General information
+  
+  
+! ### Open Source License (MIT)
+  
+! All (new) contributed material must be released under the [MIT license](./LICENSE).
+! All new contributed material that is not executable, including all text when not executed, is also released under the [Creative Commons Attribution 3.0 International (CC BY 3.0) license](https://creativecommons.org/licenses/by/3.0/) or later.
+  
+  ## Vulnerability reporting (security issues)
+  
+--- 2,37 ----
+  
+  Feedback and contributions are very welcome!
+  
+! ## A GitGuild Project
+  
++ This project uses [GitGuild](https://github.com/GitGuild/gitguild) software to govern itself and all contributions. Please [install](https://github.com/GitGuild/gitguild#install) the client to ensure you meet the strict configuration and usage requirements. These include, but are not limited to the following.
+  
+! | Rule | Description |
+! |-------|----------------|
+! | Must sign | Every commit must be GPG signed by a member listed in the AUTHORS file. |
+! | Consensus branches | The `master` and `gitguild` branches are reserved for consensus. Only commits approved by XP vote can be merged. |
+! | Member branches | A member's branch is their vote on the state and contents of the chain. |
+! | Higher | Every commit must have a higher `<guild_name>:Height` than it's parent.  |
+! | Highest | Consensus is the highest valid branch of a guild. This should be mirrored to master and the guild's own branch as commits are made to member branches. |
+! | Max Depth | Each member can only vote up to their total `<user_name>:Height` on each parent hash. |
+  
+! The first three rules are all git best practices. These rules, and the automation of execution of checks on them, ensure a complete chain of responsibility for each change. Incomplete usage of gpg signing is not nearly good enough, as Mike Gerwitz points out in [A Git Horror Story: Repository Integrity With Signed Commits](https://mikegerwitz.com/papers/git-horror-story.html).
+! 
+! "[H]ow can you be sure that their commits are actually their own? Furthermore, how can you be sure that any commits they approve (or sign off on using git commit -s) were actually approved by them?
+! 
+! That is, of course, assuming that they have no ill intent. For example, what of the pissed off employee looking to get the arrogant, obnoxious co-worker fired by committing under the coworker’s name/email? What if you were the manager or project lead? Whose word would you take? How would you even know whom to suspect?"
+! 
+! The answer to these questions is strict standards and enforcement, i.e. rules 1-3.
+! 
+! The last three rules are all for [ledger](https://ledger-cli.org) use, and ensure consensus is calculated and enforced. Git actions are recorded by spending XP in the ledger in `Height` and `Depth` accounts. The amount of XP in the `Height` of any commit determines it's acceptance or rejection by the organization, and therefore it's mergability into master.
+! 
+! ## Payment
+! 
+! Contributors can request payment in GitGuild coin (XGG) as part of the contribution, and are allowed to redeem this XGG for BTC, DASH or other assets. If the commit is approved by the other members, the XGG will be counted as Income, also triggering a corresponding XP increase for the contributor.
+! 
+! Like every change made to a guild, this payment request process is templated in a patch file, and should be run using `gitguild tx build`. In this case the tx name is `paid_contribution`.
+! 
+! Though there are no set limits or rules on how much you can ask to be paid, remember that the pay is subject to review and approval by your peers. It is the very people reviewing your code that ultimately decide any pay you receive.
+  
+  ## Vulnerability reporting (security issues)
+  
+***************
+*** 16,71 ****
+  please send an email to the security contacts that you have such
+  information, and we'll tell you the next steps.
+  For now, the security contacts are:
+! isysd <ira@gitguild.com>,
+! cindy-zimmerman <cindy@tigoctm.com>,
+! and d3brouille <robinson@gitguild.com>
+! (remove the -NOSPAM markers).  
+  
+  Please use the PGP keys provided in the AUTHORS file to encrypt your message!
+  
+! ## Documentation changes
+! 
+! Most of the documentation is in "markdown" format.
+! All markdown files use the .md filename extension.
+! 
+! Where reasonable, limit yourself to Markdown
+! that will be accepted by different markdown processors
+! (e.g., what is specified by CommonMark or the original Markdown)
+! In practice we use
+! the version of Markdown implemented by GitHub when it renders .md files,
+! and you can use its extensions
+! (in particular, mark code snippets with the programming language used).
+! This version of markdown is sometimes called
+! [GitHub-flavored markdown](https://help.github.com/articles/github-flavored-markdown/).
+! In particular, blank lines separate paragraphs; newlines inside a paragraph
+! do *not* force a line break.
+! Beware - this is *not*
+! the same markdown algorithm used by GitHub when it renders
+! issue or pull comments; in those cases
+! [newlines in paragraph-like content are considered as real line breaks](https://help.github.com/articles/writing-on-github/);
+! unfortunately this other algorithm is *also* called
+! GitHub rendered markdown.
+! (Yes, it'd be better if there were standard different names
+! for different things.)
+! 
+! The style is basically that enforced by the "markdownlint" tool.
+! Don't use tab characters, avoid "bare" URLs (in a hypertext link, the
+! link text and URL should be on the same line), and try to limit
+! lines to 80 characters (but ignore the 80-character limit if that would
+! create bare URLs).
+! Using the "rake markdownlint" or "rake" command
+! (described below) implemented in the development
+! environment can detect some problems in the markdown.
+! That said, if you don't know how to install the development environment,
+! don't worry - we'd rather have your proposals, even if you don't know how to
+! check them that way.
+! 
+! Do not use trailing two spaces for line breaks, since these cannot be
+! seen and may be silently removed by some tools.
+! Instead, use <tt>&lt;br&nbsp;/&gt;</tt> (an HTML break).
+  
+! ## Code changes
+  
+! ##### Copyright
+  
+! This file adapted from the Linux Foundation's Core Infrastructure Initiative's [CONTRIBUTING.md](https://github.com/linuxfoundation/cii-best-practices-badge/blob/master/CONTRIBUTING.md).
+--- 39,54 ----
+  please send an email to the security contacts that you have such
+  information, and we'll tell you the next steps.
+  For now, the security contacts are:
+! isysd <ira@gitguild.com>, and
+! cindy-zimmerman <cindy@tigoctm.com>.  
+  
+  Please use the PGP keys provided in the AUTHORS file to encrypt your message!
+  
+! ### Copyright
+  
+! This file adapted from the Linux Foundation's Core Infrastructure Initiative's [CONTRIBUTING.md](https://github.com/linuxfoundation/cii-best-practices-badge/blob/master/CONTRIBUTING.md).
+  
+! ##### Open Source License (MIT)
+  
+! All (new) contributed material must be released under the [MIT license](./LICENSE).
+! All new contributed material that is not executable, including all text when not executed, is also released under the [Creative Commons Attribution 3.0 International (CC BY 3.0) license](https://creativecommons.org/licenses/by/3.0/) or later.
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//CREDITS /new//CREDITS
+*** /old//CREDITS	2017-01-01 11:35:02.788178706 -0500
+--- /new//CREDITS	1969-12-31 19:00:00.000000000 -0500
+***************
+*** 1,43 ****
+- # Credits
+- 
+- The maintainers, contributors, and members of this guild would like to thank the following for essential prior contributions.
+- 
+- Without these foundation blocks, our chain would not be able to grow tall and thick.
+- 
+- ### GNU
+- 
+- So basic, even git wouldn't work without it, the GNU toolkit is used extensively by gitguild.
+- Additionally, the GNU standards were inspirational for a number of example documents and formats.
+- 
+- ### Linux Foundation's Core Infrastructure Initiative
+- 
+- The greatest source of standards and example documents is definitely the CII. This includes but is not limited to the CHANGELOG, CONTRIBUTING, CREDITS, and AUTHORS file formats.
+- 
+- ### git
+- 
+- If there is one core foundation to the gitguild stack, it has to be git.
+- Git is the water that guilds swim in. Thank you git for the open ocean, full of diverse ecosystems.
+- 
+- ### GnuPG
+- 
+- There is a saying "don't roll your own crypto." Thanks to GnuPG, we have an almost universally respected, flexible crypto backbone.
+- Thank you GnuPG for doing the heavy lifting, and carrying the weight to git, email, and so many other areas.
+- 
+- ### Ledger-cli
+- 
+- How do you herd cats? Count them very carefully. Twice. Thanks to ledger-cli, the perfect plaintext accounting system was ready and waiting to drop into a git repo for version control.
+- 
+- ### gitolite
+- 
+- Gitolite was a late find but natural fit for gitguild development. Comprehensive permissions inside a git repo, including ssh keyring... it is just begging to be decentralized.
+- We're honored to try extending gitolite into a P2P network.
+- 
+- ### Individual People
+- 
+-  + Ira Miller aka isysd
+-  + Cindy Zimmerman
+-  + Andre Haynes
+-  + d3brouille
+-  + et4te
+-  + welshjf
+- 
+--- 0 ----
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//CREDITS.md /new//CREDITS.md
+*** /old//CREDITS.md	1969-12-31 19:00:00.000000000 -0500
+--- /new//CREDITS.md	2017-01-01 11:30:27.252182375 -0500
+***************
+*** 0 ****
+--- 1,43 ----
++ # Credits
++ 
++ The maintainers, contributors, and members of this guild would like to thank the following for essential prior contributions.
++ 
++ Without these foundation blocks, our chain would not be able to grow tall and thick.
++ 
++ ### GNU
++ 
++ So basic, even git wouldn't work without it, the GNU toolkit is used extensively by gitguild.
++ Additionally, the GNU standards were inspirational for a number of example documents and formats.
++ 
++ ### Linux Foundation's Core Infrastructure Initiative
++ 
++ The greatest source of standards and example documents is definitely the CII. This includes but is not limited to the CHANGELOG, CONTRIBUTING, CREDITS, and AUTHORS file formats.
++ 
++ ### git
++ 
++ If there is one core foundation to the gitguild stack, it has to be git.
++ Git is the water that guilds swim in. Thank you git for the open ocean, full of diverse ecosystems.
++ 
++ ### GnuPG
++ 
++ There is a saying "don't roll your own crypto." Thanks to GnuPG, we have an almost universally respected, flexible crypto backbone.
++ Thank you GnuPG for doing the heavy lifting, and carrying the weight to git, email, and so many other areas.
++ 
++ ### Ledger-cli
++ 
++ How do you herd cats? Count them very carefully. Twice. Thanks to ledger-cli, the perfect plaintext accounting system was ready and waiting to drop into a git repo for version control.
++ 
++ ### gitolite
++ 
++ Gitolite was a late find but natural fit for gitguild development. Comprehensive permissions inside a git repo, including ssh keyring... it is just begging to be decentralized.
++ We're honored to try extending gitolite into a P2P network.
++ 
++ ### Individual People
++ 
++  + Ira Miller aka isysd
++  + Cindy Zimmerman
++  + Andre Haynes
++  + d3brouille
++  + et4te
++  + welshjf
++ 
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//doc/consensus.md /new//doc/consensus.md
+*** /old//doc/consensus.md	1969-12-31 19:00:00.000000000 -0500
+--- /new//doc/consensus.md	2017-01-01 11:30:27.252182375 -0500
+***************
+*** 0 ****
+--- 1,31 ----
++ # Consensus
++ 
++ ## Abstract
++ 
++ Git is a flexible version control system in use by tens of millions of collaborators worldwide. Git [stores data](https://git-scm.com/book/en/v2/Git-Internals-Git-Objects) in sha1 hash trees, and [supports](https://git-scm.com/book/en/v2/Git-Tools-Signing-Your-Work) gpg signing of commits (since v1.7.9). With strict usage guidelines, these cryptographic utilities create a blockchain made up of gpg-signed, sha1-hashed commits.
++ 
++ ## Proof of Labor
++ 
++ A chain of signed commits is hearafter referred to as Proof of Labor. Proof of Labor is a flexible, meritocratic mining system.
++ 
++ Each block of data is made up of a pgp-signed git commit. This commit consistitutes some Labor performed by one or more members of the guild. The other members of the guild then vote on accepting the PR or not by merging the commit or creating a fork.
++ 
++ Once a commit has been merged into the master branch, it may not be reverted or overwritten without being detected by other members of the guild. Git guild are immutable unless a fork aka rebase is explicitely voted for. This is similar to other blockchains, where immutability is subject to maintaining consensus.
++ 
++ #### Crypto
++ 
++ While this system has not yet been reviewed by cryptographers, it should not be controversial. Proof of Labor uses standard, well established tools in a downright orthodox way.  
++ 
++ GNU Privacy Guard aka GPG is a popular encryption program first released in 1999. GPG is open source software package compliant with [RFC 4880](https://tools.ietf.org/html/rfc4880), which is the IETF standards track specification of OpenPGP. The latest version (2.0.30) supports RSA, ElGamal and DSA signing, as well as a number of ciphers, hashes, and compression algorithms. It is commonly used for encrypting and/or signing emails, and is growing in use in the git community.
++ 
++ Git was developed as a file system, by Linus Torvalds, in 2005. The SHA1 hash tree that git uses was introduced in that first version. Since git has become one of the most popular software projects of all time, this hash tree has seen a lot of real world use, as well as development. Key to the hash tree is that all files are hashed into a commit, along with the parent commit(s). Git's hash tree is a directed acyclic graph. This means it is a one directional, immutable tree with branches and branch resolution. Loops, rewriting history, and a number of other logical inconsistencies are prevented.
++ 
++ Since git v1.7.9, released in 2012, git has supported GPG signing commits. This release was the final technical pre-requisite for Proof of Labor.
++ 
++ ## Summary
++ 
++ If this seems too easy, you're not alone. For software developers, git feels like water to a fish. It is challenging to discover something new about the environment you survive in.
++ 
++ The contributors to Proof of Labor are amazed at how broad the applications seem to be. The natural contracting language and strong reputation system of PoL are unique in a blockchain. Due to this broad scope, we have erred on the side of abstraction over specification. While Proof of Labor could be even more loose, and many alternate implementations are possible, we believe this is a flexible, minimal working ruleset.
++ 
++ Proof of Labor is complimentary with PoW systems in many ways, and could even be applied after the fact as a governance layer to blockchains like Bitcoin. It could be used as an oracle by other blockchains, or lend them sidechain functionality. It is not likely to be as fast or as directly scalable, but perhaps with advanced sidechain usage, even massive parallel processing could be possible. Most likely, however, an optimal hybrid will emerge after much experimentation.
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//doc/templates.md /new//doc/templates.md
+*** /old//doc/templates.md	2017-01-01 11:35:02.796178706 -0500
+--- /new//doc/templates.md	2017-01-01 11:30:27.252182375 -0500
+***************
+*** 22,28 ****
+  
+  ### Parameters
+  
+! To transform a strict patch into a more flexible template, add parameters. Gitguild template parameters are surrounded by triple tri-angle brackets. i.e. `<<< param_name >>>`. As far as the developers can tell, this is a previously unused format, which will avoid collisions with any documents under revision control.
+  
+  At runtime, these parameters will be replaced by the appropriate values from the context of the transaction. For instance, `<<< user_name >>>` would be the current user's name when creating a transaction using a patch, but would be the committer's name when checking said transaction.
+  
+--- 22,28 ----
+  
+  ### Parameters
+  
+! To transform a strict patch into a more flexible template, add parameters. Gitguild template parameters are surrounded by triple angle brackets. i.e. `<<< param_name >>>`. As far as the developers can tell, this is a previously unused format, which will avoid collisions with any documents under revision control.
+  
+  At runtime, these parameters will be replaced by the appropriate values from the context of the transaction. For instance, `<<< user_name >>>` would be the current user's name when creating a transaction using a patch, but would be the committer's name when checking said transaction.
+  
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//doc/whitepaper.md /new//doc/whitepaper.md
+*** /old//doc/whitepaper.md	2017-01-01 11:35:02.800178706 -0500
+--- /new//doc/whitepaper.md	1969-12-31 19:00:00.000000000 -0500
+***************
+*** 1,84 ****
+- # Git Guild Blockchain
+- 
+- *A git guild is a git-native contract and payment network.*
+- 
+- __Document version 0.2.0__
+- 
+- ## Abstract
+- 
+- Git is a flexible version control system in use by tens of millions of collaborators worldwide. Git [stores data](https://git-scm.com/book/en/v2/Git-Internals-Git-Objects) in sha1 hash trees, and [supports](https://git-scm.com/book/en/v2/Git-Tools-Signing-Your-Work) gpg signing of commits (since v1.7.9). With strict usage guidelines, these cryptographic utilities create a blockchain made up of gpg-signed, sha1-hashed commits.
+- 
+- ## Proof of Labor
+- 
+- A chain of signed commits is hearafter referred to as Proof of Labor. Proof of Labor is a flexible, meritocratic mining system.
+- 
+- Each block of data is made up of a pgp-signed git commit. This commit consistitutes some Labor performed by one or more members of the guild. The other members of the guild then vote on accepting the PR or not by merging the commit or creating a fork.
+- 
+- Once a commit has been merged into the master branch, it may not be reverted or overwritten without being detected by other members of the guild. Git guild are immutable unless a fork aka rebase is explicitely voted for. This is similar to other blockchains, where immutability is subject to maintaining consensus.
+- 
+- #### Crypto
+- 
+- While this system has not yet been reviewed by cryptographers, it should not be controversial. Proof of Labor uses standard, well established tools in a downright orthodox way.  
+- 
+- GNU Privacy Guard aka GPG is a popular encryption program first released in 1999. GPG is open source software package compliant with [RFC 4880](https://tools.ietf.org/html/rfc4880), which is the IETF standards track specification of OpenPGP. The latest version (2.0.30) supports RSA, ElGamal and DSA signing, as well as a number of ciphers, hashes, and compression algorithms. It is commonly used for encrypting and/or signing emails, and is growing in use in the git community.
+- 
+- Git was developed as a file system, by Linus Torvalds, in 2005. The SHA1 hash tree that git uses was introduced in that first version. Since git has become one of the most popular software projects of all time, this hash tree has seen a lot of real world use, as well as development. Key to the hash tree is that all files are hashed into a commit, along with the parent commit(s). Git's hash tree is a directed acyclic graph. This means it is a one directional, immutable tree with branches and branch resolution. Loops, rewriting history, and a number of other logical inconsistencies are prevented.
+- 
+- Since git v1.7.9, released in 2012, git has supported GPG signing commits. This release was the final technical pre-requisite for Proof of Labor.
+- 
+- ## Rules & Requirements
+- 
+- The following rules of git and other software usage are necessary for the Proof of Labor model to function.
+- 
+- | Rule | Description |
+- |-------|----------------|
+- | Must sign | Every commit must be signed by a signature of a member to be considered for merge. |
+- | Member branches | A member's branch is their vote on the state and contents of the chain. Only the member is allowed to sign their own branch. |
+- | Must merge votes | Any new master block must include every passing vote. Basically, master branch is consensus of valid votes. |
+- | Auto-merge conflict resolution | Votes that are non-conflicting but behind the master branch must be merged. |
+- | Higher | Every commit must have a higher `<guild_name>:Height` than it's parent.  |
+- | Highest | Consensus is the highest valid branch of a guild. This should be mirrored to master and the guild's own branch as commits are made to member branches. |
+- | Max Depth | Each member can only vote up to their total `<user_name>:Height` on each parent hash. |
+- 
+- The first four rules are all git best practices. These rules, and the automation of execution of checks on them, ensure a complete chain of responsibility for each change. Incomplete usage of gpg signing is not nearly good enough, as Mike Gerwitz points out in [A Git Horror Story: Repository Integrity With Signed Commits](https://mikegerwitz.com/papers/git-horror-story.html).
+- 
+- "[H]ow can you be sure that their commits are actually their own? Furthermore, how can you be sure that any commits they approve (or sign off on using git commit -s) were actually approved by them?
+- 
+- That is, of course, assuming that they have no ill intent. For example, what of the pissed off employee looking to get the arrogant, obnoxious co-worker fired by committing under the coworker’s name/email? What if you were the manager or project lead? Whose word would you take? How would you even know whom to suspect?"
+- 
+- The answer to these questions is strict standards and enforcement, i.e. rules 1-4.
+- 
+- The last three rules are all for ledger use, and ensure consensus is calculated and enforced. Git actions are recorded by spending XP in the ledger in `Height` and `Depth` accounts. The amount of XP in the `Height` of any commit determines it's acceptance or rejection by the organization, and therefore it's mergability into master.
+- 
+- #### Branches
+- 
+- Proof of Labor uses git branches for its data structure, and so needs strict control of these. The following keywords are reserved branch names.
+- 
+- | Branch             | Maintainer       | Description           |
+- |--------------------|--------------------|------------------------|
+- | master             | Last to commit  | The master branch is a protected communal branch. It reflects the latest valid state of the sum of all member branches. |
+- | username             | username  | Each member must maintain their own branch, and use this branch for submitting votes (commits) or voting on the commits of others (merging). |
+- 
+- Currently a trusted git server is used as the source of truth. The master branch must always be kept in a signed and complete state. Git's hash tree is also independently maintained by each member, serving as a complete, independent record of events. There are many ways this basic hosting setup can be enhanced, such as inserting the master commit hashes into a proof of work blockchain.
+- 
+- #### Members
+- 
+- Members apply to a guild by creating branch named after themselves, adding themselves to `AUTHORS`, adding their accounts and checks to the ledger files, adding a file with their ssh public key to the `keydir` directory, and committing the gpg-signed result. The existing members then vote, and, if the XP approval threshold is reached, the new user branch is merged, accepting the member into the guild.
+- 
+- Because usernames are used throughout the guild data structures, a number of names are forbidden. As of now, usernames may only contain letters, numbers, `-`, and `_`. Note that usernames are not case-sensitive. The following keyword(s) are also reserved as forbidden usernames.
+- 
+- | Name               | Reason Forbidden       |
+- |--------------------|------------------------|
+- | master             | Keyword for the consensus branch. |
+- 
+- ## Summary
+- 
+- If this seems too easy, you're not alone. For software developers, git feels like water to a fish. It is challenging to discover something new about the environment you survive in.
+- 
+- The contributors to Proof of Labor are amazed at how broad the applications seem to be. The natural contracting language and strong reputation system of PoL are unique in a blockchain. Due to this broad scope, we have erred on the side of abstraction over specification. While Proof of Labor could be even more loose, and many alternate implementations are possible, we believe this is a flexible, minimal working ruleset.
+- 
+- Proof of Labor is complimentary with PoW systems in many ways, and could even be applied after the fact as a governance layer to blockchains like Bitcoin. It could be used as an oracle by other blockchains, or lend them sidechain functionality. It is not likely to be as fast or as directly scalable, but perhaps with advanced sidechain usage, even massive parallel processing could be possible. Most likely, however, an optimal hybrid will emerge after much experimentation.
+- 
+- #### Living Document
+- 
+- Don't take our word for it. This paper is governed by [a guild](https://github.com/GitGuild/GitGuild/tree/master). Try the bundled alpha client to demo and register with the founding guild.
+--- 0 ----
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//gitguild /new//gitguild
+*** /old//gitguild	2017-01-01 11:35:02.800178706 -0500
+--- /new//gitguild	2017-01-01 11:34:36.184179061 -0500
+***************
+*** 270,277 ****
+        shift
+        tname="$1"
+        shift
+!       if [ "$2" != "" ] && [ "$(echo "$2" | grep .patch$ )" = "" ]; then
+!         phash="$2"
+          shift
+          build_tpl "$tname" "$phash" "$@"
+        else
+--- 270,277 ----
+        shift
+        tname="$1"
+        shift
+!       if [ "$1" != "" ] && [ "$(echo "$1" | grep .patch$ )" = "" ]; then
+!         phash="$1"
+          shift
+          build_tpl "$tname" "$phash" "$@"
+        else
+***************
+*** 683,689 ****
+  # $1 is a parameter
+  # $2 is a value for $1
+  build_param_replace_command() {
+!   echo " | sed 's/<<< $1 >>>/$2/g'"
+  }
+  
+  # $1 is a param to guess
+--- 683,690 ----
+  # $1 is a parameter
+  # $2 is a value for $1
+  build_param_replace_command() {
+!   esc_str=$(echo "$2" | sed "s/\,/\\\\,/g")
+!   echo " | sed 's,<<< $1 >>>,$esc_str,g'"
+  }
+  
+  # $1 is a param to guess
+***************
+*** 713,721 ****
+      ;;
+      user_height)
+        if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
+!         ledger -f ledger/chain.ledger bal "$USER_NAME":Height | head -n 1 | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
+        else
+!         ledger -f ledger/equity.parent bal "$USER_NAME":Height | head -n 1 | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
+        fi
+      ;;
+      date)
+--- 714,723 ----
+      ;;
+      user_height)
+        if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
+!         ledger -f ledger/equity.parent bal "$USER_NAME":Height | head -n 1 | grep -o "[^ ][0-9.,]* XP" | tr -d " XP"
+        else
+!         OTHER_USER=$(git log -n 1 "$2".. --pretty="%cn")
+!         ledger -f ledger/equity.parent bal "$OTHER_USER":Height | head -n 1 | grep -o "[^ ][0-9.,]* XP" | tr -d " XP"
+        fi
+      ;;
+      date)
+***************
+*** 768,774 ****
+      ;;
+      height)
+        if [ -d ledger ]; then
+!         GUILD_NAME=guess_template_param guild_name
+          ledger -f ledger/chain.ledger bal "$GUILD_NAME":Height | head -n 1 | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
+        else
+           echo 0
+--- 770,776 ----
+      ;;
+      height)
+        if [ -d ledger ]; then
+!         GUILD_NAME=guess_template_param "guild_name"
+          ledger -f ledger/chain.ledger bal "$GUILD_NAME":Height | head -n 1 | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
+        else
+           echo 0
+***************
+*** 781,786 ****
+--- 783,804 ----
+          echo "$LAST_TRANSACTION"
+        fi
+      ;;
++     patch_path)
++       grep ".*\; wild_patch:" ledger/transaction.ledger | grep -o "[^ ]*$"
++     ;;
++     XGG_amount)
++       highest=0
++       IFS="<literal linefeed here>"
++       # shellcheck disable=SC2013
++       for line in $(cat ledger/transaction.ledger); do
++         amt=$( echo "$line" | grep -o "[0-9.] *XGG$" | tr -d "XG " )
++         if [ "$(echo "$amt > $highest" | bc)" != "0" ]; then
++           highest=$amt
++         fi
++       done
++       IFS=$ORIG_IFS
++       echo "$highest"
++     ;;
+    esac
+  }
+  
+***************
+*** 857,863 ****
+        else
+          INTAG=true
+        fi
+!     elif [ "$INTAG" = "true" ]; then
+        echo "$line" | grep -o "[^; ].*$"
+      fi
+    done
+--- 875,881 ----
+        else
+          INTAG=true
+        fi
+!     elif [ "$INTAG" = "true" ] && [ "$(echo "$line" | grep \;)" != "" ]; then
+        echo "$line" | grep -o "[^; ].*$"
+      fi
+    done
+***************
+*** 908,913 ****
+--- 926,935 ----
+      if [ "$( echo "$tpl" | grep '^patch .*patch$' )" != "" ]; then
+        ptpl="$( echo "$tpl" | grep -o '[^ ]*$' )"
+        build_tpl "$ptpl" "$phash" "$reverse" "$@"
++     elif [ "$( echo "$tpl" | grep '^wild_patch' )" != "" ]; then
++       # fild patch_path from transaction tag
++       patch_path=$(grep ".*\; wild_patch:" ledger/transaction.ledger | grep -o "[^ ]*$")
++       build_tpl "$patch_path" "$phash" "$reverse" "$@"
+      fi
+    done
+    if [  "$reverse" = "" ]; then
+***************
+*** 1012,1018 ****
+      echo "#"
+      echo
+    fi
+!   diff -cr -N "$INPATH" "$OUTPATH" -x .git -x ./template/*.patch | sed "s,$INPATH,/old/,g" | sed "s,$OUTPATH,/new/,g"
+  }
+  
+  # $1 remote name to check
+--- 1034,1040 ----
+      echo "#"
+      echo
+    fi
+!   diff -cr -N "$INPATH" "$OUTPATH" -x .git -x .\*template/\*.patch -x \*generated_check.ledger | sed "s,$INPATH,/old/,g" | sed "s,$OUTPATH,/new/,g"
+  }
+  
+  # $1 remote name to check
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//gitguild~ /new//gitguild~
+*** /old//gitguild~	1969-12-31 19:00:00.000000000 -0500
+--- /new//gitguild~	2017-01-01 11:32:49.008180488 -0500
+***************
+*** 0 ****
+--- 1,1138 ----
++ #!/bin/sh
++ #MIT License
++ #
++ #Copyright (c) 2016 GitGuild developers
++ #
++ #Permission is hereby granted, free of charge, to any person obtaining a copy
++ #of this software and associated documentation files (the "Software"), to deal
++ #in the Software without restriction, including without limitation the rights
++ #to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ #copies of the Software, and to permit persons to whom the Software is
++ #furnished to do so, subject to the following conditions:
++ #
++ #The above copyright notice and this permission notice shall be included in all
++ #copies or substantial portions of the Software.
++ #
++ #THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ #IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ #FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++ #AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++ #LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++ #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++ #SOFTWARE.
++ 
++ ORIG_IFS=$IFS
++ 
++ # Save $0 so we can shift
++ # $1 must be a cmd.
++ export PROG_NAME=$( echo "$0" | grep -o "[^/]*$" )
++ export COMMAND=$1
++ 
++ # Git user configuration is a pre-requisite of this script.
++ export USER_NAME=$( git config user.name )
++ export USER_EMAIL=$( git config user.email )
++ export USER_SIGNINGKEY=$( git config user.signingkey )
++ USER_IS_CONFIGURED=true
++ 
++ # gitolite user home, where repos are hosted
++ # shellcheck disable=SC2116
++ export GIT_HOME=$(echo ~git)
++ 
++ # default working directory, where repos are cloned
++ export GG_DIR=$HOME"/gitguild"
++ 
++ # Normally this should be run inside such a git repo
++ GIT_DIR=$( readlink -f "$( git rev-parse -q --git-dir )" | grep -o ".*[^.git]" )
++ 
++ # change to the root of any git dir for the duration of the script
++ if [ -d "$GIT_DIR" ]; then
++   cd "$GIT_DIR"
++ fi
++ 
++ if [ "$( which ok.sh )" != "" ]; then
++   export USE_GITHUB=true
++ else
++   export USE_GITHUB=false
++ fi
++ 
++ if [ "$( which gitolite )" != "" ]; then
++   export USE_GITOLITE=true
++ else
++   export USE_GITOLITE=false
++ fi
++ 
++ #------------------------CLI Helpers--------------------------
++ 
++ USAGE_PREAMBLE="
++ \t$PROG_NAME\tA helpful blockchain in a script.
++ 
++ \tUsage:
++ "
++ GENERAL_USAGE="\t\t$PROG_NAME help\t\tShow the general help.
++ \t\t$PROG_NAME version\tShow the program version.
++ 
++ \tOptions:
++ "
++ 
++ USAGE_SUFFIX="\t\t$PROG_NAME <cmd> -h\tShow command help details."
++ 
++ command_usage_line() {
++   printf "\t\t%s %s\t%s" "$PROG_NAME" "$COMMAND" "$*"
++ }
++ subcommand_usage_line() {
++   SUBCMD=$1
++   shift
++   printf "\t\t%s %s\t%s\t%s" "$PROG_NAME" "$COMMAND" "$SUBCMD" "$*"
++ }
++ # $1 the arg string
++ # $2 the help
++ command_option_line() {
++   OPTSTR=$1
++   shift
++   printf "\t\t%s\t\t%s" "$OPTSTR" "$*"
++ }
++ 
++ 
++ #------------------------CLI Handlers-----------------------------
++ 
++ # The main handler. Takes raw user input from command line.
++ # $1 is the command
++ __main() {
++   case $1 in
++     user)
++       shift
++       handle_user_cmd "$@"
++       ;;
++     ledger)
++       shift
++       get_or_set_all_cfg_values
++       if [ ! $USER_IS_CONFIGURED ]; then
++         exit 1
++       fi
++       handle_ledger_cmd "$@"
++       ;;
++     tx)
++       shift
++       get_or_set_all_cfg_values
++       if [ ! $USER_IS_CONFIGURED ]; then
++         exit 1
++       fi
++       handle_tx_cmd "$@"
++       ;;
++     template)
++       shift
++       handle_tpl_cmd "$@"
++       ;;
++     push)
++       shift
++       get_or_set_all_cfg_values
++       if [ ! $USER_IS_CONFIGURED ]; then
++         exit 1
++       fi
++       gg_push "$@"
++       ;;
++     clone)
++       shift
++       get_or_set_all_cfg_values
++       if [ ! $USER_IS_CONFIGURED ]; then
++         exit 1
++       fi
++       clone_guild "$@"
++       ;;
++     fork)
++       shift
++       get_or_set_all_cfg_values
++       if [ ! $USER_IS_CONFIGURED ]; then
++         exit 1
++       fi
++       gg_fork "$@"
++       ;;
++     version|--version)
++       cat VERSION
++       ;;
++     setup-repo)
++       gname=$(guess_template_param guild_name)
++       if [ "$gname" != "" ]; then
++         setup_repo "$gname"
++       fi
++       ;;
++     *)
++       COMMAND="user"
++       cmdl="$( command_usage_line Manage guild users.)\n"
++       COMMAND="tx"
++       cmdl="$cmdl$( command_usage_line build and check transactions.)\n"
++       COMMAND="ledger"
++       cmdl="$cmdl$( command_usage_line Perform guild-related ledger actions. )\n"
++       COMMAND="clone"
++       cmdl="$cmdl$( subcommand_usage_line \<guild\> \(\<remote\>\) Clone a guild from optional remote. )\n"
++       COMMAND="push"
++       cmdl="$cmdl$( command_usage_line git push with extra checks and remotes. )\n"
++       COMMAND="fork"
++       cmdl="$cmdl$( subcommand_usage_line \<remote\> Fork a guild with one or more remotes. )\n"
++       COMMAND="setup-repo"
++       cmdl="$cmdl$( subcommand_usage_line Setup remotes and hooks in current git repo. )\n"
++       COMMAND="template"
++       cmdl="$cmdl$( command_usage_line Create and list tx templates. )\n"
++       echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
++       exit
++       ;;
++   esac
++ }
++ 
++ handle_user_cmd() {
++   case $1 in
++     keygen)
++       gpgkeygen
++       setup_ssh
++       exit
++       ;;
++     unset)
++       git config --global --unset-all user.name
++       git config --global --unset-all user.email
++       git config --global --unset-all user.signingkey
++       exit
++       ;;
++     status)
++       get_or_set_all_cfg_values
++       USERSTR="$USER_NAME $USER_EMAIL $USER_SIGNINGKEY"
++       echo "Operating as user: $USERSTR"
++       ensure_members_uniq
++       exit
++       ;;
++     *)
++       cmdl="$( subcommand_usage_line keygen Generate and/or configure gpg \
++  and ssh keys)\n"
++       cmdl="$cmdl$( subcommand_usage_line unset Unset git user configs.)\n"
++       cmdl="$cmdl$( subcommand_usage_line status Print user status.)\n"
++       echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
++       exit
++       ;;
++   esac
++ }
++ 
++ # $1 is now sub-command (build, check)
++ handle_tx_cmd() {
++   case $1 in
++     check)
++       shift
++       check_tx "$@"
++       ;;
++     build)
++       shift
++       # $1 is now a tag name
++       build_tx "$@"
++       ;;
++     list)
++       list_tx_tags
++       ;;
++     archive)
++       shift
++       archive_tx_ledger "$@"
++       ;;
++     finish)
++       finish_tx
++       ;;
++     reset)
++       # $2 is an optional flag to pass to git clean
++       flag="-i"
++       if [ "$2" != "" ]; then
++         flag=$2
++       fi
++       git clean "$flag" -d
++       git reset -q --hard HEAD^
++       git pull -q "$USER_NAME" "$USER_NAME"
++       ;;
++     *)
++       cmdl="$( subcommand_usage_line check Check the tx at HEAD or the given \
++ commit hash. )\n"
++       cmdl="$cmdl$( subcommand_usage_line archive Archive any current transactions \
++ \(put in equity.ledger\). )\n"
++       cmdl="$cmdl$( subcommand_usage_line build \<tag\> Build the given tx \
++ tag, which probably is multiple patches. )\n"
++       cmdl="$cmdl$( subcommand_usage_line finish Perform TX finishing actions, i.e. equity.ledger. )\n"
++       cmdl="$cmdl$( subcommand_usage_line list List the available tx tags. )\n"
++       cmdl="$cmdl$( subcommand_usage_line reset Clean and reset to HEAD. )\n"
++       echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
++       exit
++       ;;
++   esac
++ }
++ 
++ # $1 is now sub-command
++ # $@ are params for the sub-command
++ handle_tpl_cmd() {
++   case $1 in
++     create)
++       shift
++       create_patch "$@"
++       ;;
++     build)
++       shift
++       tname="$1"
++       shift
++       if [ "$1" != "" ] && [ "$(echo "$1" | grep .patch$ )" = "" ]; then
++         phash="$1"
++         shift
++         build_tpl "$tname" "$phash" "$@"
++       else
++         build_tpl "$tname" "HEAD" "$@"
++       fi
++       ;;
++     list)
++       if [ "$2" = "" ]; then
++         ls "$GG_DIR"/*/template/*.patch
++       else
++         shift
++         list_tx_tag_templates "$@"
++       fi
++       ;;
++     *)
++       cmdl="$( subcommand_usage_line create Create a stub template for future \
++       transactions. )\n"
++       cmdl="$cmdl$( subcommand_usage_line build \<patch file\> Build the given \
++ template. )\n"
++       cmdl="$cmdl$( subcommand_usage_line list List the available templates. )\n"
++       echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
++       exit
++       ;;
++   esac
++ }
++ 
++ # $1 is the name of the guild to clone
++ # $2 is optional remote to clone from. Assumed to be github if not specified.
++ clone_guild() {
++   exists=$( [ ! -d "$GG_DIR/$1" ] || echo true )
++   if [ "$(echo "$1" | grep -E '^[-]{1,2}h[elp]{0,3}$')" = "" ] && [ "$exists" != "true" ]; then
++     if [ "$2" = "" ]; then
++       url="https://github.com/$1/$1.git"
++     else
++       url="$2"
++     fi
++     git clone "$url" "$GG_DIR/$1"
++     setup_repo "$1"
++   else
++     if [ "$exists" = "true" ]; then
++       echo "$GG_DIR/$1 exists. Will not overwrite it."
++     fi
++     cmdl="$( subcommand_usage_line clone \<guild\> \(\<remote\>\) Clone a guild from optional remote. )\n"
++     echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
++     exit
++   fi
++ }
++ 
++ # push
++ gg_push() {
++   branch=$( git branch | grep "\*" | tr -d "* " )
++   if [ "$branch" = "$USER_NAME" ]; then
++     for remote in $( git remote ); do
++       if [ "$( use_gitolite_push "$remote" )" ]; then
++         gitolite push -q "$remote" "$branch"
++       else
++         git push -q "$remote" "$branch"
++       fi
++     done
++     git checkout -q master
++     git merge -q "$USER_NAME"
++     # only push master to your own gitolite and github
++     remotes=$( git remote | grep "$USER_NAME" | uniq)
++     for remote in $remotes; do
++       if [ "$( use_gitolite_push "$remote" )" ]; then
++         gitolite push -q "$remote" master
++       else
++         git push -q "$remote" master
++       fi
++     done
++     git checkout -q "$USER_NAME"
++   else
++     echo "You are not on your own branch. Are you sure you want to push?"
++     read writeob
++     echo
++     if [ "$( echo "$writeob" | grep '[yY].*' )" != "" ]; then
++       if [ "$( use_gitolite_push "$USER_NAME" )" ]; then
++         gitolite push -q "$USER_NAME" "$branch"
++       else
++         git push -q "$USER_NAME" "$branch"
++       fi
++     fi
++   fi
++ }
++ 
++ fork_help() {
++   cmdl="$( subcommand_usage_line fork \<remote\> Fork a guild. )\n"
++   echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
++ }
++ 
++ # $1 the name of the guild to fork
++ # $2 remote If none is provided, github is guessed.
++ gg_fork() {
++   if [ "$1" = "" ]; then
++     fork_help
++     exit 1
++   fi
++   remote=$2
++   if [ "$remote" = "" ]; then # guess github
++     remote=https://github.com/"$1/$1".git
++     if "$(github_repo_exists "$1" "$1")" = "false"; then
++       echo "Cannot fork $1. Try forking something else."
++       echo
++       fork_help
++       exit 1
++     fi
++   fi
++   # try to fork using ok.sh's github fork
++   if [ "$USE_GITHUB" = "true" ]; then
++     if [ "$( echo "$remote" | grep github.com )" != "" ]; then
++       _=$( ok.sh fork_repo "$1" "$1" ) # ignore, since always returns repo data
++     else
++       _=$( ok.sh create_repo "$1" 2>&1 )
++     fi
++   fi
++   if [ "$USE_GITOLITE" = "true" ]; then
++     # clone locally if necessary
++     if [ "$( gitolite list-phy-repos | grep "$1" )" = "" ]; then
++       git clone -q --bare "$remote" "$GIT_HOME/repositories/$1.git"
++       gitolite setup
++     fi
++     # add to gitolite.conf
++     # shellcheck disable=SC2016
++     if [ "$( grep 'repo "$1"' "$GG_DIR"/"$USER_NAME"/conf/gitolite.conf )" = "" ]; then
++       cd "$GG_DIR/$USER_NAME"
++       git checkout -q "$USER_NAME"
++       build_tx fork_repo "other_guild=$1"
++       git add -A
++       git commit -m "forked $1"
++       gitguild push
++     fi
++   fi
++   if [ ! -d "$GG_DIR/$1" ]; then
++     git clone "$remote" "$GG_DIR/$1"
++   fi
++   # setup remotes
++   setup_repo "$1"
++   # register?
++ }
++ 
++ ledger_help() {
++   cmdl="$( subcommand_usage_line equity Print the equity gitguild style)\n"
++   cmdl="$cmdl$( subcommand_usage_line build Build the ledger for the current commit.)\n"
++   echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
++ }
++ 
++ # $1 subcommand
++ handle_ledger_cmd() {
++   case $1 in
++     equity)
++       ledger_equity
++     ;;
++     build)
++       ledger_build
++     ;;
++     *)
++       ledger_help
++       exit
++     ;;
++   esac
++ }
++ 
++ #--------------Checks, setup, and installation helpers---------------
++ 
++ # $1 is the github user to search
++ github_list_user_repos() {
++   ok.sh list_repos gitguild | grep clone_url | tr -d "\"," | grep -o '[^ ]*$'
++ }
++ 
++ # $1 is the github user
++ # $2 is the repo name
++ github_repo_exists() {
++   rf=$( ok.sh list_repos gitguild | grep github.com/"$1"/"$2" )
++   if [ "$rf" = "" ]; then
++     echo "false"
++   else
++     echo "true"
++   fi
++ }
++ 
++ # $1 is the name of the guild
++ setup_repo() {
++   cd "$GG_DIR/$1"
++   # sense official github remote
++   ghr=$(git remote -v | grep "github.com/$1/$1" | grep -o "^\w*" | uniq)
++   if [ "$ghr" != "" ] && [ "$ghr" != "github" ]; then
++     grep -rl "$ghr" "$GG_DIR/$1/.git" | xargs sed -i "s,$ghr,github,g"
++   elif [ "$ghr" = "" ] && [ "$USE_GITHUB" = "true" ] && [ "$(github_repo_exists "$1" "$1")" = "true" ]; then
++     git remote add github https://github.com/"$1"/"$1".git
++   fi
++   # sense personal github remote
++   if [ "$1" != "$USER_NAME" ]; then
++     pghr=$(git remote -v | grep "github.com/$USER_NAME/$1" | grep -o "^\w*" | uniq)
++     if [ "$USE_GITHUB" = "true" ]; then
++       if [ "$pghr" != "" ] && [ "$pghr" != "$USER_NAME"_gh ]; then
++         grep -rl "$pghr" "$GG_DIR/$1/.git" | xargs sed -i "s,$pghr,$USER_NAME_gh,g"
++       elif [ "$ghr" = "" ] && [ "$USE_GITHUB" = "true" ] && [ "$(github_repo_exists "$USER_NAME" "$1")" = "true" ]; then
++         git remote add "$USER_NAME"_gh https://github.com/"$USER_NAME"/"$1".git
++       fi
++     fi
++   fi
++   # sense local gitolite remote
++   if [ "$USE_GITOLITE" = "true" ]; then
++     lgor=$(git remote -v | grep "file://.*$1" | grep -o "^\w*" | uniq)
++     if [ "$lgor" != "" ] && [ "$lgor" != "$USER_NAME" ]; then
++       grep -rl "$lgor" "$GG_DIR/$1/.git" | xargs sed -i "s,$lgor,$USER_NAME,g"
++     elif [ "$lgor" = "" ] && [ "$( gitolite list-phy-repos | grep "$1" )" = "" ]; then
++       git remote add "$USER_NAME" "file://$GIT_HOME/repositories/$1.git"
++     fi
++   fi
++   # sense other gitolite remotes
++   ogor=$(git remote -v | grep fetch | grep "git@.*:$1" | grep -o "^\w*" )
++   for lname in $ogor; do
++     url=$(git remote get-url "$lname" | grep -o "^[^:]*")
++     # shellcheck disable=SC2029
++     ginfo=$( ssh "$url" info "$1" )
++     gname=$( echo "$ginfo" | grep -o '@[^ ]*' | tr -d "@" )
++     if [ "$lname" != "$gname" ] && [ "$( echo "$ginfo" | grep -v 'this is' | grep "$1" )" != "" ]; then
++       grep -rl "$lname" "$GG_DIR/$1/.git" | xargs sed -i "s,$lname,$gname,g"
++     fi
++   done
++   if [ "$( git branch | grep "$USER_NAME" )" = "" ]; then
++     git checkout -b "$USER_NAME"
++   fi
++   # add hooks
++   if [ -d ./h ]; then
++     for hook in ./h/*; do
++       if [ "$(echo "$hook" | grep pre-commit)" = "" ]; then
++         cp "h/$hook" .git/hooks/pre-commit
++       fi
++     done
++   fi
++ }
++ 
++ #-------------------user prep and command section--------------------------
++ 
++ gpgkeygen() {
++   echo "The gpg --gen-key walk-through is about to be run."
++   echo "For GitGuild to function, a dual key (RSA and RSA or DSA and Elgamal)"
++   echo "is required. Other parameters (name, email) should match your"
++   echo "git identity."
++   echo
++   echo "It is highly recommended to create a passphrase for your security!"
++   echo "Your passphrase is what stops someone using your machine"
++   echo "from stealing your identity."
++   echo "Use a strong password, back it up and create a revocation key."
++   echo
++   echo "The developers recommend using a free and open source password manager."
++   echo "The pass program is used internally, and if you like the command line,"
++   echo "it could be for you even outside of gitguild."
++   echo ""
++   echo "OK, ready to generate keys?"
++   read readyono
++   echo
++   if [ "$( echo "$readyono" | grep '[yY].*' )" != "" ]; then
++       gpg --gen-key
++   else
++     user_cfg_error "signingkey" "gpg key id"
++   fi
++ }
++ 
++ # $1 is the official git config format
++ # $2 is the user understandable format
++ user_cfg_error() {
++   echo "OK, to try setting your git $1 at any time, run:" 1>&2
++   echo 1>&2
++   echo "gitguild user status" 1>&2
++   USER_IS_CONFIGURED=false
++ }
++ 
++ # $1 is the username to search for
++ guess_cfg_from_authors_by_value() {
++   if [ -f ./AUTHORS ]; then
++     cfginfo=$( grep "$1" ./AUTHORS )
++     if [ "$cfginfo" != "" ]; then
++       USER_NAME="$( echo "$cfginfo" | grep -o '^[^ ]*')"
++       git config --global --add user.email "$USER_EMAIL"
++       USER_EMAIL="$( echo "$cfginfo" | grep -o ' [^ ]* ' | tr -d ' ' )"
++       git config --global --add user.email "$USER_EMAIL"
++       USER_SIGNINGKEY="$( echo "$cfginfo" | grep -o '[^ ]*$' )"
++       git config --global --add user.signingkey "$USER_SIGNINGKEY"
++     fi
++   fi
++ }
++ 
++ print_sig_guesses() {
++   if [ "$USER_EMAIL" != "" ]; then
++     keylist=$( gpg --list-secret-keys --fast-list-mode "$USER_EMAIL" | grep sec | \
++       grep -o "[A-Z0-9]\{8\} " )
++   elif [ "$USER_NAME" != "" ]; then
++     keylist=$( gpg --list-secret-keys --fast-list-mode "$USER_NAME" | grep sec | \
++       grep -o "[A-Z0-9]\{8\} " )
++   fi
++   if [ "$keylist" != "" ]; then
++     echo "Detected one or more keys matching your name or email."
++     echo "The one you want is probably among these."
++     echo "$keylist"
++     echo
++   elif [ "$USER_EMAIL" != "" ] && [ "$USER_NAME" != "" ]; then
++     echo "Could not detect a key matching your name or email."
++     echo
++     gpgkeygen
++   fi
++ }
++ 
++ # $1 the git config name of the field
++ get_cfg_by_name() {
++   case $1 in
++     name)
++       echo "$USER_NAME"
++       ;;
++     email)
++       echo "$USER_EMAIL"
++       ;;
++     signingkey)
++       echo "$USER_SIGNINGKEY"
++       ;;
++   esac
++ }
++ 
++ # $1 the git config name of the field
++ # $2 the value to set
++ set_cfg_by_name() {
++   case $1 in
++     name)
++       USER_NAME=$2
++       ;;
++     email)
++       USER_EMAIL=$2
++       ;;
++     signingkey)
++       USER_SIGNINGKEY=$2
++       ;;
++   esac
++ }
++ 
++ # $1 is the official git config format of the field name 
++ # $2 is the user understandable format
++ get_or_set_cfg_value() {
++   if [ "$( get_cfg_by_name "$1" )" = "" ]; then
++     echo "WARNING: Git user.$1 not configured."
++     echo
++     if [ "$1" != "name" ] && [ "$( get_cfg_by_name "$1" )" = "" ]; then
++       # try to guess based on name
++       echo "guessing"
++       guess_cfg_from_authors_by_value "$USER_NAME"
++     fi
++     if [ "$( get_cfg_by_name "$1" )" = "" ] && [ "$1" = "signingkey" ]; then
++       print_sig_guesses
++     elif [ "$1" = "signingkey" ]; then
++       return 
++     fi
++     if [ "$( get_cfg_by_name "$1" )" = "" ]; then
++       echo "Please enter your git $1 followed by [ENTER]"
++       read userval
++       if [ "$userval" != "" ]; then
++         git config --global --add user."$1" "$userval"
++         echo
++         set_cfg_by_name "$1" "$userval"
++       else
++         user_cfg_error "$2" "$3"
++       fi
++     fi
++   fi
++ }
++ 
++ get_or_set_all_cfg_values() {
++   get_or_set_cfg_value "name" "user name"
++   get_or_set_cfg_value "email" "email"
++   get_or_set_cfg_value "signingkey" "gpg key id"
++   git config --global commit.gpgsign true
++ }
++ 
++ # This is a user-related check function that can be run at any point.
++ # Exits with error status and message if members are not unique.
++ ensure_members_uniq() {
++   if [ -f ./AUTHORS ]; then
++     USR_STR=$( grep "$USER_NAME $USER_EMAIL $USER_SIGNINGKEY" ./AUTHORS )
++     if [ "$USR_STR" != "$USER_NAME $USER_EMAIL $USER_SIGNINGKEY" ]; then
++       echo "ERROR: current user not found in AUTHORS" 1>&2
++       exit 1
++     fi
++     total=$( grep -c "^[^\n].*" AUTHORS )
++     names=$( grep -o '^[^ ]*' AUTHORS | sort | uniq | wc -l )
++     emails=$( grep -o ' [^ ]* ' AUTHORS | tr -d ' ' | sort | uniq | \
++       wc -l )
++     sigkeys=$( grep -o '[^ ]*$' AUTHORS | sort | uniq | wc -l )
++     if [ "$total" != "$names" ]; then
++       echo "ERROR: found duplicate names" 1>&2
++       exit 1
++     elif [ "$total" != "$emails" ]; then
++       echo "ERROR: found duplicate emails" 1>&2
++       exit 1
++     elif [ "$total" != "$sigkeys" ]; then
++       echo "ERROR: found duplicate sigkey" 1>&2
++       exit 1
++     fi
++   else
++     echo "ERROR: unable to find the required AUTHORS file" 1>&2
++     exit 1
++   fi
++ }
++ 
++ 
++ #---------------tx (transaction) section----------------
++ # Functions and handlers related to building, checking, 
++ # and managing transactions.
++ 
++ # $1 is a parameter
++ # $2 is a value for $1
++ build_param_replace_command() {
++   esc_str=$(echo "$2" | sed "s/\,/\\\\,/g")
++   echo " | sed 's,<<< $1 >>>,$esc_str,g'"
++ }
++ 
++ # $1 is a param to guess
++ # $2 is a commit hash or HEAD where the tx is described
++ guess_template_param() {
++   case $1 in
++     user_name)
++       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
++         echo "$USER_NAME"
++       else
++         git log -n 1 "$2".. --pretty="%cn"
++       fi
++     ;;
++     user_email)
++       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
++         echo "$USER_EMAIL"
++       else
++         git log -n 1 "$2".. --pretty="%ce"
++       fi
++     ;;
++     user_signingkey)
++       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
++         echo "$USER_SIGNINGKEY"
++       else
++         git log -n 1 "$2".. --pretty="%GK"
++       fi
++     ;;
++     user_height)
++       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
++         ledger -f ledger/equity.parent bal "$USER_NAME":Height | head -n 1 | grep -o "[^ ][0-9.,]* XP" | tr -d " XP"
++       else
++         OTHER_USER=$(git log -n 1 "$2".. --pretty="%cn")
++         ledger -f ledger/equity.parent bal "$OTHER_USER":Height | head -n 1 | grep -o "[^ ][0-9.,]* XP" | tr -d " XP"
++       fi
++     ;;
++     date)
++       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
++         date -u +%F
++       else
++         date -u +%F --date="@$( git log -n 1 "$2".. --pretty='%ct' )"
++       fi
++     ;;
++     epoch)
++       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
++         date -u +%s
++       else
++         git log -n 1 "$2".. --pretty="%ct"
++       fi
++     ;;
++     vote_parent|parent)
++       if [ "$2" = "" ]; then
++         git log -n 1 HEAD --pretty="%H"
++       else
++         git log -n 1 "$2" --pretty="%H"
++       fi
++     ;;
++     version)
++       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
++         if [ -f VERSION ]; then
++           cat VERSION
++         else
++           echo "0.0.1"  # default starting version number
++         fi
++       else
++         git show "$2":VERSION
++       fi
++     ;;
++     guild_name)
++       if [ ! -f GUILD ]; then
++         # assume we're at initialization phase of personal guild
++         echo "$USER_NAME"
++       else # otherwise it must exist and never change!
++         head -n 1 GUILD | grep -o "[^NAME ].*"
++       fi
++     ;;
++     other_guild)
++       if [ "$2" = "" ]; then
++         exit 1
++       else
++         gdate=$(guess_template_param 'date' "$2")
++         grep "$gdate" ledger/transaction.ledger | grep -o "[^ ]*$"
++       fi
++     ;;
++     height)
++       if [ -d ledger ]; then
++         GUILD_NAME=guess_template_param "guild_name"
++         ledger -f ledger/chain.ledger bal "$GUILD_NAME":Height | head -n 1 | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
++       else
++          echo 0
++       fi
++     ;;
++     last_transaction)
++       if [ "$LAST_TRANSACTION" = "" ]; then
++         grep "LAST_TRANSACTION" GUILD | grep -o "[^ ].*$"
++       else
++         echo "$LAST_TRANSACTION"
++       fi
++     ;;
++     patch_path)
++       grep ".*\; wild_patch:" ledger/transaction.ledger | grep -o "[^ ]*$"
++     ;;
++     XGG_amount)
++       highest=0
++       IFS="<literal linefeed here>"
++       # shellcheck disable=SC2013
++       for line in $(cat ledger/transaction.ledger); do
++         amt=$( echo "$line" | grep -o "[0-9.] *XGG$" | tr -d "XG " )
++         if [ "$(echo "$amt > $highest" | bc)" != "0" ]; then
++           highest=$amt
++         fi
++       done
++       IFS=$ORIG_IFS
++       echo "$highest"
++     ;;
++   esac
++ }
++ 
++ get_template_params() {
++   # first argument should be a file or directory to look for templates
++   if [ -e "$GG_DIR/$1" ]; then
++     tdir=$GG_DIR/$1
++   elif [ -d ./template ]; then
++     # if no argument given, assume current directory is base of repo
++     tdir=$( readlink -f ./template )
++   else
++     echo "Unable to find template(s) at: ""$1" 1>&2
++     echo 1>&2
++   fi
++   # Find all param tags in file(s), remove brackets, and filter
++   grep -roh '<<< [a-zA-Z0-9_-.]\{1,80\} >>>' "$tdir" | tr -d '<> ' | sort | uniq
++ }
++ 
++ # $1 is the name of the template
++ # $2 is the revision (default to HEAD)
++ # $@ are param values to use, as pairs (key=val), preceded by optional flags (--flag)
++ build_tpl() {
++   echo "DEBUG build_tpl start $@" 1>&2
++   tpl_name="$1"
++   shift
++   echo "DEBUG build_tpl shift 1 $@" 1>&2
++   revision="$1"
++   shift
++   reverse=""  
++   if [ "$1" = "--reverse" ]; then
++     reverse="--reverse"
++     shift
++   fi
++   echo "DEBUG build_tpl $tpl_name $revision $reverse" 1>&2
++   params=$( get_template_params "$tpl_name" )
++   echo "DEBUG build_tpl $params" 1>&2
++   cmd_str="cat $GG_DIR/$tpl_name"
++   echo "DEBUG build_tpl $cmd_str $@" 1>&2
++   for kv in "$@"; do
++     echo "DEBUG build_tpl $kv" 1>&2
++     key="$(echo "$kv" | grep -o '^[^=]*')"
++     val="$(echo "$kv" | grep -o '[^=]*$')"
++     IFS=" "
++     # shellcheck disable=SC2016
++     if [ "$(echo "$params" | grep '^"$key"$')" = "" ]; then
++       cmd_str="$cmd_str $( build_param_replace_command "$key" "$val" )"
++       params=$(echo "$params" | sed "s,^$key$,,g")
++     fi
++     IFS=$ORIG_IFS
++   done
++   for p in $params; do
++     echo "DEBUG build_tpl $p in $params" 1>&2
++     if [ "$p" != "" ]; then
++       cmd_str="$cmd_str $( build_param_replace_command "$p" "$( guess_template_param "$p" "$revision")" )"
++     fi
++   done
++   if [ "$reverse" = "" ]; then
++     cmd_str="$cmd_str | patch -s -p2"  # TODO what p level to set?
++   else
++     cmd_str="$cmd_str | patch -s -R -p2"  # TODO what p level to set?
++   fi
++   echo "DEBUG $cmd_str" 1>&2
++   eval "$cmd_str"
++ }
++ 
++ list_tx_tags() {
++   grep tag ledger/tag.ledger | grep -o "[^ ].*$"
++ }
++ 
++ # $1 the name of the tag to list templates for
++ # $2 to reverse the list, set this to "--reverse"
++ list_tx_tag_templates() {
++   INTAG=false
++   if [ "$2" = "--reverse" ]; then
++     tac ledger/tag.ledger
++   else
++     cat ledger/tag.ledger
++   fi | while read line; do
++     if [ "$(echo "$line" | grep -E "[\;# ]*[end]{0,3}tag $1")" != "" ]; then
++       if [ "$INTAG" = "true" ]; then
++         return
++       else
++         INTAG=true
++       fi
++     elif [ "$INTAG" = "true" ] && [ "$(echo "$line" | grep \;)" != "" ]; then
++       echo "$line" | grep -o "[^; ].*$"
++     fi
++   done
++ }
++ 
++ # $1 to reverse the archive action, set this to "--reverse"
++ # $2 is an optional commit hash (should always be HEAD or HEAD^)
++ archive_tx_ledger() {
++   if [ "$1" = "--reverse" ]; then
++     if [ "$2" = "HEAD^" ]; then
++       phash="HEAD^"
++     fi
++     # also "unfinishes" the tx by resetting GUILD
++     rm ledger/equity.parent ledger/equity.ledger ledger/transaction.ledger GUILD
++     git checkout "$phash" ledger/equity.ledger ledger/equity.parent ledger/transaction.ledger GUILD
++     ledger_build
++   else
++     ledger_build
++     cp ledger/equity.ledger ledger/equity.parent
++     echo "" > ledger/transaction.ledger
++   fi
++ }
++ 
++ finish_tx() {
++   ledger_build
++   sed -i GUILD -e "s,EPOCH_TIME.*,EPOCH_TIME $(date -u +%s),g" \
++     -e "s,LAST_TRANSACTION.*,LAST_TRANSACTION $LAST_TRANSACTION,g"
++   ledger_equity > ledger/equity.ledger
++ }
++ 
++ # $1 is a tag name
++ # $@ are build tpl params or flags with no '=' (i.e. --reverse)
++ build_tx() {
++   export LAST_TRANSACTION="$1"
++   shift
++   reverse=""
++   phash="HEAD"
++   if [ "$1" = "--reverse" ]; then
++     reverse="--reverse"
++     shift
++     if [ "$(git status --short)" = "" ]; then
++       phash="HEAD^"
++     fi
++   else
++     archive_tx_ledger
++   fi
++   list_tx_tag_templates "$LAST_TRANSACTION" "$reverse" | while read tpl; do
++     if [ "$( echo "$tpl" | grep '^patch .*patch$' )" != "" ]; then
++       ptpl="$( echo "$tpl" | grep -o '[^ ]*$' )"
++       build_tpl "$ptpl" "$phash" "$reverse" "$@"
++     elif [ "$( echo "$tpl" | grep '^wild_patch' )" != "" ]; then
++       # fild patch_path from transaction tag
++       patch_path=$(grep ".*\; wild_patch:" ledger/transaction.ledger | grep -o "[^ ]*$")
++       build_tpl "$patch_path" "$phash" "$reverse" "$@"
++     fi
++   done
++   if [  "$reverse" = "" ]; then
++     finish_tx
++   else
++     archive_tx_ledger "$reverse" "$phash"
++   fi
++ }
++ 
++ # $1 is the parent commit to check against (default HEAD, then HEAD^)
++ check_tx() {
++   if [ "$1" = "" ]; then
++     wdelta=$(git status --short)
++     if [ "$wdelta" = "" ]; then
++       phash="HEAD^"
++     else
++       phash="HEAD"
++       git stash --keep-index
++     fi
++   else
++     phash="$1"
++     git checkout "$phash" || exit 1
++   fi
++   # if committed, check signer
++   if [ "$phash" != "HEAD" ]; then
++     sigkey="$(git log "$phash^..$phash" --pretty="%GK" | grep -o '.\{8\}$')"
++     if [ "$sigkey" = "" ]; then
++       echo "No gpg signature found for tx at $1" 1>&2
++       exit 1
++     fi
++     signer=$(grep " $sigkey$" ./AUTHORS)
++     if [ "$signer" = "" ]; then
++       echo "Signer $signer is not known to this guild." 1>&2
++       exit 1
++     fi
++   fi
++   gdata=$(cat GUILD)
++   #parent_gdata=$(git show "$phash":GUILD)
++   # lookup last tx in GUILD
++   last_tx=$(echo "$gdata" | grep "LAST_TRANSACTION" | grep -o "[^ ]*$")
++   # ensure equity.parent is same as parent's equity.ledger
++   parent_equity="$(git show "$phash":ledger/equity.ledger)"
++   equity_parent="$(cat ledger/equity.parent)"
++   if [ "$parent_equity" != "$equity_parent" ]; then
++     #echo "$parent_equity" 1>&2
++     #echo "$equity_parent" 1>&2
++     echo "Equity of parent was not used for this commit" 1>&2
++     exit 1
++   fi
++   # ensure height increased
++   height=$(ledger -f ledger/equity.ledger bal "$GUILD_NAME:Height:$GUILD_NAME" | head -n 1 | grep -o "[0-9.]* *XP" | tr -d "XP ")
++   parent_height=$(ledger -f ledger/equity.parent bal "$GUILD_NAME:Height:$GUILD_NAME" | head -n 1 | grep -o "[0-9.]* *XP" | tr -d "XP ")
++   if [ "$(echo "$height > $parent_height" | bc)" = "0" ]; then
++     echo "Height $height not greater than parent $parent_height" 1>&2
++     exit 1
++   fi
++   tpl_list=$(list_tx_tag_templates "$last_tx")
++   if [ "$tpl_list" = "" ]; then
++     echo "Last transaction tag $last_tx is unknown" 1>&2
++     exit 1
++   fi
++   # ensure tag instructions were followed
++   # ensure output matches exactly
++   build_tx "$last_tx" --reverse
++   git diff "$phash"
++   if [ "$(git diff "$phash")" != "" ]; then
++     echo "Reverse tx build of $last_tx failed." 1>&2
++     exit 1
++   fi
++   if [ "$phash" = "HEAD" ]; then
++     git stash apply
++   else
++     git reset --hard HEAD
++   fi
++ }
++ 
++ 
++ # create patch, preserving some privacy, and the LICENSE
++ # $1 the before file or directory (default clean HEAD)
++ # $2 the after file or directory (default any uncommitted changes in pwd)
++ create_patch() {
++   INPATH=$1
++   OUTPATH=$2
++   if [ "$1" = "" ]; then
++     rm -fR "$GG_DIR/tmp"
++     mkdir "$GG_DIR/tmp"
++     cp -fR ./.git "$GG_DIR/tmp"/
++     cp -fR ./* "$GG_DIR/tmp"/
++     OLD_TOO_MANY_DIRS=$( pwd )
++     cd "$GG_DIR/tmp"
++     _=$( git clean -f )
++     _=$( git reset --hard HEAD )
++     cd "$OLD_TOO_MANY_DIRS"
++     INPATH="$GG_DIR/tmp"
++   fi
++   if [ "$2" = "" ]; then
++     OUTPATH="$( readlink -f . )"
++   fi
++   # each patch should start with the license
++   if [ -f "./LICENSE" ]; then
++     sed 's/^/#/' ./LICENSE
++     echo "#"
++     echo
++   fi
++   diff -cr -N "$INPATH" "$OUTPATH" -x .git -x .\*template/\*.patch -x \*generated_check.ledger | sed "s,$INPATH,/old/,g" | sed "s,$OUTPATH,/new/,g"
++ }
++ 
++ # $1 remote name to check
++ use_gitolite_push() {
++   if [ "$( git remote get-url "$1" | grep \"file://\")" != "" ] && [ "$USE_GITOLITE" = "true" ]; then
++     echo 1
++   else
++     echo 0
++   fi
++ }
++ 
++ ### pull
++ gg_pull() {
++   git pull "$USER_NAME"
++ }
++ 
++ #-----------------------ledger section---------------------------
++ 
++ # print the equity splitting confirmed and unconfirmed
++ ledger_equity() {
++   if [ -f ledger/transaction.ledger ]; then
++     ledger -C -f ledger/chain.ledger equity | sed 's/ Opening Balances/ * Cleared Balances/g'
++     ledger -U -f ledger/chain.ledger equity | sed 's/Opening Balances/Uncleared Balances/g'
++   fi
++ }
++ 
++ # $1 the account prefix (check or assert)
++ # $2 an account line from ledger
++ generate_checks_from_accounts() {
++   IFS=":"
++   level="0"
++   user=""
++   guild=""
++   branch=""
++   top=""
++   for account in $2; do
++     # shellcheck disable=SC2003
++     level=$(expr "$level" + 1)
++     case $level in
++       1)
++         user="$account"
++         echo "assert user_vote_check(\"$user\")"
++         ;;
++       # skip 2, as no checks to run
++       3)
++         guild="$account"
++         ;;
++       4)
++         branch="$account"
++         echo "assert branch_vote_check(\"$user\", \"$guild\", \"$branch\" ) "
++         ;;
++       5)
++         top="$account"
++         echo "assert user_issue_vote_check(\"$user\", \"$guild\", \"$branch\", \"$top\")"
++         IFS=$ORIG_IFS
++         return
++         ;;
++     esac
++   done
++   IFS=$ORIG_IFS
++ }
++ 
++ # build local ledger files for running (i.e. generate check file)
++ ledger_build() {
++   ACCT_PREFIX="assert"
++   while read line
++   do
++     if [ "$(echo "$line" | grep '^#')" != "" ]; then
++       continue
++     elif [ "$(echo "$line" | grep '\* Cleared Balances')" != "" ]; then
++       ACCT_PREFIX="assert"
++     elif [ "$(echo "$line" | grep ' Uncleared Balances')" != "" ]; then
++       ACCT_PREFIX="check"
++     elif [ "$line" != "" ]; then
++       acline="$(echo "$line" | grep -o '^ *[0-9a-zA-Z:]*' | tr -d ' ')"
++       generate_checks_from_accounts "$ACCT_PREFIX" "$acline"
++       if [ "$(grep "$acline" ledger/transaction.ledger )" != "" ]; then
++         grep \; ledger/transaction.ledger | grep -o "[^ ]*$" | while read txl
++         do
++           if [ "$(grep "$txl" ledger/tag.ledger)" != "" ]; then
++             min_votes=$(list_tx_tag_templates "$txl" | grep min_votes | grep -o '[^ ]*$')
++             if [ "$min_votes" != "" ]; then
++               echo "$ACCT_PREFIX issue_vote_check(\"$user\", \"$guild\", \"$branch\", \"$top\", $min_votes XP)"
++             fi
++           fi
++         done
++       fi
++     fi
++   done < ledger/equity.ledger | sort | uniq > ledger/generated_check.ledger
++ }
++ 
++ __main "$@"
++ 
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//GUILD /new//GUILD
+*** /old//GUILD	2017-01-01 11:35:02.788178706 -0500
+--- /new//GUILD	2017-01-01 11:30:27.252182375 -0500
+***************
+*** 1,4 ****
+  NAME gitguild
+! LAST_TRANSACTION N/A
+! EPOCH_TIME 1482333084
+  
+--- 1,4 ----
+  NAME gitguild
+! LAST_TRANSACTION paid_contribution
+! EPOCH_TIME 1483286747
+  
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//ledger/chain.ledger /new//ledger/chain.ledger
+*** /old//ledger/chain.ledger	2017-01-01 11:35:02.800178706 -0500
+--- /new//ledger/chain.ledger	2017-01-01 11:30:27.256182375 -0500
+***************
+*** 1,7 ****
+  !include commodity.ledger
+  !include account.ledger
+  !include tag.ledger
+! !include equity.ledger
+  !include transaction.ledger
+  !include check.ledger
+  !include generated_check.ledger
+--- 1,7 ----
+  !include commodity.ledger
+  !include account.ledger
+  !include tag.ledger
+! !include equity.parent
+  !include transaction.ledger
+  !include check.ledger
+  !include generated_check.ledger
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//ledger/check.ledger /new//ledger/check.ledger
+*** /old//ledger/check.ledger	2017-01-01 11:35:02.800178706 -0500
+--- /new//ledger/check.ledger	2017-01-01 11:30:27.256182375 -0500
+***************
+*** 1,17 ****
+- ; TODO lots of assertions and checks go here to ensure proper behavior
+- ; How can we add loops to make checks more generic?
+- 
+  define GUILD_DEPTH = (-account("gitguild:Depth:gitguild").total)
+  define GUILD_HEIGHT = (account("gitguild:Height:gitguild").total)
+  
+  ; Each user must have net positive score
+! define user_vote_check(user_name) = (account(user_name + ":Height").total >= GUILD_DEPTH / 2)
+  
+  ; Each branch of this guild must have net positive score
+! define branch_vote_check(user_name, vote_guild_name, vote_branch) = (account(user_name + ":Height:" + vote_guild_name + ":" + vote_branch).total >= GUILD_DEPTH / 2)
+  
+! ; Each issue must have net positive score
+! define issue_vote_check(user_name, vote_guild_name, vote_branch, vote_parent) = (account(user_name + ":Height:" + vote_guild_name + ":" + vote_branch + ":" + vote_parent).total >= GUILD_DEPTH / 2)
+  
+  ; user has not spent more XP than allowed on this issue
+  define user_issue_vote_check(user_name, vote_guild_name, vote_branch, vote_parent) = (account(user_name + ":Height").total >= abs(account(user_name + ":Depth:" + vote_guild_name + ":" + vote_branch + ":" + vote_parent).total))
+--- 1,14 ----
+  define GUILD_DEPTH = (-account("gitguild:Depth:gitguild").total)
+  define GUILD_HEIGHT = (account("gitguild:Height:gitguild").total)
+  
+  ; Each user must have net positive score
+! define user_vote_check(user_name) = (account(user_name + ":Height").total >= 0 XP)
+  
+  ; Each branch of this guild must have net positive score
+! define branch_vote_check(user_name, vote_guild_name, vote_branch) = (account(user_name + ":Height:" + vote_guild_name + ":" + vote_branch).total >= 0)
+  
+! ; Each issue must have score higher than given in the tag
+! define issue_vote_check(user_name, vote_guild_name, vote_branch, vote_parent, min_votes) = (account(user_name + ":Height:" + vote_guild_name + ":" + vote_branch + ":" + vote_parent).total >= GUILD_DEPTH * min_votes)
+  
+  ; user has not spent more XP than allowed on this issue
+  define user_issue_vote_check(user_name, vote_guild_name, vote_branch, vote_parent) = (account(user_name + ":Height").total >= abs(account(user_name + ":Depth:" + vote_guild_name + ":" + vote_branch + ":" + vote_parent).total))
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//ledger/commodity.ledger /new//ledger/commodity.ledger
+*** /old//ledger/commodity.ledger	2017-01-01 11:35:02.800178706 -0500
+--- /new//ledger/commodity.ledger	2017-01-01 11:30:27.256182375 -0500
+***************
+*** 6,12 ****
+  commodity XGG
+     note GitGuild token of value. Transferable and redeemable at bid rate if part of approved Income transaction.
+     format 1,000.0000 XGG
+!    nomarket
+  
+  commodity DASH
+     note See dash.org
+--- 6,12 ----
+  commodity XGG
+     note GitGuild token of value. Transferable and redeemable at bid rate if part of approved Income transaction.
+     format 1,000.0000 XGG
+!    ; governor gitguild
+  
+  commodity DASH
+     note See dash.org
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//ledger/equity.ledger /new//ledger/equity.ledger
+*** /old//ledger/equity.ledger	2017-01-01 11:35:02.800178706 -0500
+--- /new//ledger/equity.ledger	2017-01-01 11:30:27.256182375 -0500
+***************
+*** 1,4 ****
+- # This file should have an 'equity' summary of all history up to the parent commit.
+  2016/12/27 * Cleared Balances
+      gitguild:Depth:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6  -1,000.00 XP
+      gitguild:Expenses:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6  1,000.0000 XGG
+--- 1,3 ----
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//ledger/equity.parent /new//ledger/equity.parent
+*** /old//ledger/equity.parent	1969-12-31 19:00:00.000000000 -0500
+--- /new//ledger/equity.parent	2017-01-01 11:30:27.256182375 -0500
+***************
+*** 0 ****
+--- 1,9 ----
++ 2016/12/27 * Cleared Balances
++     gitguild:Depth:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6  -1,000.00 XP
++     gitguild:Expenses:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6  1,000.0000 XGG
++     gitguild:Height:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6  1,000.00 XP
++     gitguild:Liabilities:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6  -1,000.0000 XGG
++     isysd:Assets:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6  -1,000.0000 XGG
++     isysd:Depth:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6  -1,000.00 XP
++     isysd:Height:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6  1,000.00 XP
++     isysd:Income:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6  1,000.0000 XGG
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//ledger/tag.ledger /new//ledger/tag.ledger
+*** /old//ledger/tag.ledger	2017-01-01 11:35:02.800178706 -0500
+--- /new//ledger/tag.ledger	2017-01-01 11:30:27.256182375 -0500
+***************
+*** 1,31 ****
+  tag init_personal
+! ; patch template/clean_gitolite_admin.patch
+! ; patch template/add_member_authors.patch
+! ; patch template/add_general_project_files.patch
+! ; patch template/add_ledger_basics.patch
+! ; patch template/personal_ledger_init.patch
+! ; patch template/tx_post_process.patch
+  
+  tag register_member
+! ; patch template/add_member_authors.patch
+! ; patch template/add_member_ledger.patch
+! ; patch template/add_member_gitolite.patch
+! ; patch template/tx_post_process.patch
+  
+  tag fork_repo
+! ; patch template/fork_repo.patch
+  
+  tag register_personal_gitguild
+! ; patch template/add_member_authors.patch
+! ; patch template/register_personal_gitguild_ledger.patch
+! ; patch template/tx_post_process.patch
+  
+  tag contribute
+! ; review 'doc.*\|gitguild$\|h/.*\|README.md\|t/.*\|CREDITS*\|CHANGELOG.md\|Makefile\|VERSION\|src*'
+! ; patch template/contribute.patch
+! ; patch template/tx_post_process.patch
+! 
+! tag core_contribute
+! ; review '*'
+! ; patch template/core_contribute.patch
+! ; patch template/tx_post_process.patch
+--- 1,45 ----
+  tag init_personal
+! ; patch gitguild/template/clean_gitolite_admin.patch
+! ; patch gitguild/template/add_member_authors.patch
+! ; patch gitguild/template/add_general_project_files.patch
+! ; patch gitguild/template/add_ledger_basics.patch
+! ; patch gitguild/template/personal_ledger_init.patch
+! ; patch gitguild/template/add_GUILD.patch
+! ; min_votes 0
+! ; endtag init_personal
+  
+  tag register_member
+! ; patch gitguild/template/add_member_authors.patch
+! ; patch gitguild/template/add_member_ledger.patch
+! ; patch gitguild/template/add_member_gitolite.patch
+! ; min_votes 0
+! ; endtag register_member
+  
+  tag fork_repo
+! ; patch gitguild/template/fork_repo.patch
+! ; min_votes 0.5
+! ; endtag fork_repo
+  
+  tag register_personal_gitguild
+! ; patch gitguild/template/add_member_authors.patch
+! ; patch gitguild/template/register_personal_gitguild_ledger.patch
+! ; min_votes 0.66
+! ; endtag register_personal_gitguild
+  
+  tag contribute
+! ; patch gitguild/template/contribute.patch
+! ; min_votes 0.66
+! ; wild_patch
+! ; endtag contribute
+! 
+! tag paid_contribution
+! ; patch gitguild/template/paid_contribution.patch
+! ; min_votes 0.75
+! ; wild_patch
+! ; endtag paid_contribution
+! 
+! tag wild_patch
+!     check  value =~ /.*template.*.patch$/
+! ; min_votes 0.66
+! ; endtag patch
+! 
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//ledger/transaction.ledger /new//ledger/transaction.ledger
+*** /old//ledger/transaction.ledger	2017-01-01 11:35:02.800178706 -0500
+--- /new//ledger/transaction.ledger	2017-01-01 11:30:27.256182375 -0500
+***************
+*** 1 ****
+--- 1,13 ----
++ 2017-01-01 Paid Contribution
++     ; paid_contribution
++     ; wild_patch: gitguild/template/isysd_contribution_1.patch
++     isysd:Income:gitguild:isysd:065f27084234d02358d820c6e069d474f98de6da       -10 XGG
++     isysd:Assets:gitguild:isysd:065f27084234d02358d820c6e069d474f98de6da       10 XGG
++     gitguild:Liabilities:gitguild:isysd:065f27084234d02358d820c6e069d474f98de6da      -10 XGG
++     gitguild:Expenses:gitguild:isysd:065f27084234d02358d820c6e069d474f98de6da      10 XGG
++     isysd:Height:gitguild:isysd:065f27084234d02358d820c6e069d474f98de6da      10 XP
++     isysd:Depth:gitguild:isysd:065f27084234d02358d820c6e069d474f98de6da       -1,000.00 XP
++     gitguild:Height:gitguild:isysd:065f27084234d02358d820c6e069d474f98de6da      1,000.00 XP
++     gitguild:Depth:gitguild:isysd:065f27084234d02358d820c6e069d474f98de6da       -10 XP
++ 
+  
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//Makefile /new//Makefile
+*** /old//Makefile	2017-01-01 11:35:02.788178706 -0500
+--- /new//Makefile	2017-01-01 11:30:27.252182375 -0500
+***************
+*** 101,106 ****
+--- 101,107 ----
+  gitguild template build gitguild/template/add_GUILD.patch; \
+  export LAST_TRANSACTION=init_personal; \
+  gitguild tx finish; \
++ cat ledger/equity.*; \
+  git add .gitignore; \
+  git add -A; \
+  git commit -q -m "initialize identity guild"; \
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//README.md /new//README.md
+*** /old//README.md	2017-01-01 11:35:02.788178706 -0500
+--- /new//README.md	2017-01-01 11:30:27.252182375 -0500
+***************
+*** 1,6 ****
+  # gitguild
+  
+! Guild governance for a git repository, using PGP identities.
+  
+   + Issue digital value tokens
+   + Create, sign, and enforce contracts
+--- 1,8 ----
+  # gitguild
+  
+! __WARNING This is still experimental software! Use at your own risk.__
+! 
+! Governance for a git repository, using PGP identities.
+  
+   + Issue digital value tokens
+   + Create, sign, and enforce contracts
+***************
+*** 27,33 ****
+  		gitguild setup-repo	Setup remotes and hooks in current git repo.
+  		gitguild template	Create and list tx templates.
+  		gitguild help		Show the general help.
+! 		gitguild version	Show the program version.
+  
+  	Options:
+  		gitguild <cmd> -h	Show command help details.
+--- 29,35 ----
+  		gitguild setup-repo	Setup remotes and hooks in current git repo.
+  		gitguild template	Create and list tx templates.
+  		gitguild help		Show the general help.
+! 		gitguild version	    Show the program version.
+  
+  	Options:
+  		gitguild <cmd> -h	Show command help details.
+***************
+*** 39,45 ****
+  
+  ```
+  mkdir $HOME/gitguild
+! git clone https://github.com/isysd/gitguild-cli $HOME/gitguild/gitguild
+  cd $HOME/gitguild/gitguild
+  ./configure # will ask for password for new 'git' user
+  make install
+--- 41,47 ----
+  
+  ```
+  mkdir $HOME/gitguild
+! git clone git://mirror.gitguild.com:gitguild $HOME/gitguild/gitguild
+  cd $HOME/gitguild/gitguild
+  ./configure # will ask for password for new 'git' user
+  make install
+***************
+*** 107,113 ****
+  
+  ## Additional Resources
+  
+! Guilds keep all documentatation, issues, and other project-relevant information inside the repository. There are a number of detailed documents in the top level of this docs directory that are a good place to start.
+  
+  ### General
+  
+--- 109,115 ----
+  
+  ## Additional Resources
+  
+! Guilds keep all documentation, issues, and other project-relevant information inside the repository. There are a number of detailed documents in the top level of this docs directory that are a good place to start.
+  
+  ### General
+  
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//template/isysd_contribution_1.patch /new//template/isysd_contribution_1.patch
+*** /old//template/isysd_contribution_1.patch	1969-12-31 19:00:00.000000000 -0500
+--- /new//template/isysd_contribution_1.patch	2017-01-01 11:35:02.808178706 -0500
+***************
+*** 0 ****
+--- 1,1556 ----
++ #MIT License
++ #
++ #Copyright (c) 2016 GitGuild developers
++ #
++ #Permission is hereby granted, free of charge, to any person obtaining a copy
++ #of this software and associated documentation files (the "Software"), to deal
++ #in the Software without restriction, including without limitation the rights
++ #to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ #copies of the Software, and to permit persons to whom the Software is
++ #furnished to do so, subject to the following conditions:
++ #
++ #The above copyright notice and this permission notice shall be included in all
++ #copies or substantial portions of the Software.
++ #
++ #THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ #IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ #FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++ #AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++ #LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++ #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++ #SOFTWARE.
++ #
++ 
++ diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//CHANGELOG.md /new//CHANGELOG.md
++ *** /old//CHANGELOG.md	2017-01-01 11:35:02.788178706 -0500
++ --- /new//CHANGELOG.md	2017-01-01 11:30:27.252182375 -0500
++ ***************
++ *** 5,7 ****
++ --- 5,16 ----
++   
++   This Change Log format is suggested by
++   <https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md>
++ + 
++ + <a name="0.2.9"></a>
++ + ## 0.2.9 (2017-01-01)
++ + 
++ + #### Added
++ + 
++ + *   Install and configure gitguild
++ + *   Ledger for this guild
++ + *   isysd becomes member
++ \ No newline at end of file
++ diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//conf/gitolite.conf /new//conf/gitolite.conf
++ *** /old//conf/gitolite.conf	2017-01-01 11:35:02.788178706 -0500
++ --- /new//conf/gitolite.conf	2017-01-01 11:30:27.252182375 -0500
++ ***************
++ *** 1,6 ****
++   @admins    =   isysd
++   
++   repo gitguild
++ -     RW     =   @admins
++       RW isysd = isysd
++ -     R     = @all
++ --- 1,8 ----
++   @admins    =   isysd
++   
++ + repo @all
++ +     RW   refs/.*  =   @admins
++ +     R      =   @all
++ + 
++   repo gitguild
++       RW isysd = isysd
++ diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//CONTRIBUTING.md /new//CONTRIBUTING.md
++ *** /old//CONTRIBUTING.md	2017-01-01 11:35:02.788178706 -0500
++ --- /new//CONTRIBUTING.md	2017-01-01 11:30:27.252182375 -0500
++ ***************
++ *** 2,14 ****
++   
++   Feedback and contributions are very welcome!
++   
++ ! ## General information
++   
++   
++ ! ### Open Source License (MIT)
++   
++ ! All (new) contributed material must be released under the [MIT license](./LICENSE).
++ ! All new contributed material that is not executable, including all text when not executed, is also released under the [Creative Commons Attribution 3.0 International (CC BY 3.0) license](https://creativecommons.org/licenses/by/3.0/) or later.
++   
++   ## Vulnerability reporting (security issues)
++   
++ --- 2,37 ----
++   
++   Feedback and contributions are very welcome!
++   
++ ! ## A GitGuild Project
++   
++ + This project uses [GitGuild](https://github.com/GitGuild/gitguild) software to govern itself and all contributions. Please [install](https://github.com/GitGuild/gitguild#install) the client to ensure you meet the strict configuration and usage requirements. These include, but are not limited to the following.
++   
++ ! | Rule | Description |
++ ! |-------|----------------|
++ ! | Must sign | Every commit must be GPG signed by a member listed in the AUTHORS file. |
++ ! | Consensus branches | The `master` and `gitguild` branches are reserved for consensus. Only commits approved by XP vote can be merged. |
++ ! | Member branches | A member's branch is their vote on the state and contents of the chain. |
++ ! | Higher | Every commit must have a higher `<guild_name>:Height` than it's parent.  |
++ ! | Highest | Consensus is the highest valid branch of a guild. This should be mirrored to master and the guild's own branch as commits are made to member branches. |
++ ! | Max Depth | Each member can only vote up to their total `<user_name>:Height` on each parent hash. |
++   
++ ! The first three rules are all git best practices. These rules, and the automation of execution of checks on them, ensure a complete chain of responsibility for each change. Incomplete usage of gpg signing is not nearly good enough, as Mike Gerwitz points out in [A Git Horror Story: Repository Integrity With Signed Commits](https://mikegerwitz.com/papers/git-horror-story.html).
++ ! 
++ ! "[H]ow can you be sure that their commits are actually their own? Furthermore, how can you be sure that any commits they approve (or sign off on using git commit -s) were actually approved by them?
++ ! 
++ ! That is, of course, assuming that they have no ill intent. For example, what of the pissed off employee looking to get the arrogant, obnoxious co-worker fired by committing under the coworker’s name/email? What if you were the manager or project lead? Whose word would you take? How would you even know whom to suspect?"
++ ! 
++ ! The answer to these questions is strict standards and enforcement, i.e. rules 1-3.
++ ! 
++ ! The last three rules are all for [ledger](https://ledger-cli.org) use, and ensure consensus is calculated and enforced. Git actions are recorded by spending XP in the ledger in `Height` and `Depth` accounts. The amount of XP in the `Height` of any commit determines it's acceptance or rejection by the organization, and therefore it's mergability into master.
++ ! 
++ ! ## Payment
++ ! 
++ ! Contributors can request payment in GitGuild coin (XGG) as part of the contribution, and are allowed to redeem this XGG for BTC, DASH or other assets. If the commit is approved by the other members, the XGG will be counted as Income, also triggering a corresponding XP increase for the contributor.
++ ! 
++ ! Like every change made to a guild, this payment request process is templated in a patch file, and should be run using `gitguild tx build`. In this case the tx name is `paid_contribution`.
++ ! 
++ ! Though there are no set limits or rules on how much you can ask to be paid, remember that the pay is subject to review and approval by your peers. It is the very people reviewing your code that ultimately decide any pay you receive.
++   
++   ## Vulnerability reporting (security issues)
++   
++ ***************
++ *** 16,71 ****
++   please send an email to the security contacts that you have such
++   information, and we'll tell you the next steps.
++   For now, the security contacts are:
++ ! isysd <ira@gitguild.com>,
++ ! cindy-zimmerman <cindy@tigoctm.com>,
++ ! and d3brouille <robinson@gitguild.com>
++ ! (remove the -NOSPAM markers).  
++   
++   Please use the PGP keys provided in the AUTHORS file to encrypt your message!
++   
++ ! ## Documentation changes
++ ! 
++ ! Most of the documentation is in "markdown" format.
++ ! All markdown files use the .md filename extension.
++ ! 
++ ! Where reasonable, limit yourself to Markdown
++ ! that will be accepted by different markdown processors
++ ! (e.g., what is specified by CommonMark or the original Markdown)
++ ! In practice we use
++ ! the version of Markdown implemented by GitHub when it renders .md files,
++ ! and you can use its extensions
++ ! (in particular, mark code snippets with the programming language used).
++ ! This version of markdown is sometimes called
++ ! [GitHub-flavored markdown](https://help.github.com/articles/github-flavored-markdown/).
++ ! In particular, blank lines separate paragraphs; newlines inside a paragraph
++ ! do *not* force a line break.
++ ! Beware - this is *not*
++ ! the same markdown algorithm used by GitHub when it renders
++ ! issue or pull comments; in those cases
++ ! [newlines in paragraph-like content are considered as real line breaks](https://help.github.com/articles/writing-on-github/);
++ ! unfortunately this other algorithm is *also* called
++ ! GitHub rendered markdown.
++ ! (Yes, it'd be better if there were standard different names
++ ! for different things.)
++ ! 
++ ! The style is basically that enforced by the "markdownlint" tool.
++ ! Don't use tab characters, avoid "bare" URLs (in a hypertext link, the
++ ! link text and URL should be on the same line), and try to limit
++ ! lines to 80 characters (but ignore the 80-character limit if that would
++ ! create bare URLs).
++ ! Using the "rake markdownlint" or "rake" command
++ ! (described below) implemented in the development
++ ! environment can detect some problems in the markdown.
++ ! That said, if you don't know how to install the development environment,
++ ! don't worry - we'd rather have your proposals, even if you don't know how to
++ ! check them that way.
++ ! 
++ ! Do not use trailing two spaces for line breaks, since these cannot be
++ ! seen and may be silently removed by some tools.
++ ! Instead, use <tt>&lt;br&nbsp;/&gt;</tt> (an HTML break).
++   
++ ! ## Code changes
++   
++ ! ##### Copyright
++   
++ ! This file adapted from the Linux Foundation's Core Infrastructure Initiative's [CONTRIBUTING.md](https://github.com/linuxfoundation/cii-best-practices-badge/blob/master/CONTRIBUTING.md).
++ --- 39,54 ----
++   please send an email to the security contacts that you have such
++   information, and we'll tell you the next steps.
++   For now, the security contacts are:
++ ! isysd <ira@gitguild.com>, and
++ ! cindy-zimmerman <cindy@tigoctm.com>.  
++   
++   Please use the PGP keys provided in the AUTHORS file to encrypt your message!
++   
++ ! ### Copyright
++   
++ ! This file adapted from the Linux Foundation's Core Infrastructure Initiative's [CONTRIBUTING.md](https://github.com/linuxfoundation/cii-best-practices-badge/blob/master/CONTRIBUTING.md).
++   
++ ! ##### Open Source License (MIT)
++   
++ ! All (new) contributed material must be released under the [MIT license](./LICENSE).
++ ! All new contributed material that is not executable, including all text when not executed, is also released under the [Creative Commons Attribution 3.0 International (CC BY 3.0) license](https://creativecommons.org/licenses/by/3.0/) or later.
++ diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//CREDITS /new//CREDITS
++ *** /old//CREDITS	2017-01-01 11:35:02.788178706 -0500
++ --- /new//CREDITS	1969-12-31 19:00:00.000000000 -0500
++ ***************
++ *** 1,43 ****
++ - # Credits
++ - 
++ - The maintainers, contributors, and members of this guild would like to thank the following for essential prior contributions.
++ - 
++ - Without these foundation blocks, our chain would not be able to grow tall and thick.
++ - 
++ - ### GNU
++ - 
++ - So basic, even git wouldn't work without it, the GNU toolkit is used extensively by gitguild.
++ - Additionally, the GNU standards were inspirational for a number of example documents and formats.
++ - 
++ - ### Linux Foundation's Core Infrastructure Initiative
++ - 
++ - The greatest source of standards and example documents is definitely the CII. This includes but is not limited to the CHANGELOG, CONTRIBUTING, CREDITS, and AUTHORS file formats.
++ - 
++ - ### git
++ - 
++ - If there is one core foundation to the gitguild stack, it has to be git.
++ - Git is the water that guilds swim in. Thank you git for the open ocean, full of diverse ecosystems.
++ - 
++ - ### GnuPG
++ - 
++ - There is a saying "don't roll your own crypto." Thanks to GnuPG, we have an almost universally respected, flexible crypto backbone.
++ - Thank you GnuPG for doing the heavy lifting, and carrying the weight to git, email, and so many other areas.
++ - 
++ - ### Ledger-cli
++ - 
++ - How do you herd cats? Count them very carefully. Twice. Thanks to ledger-cli, the perfect plaintext accounting system was ready and waiting to drop into a git repo for version control.
++ - 
++ - ### gitolite
++ - 
++ - Gitolite was a late find but natural fit for gitguild development. Comprehensive permissions inside a git repo, including ssh keyring... it is just begging to be decentralized.
++ - We're honored to try extending gitolite into a P2P network.
++ - 
++ - ### Individual People
++ - 
++ -  + Ira Miller aka isysd
++ -  + Cindy Zimmerman
++ -  + Andre Haynes
++ -  + d3brouille
++ -  + et4te
++ -  + welshjf
++ - 
++ --- 0 ----
++ diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//CREDITS.md /new//CREDITS.md
++ *** /old//CREDITS.md	1969-12-31 19:00:00.000000000 -0500
++ --- /new//CREDITS.md	2017-01-01 11:30:27.252182375 -0500
++ ***************
++ *** 0 ****
++ --- 1,43 ----
++ + # Credits
++ + 
++ + The maintainers, contributors, and members of this guild would like to thank the following for essential prior contributions.
++ + 
++ + Without these foundation blocks, our chain would not be able to grow tall and thick.
++ + 
++ + ### GNU
++ + 
++ + So basic, even git wouldn't work without it, the GNU toolkit is used extensively by gitguild.
++ + Additionally, the GNU standards were inspirational for a number of example documents and formats.
++ + 
++ + ### Linux Foundation's Core Infrastructure Initiative
++ + 
++ + The greatest source of standards and example documents is definitely the CII. This includes but is not limited to the CHANGELOG, CONTRIBUTING, CREDITS, and AUTHORS file formats.
++ + 
++ + ### git
++ + 
++ + If there is one core foundation to the gitguild stack, it has to be git.
++ + Git is the water that guilds swim in. Thank you git for the open ocean, full of diverse ecosystems.
++ + 
++ + ### GnuPG
++ + 
++ + There is a saying "don't roll your own crypto." Thanks to GnuPG, we have an almost universally respected, flexible crypto backbone.
++ + Thank you GnuPG for doing the heavy lifting, and carrying the weight to git, email, and so many other areas.
++ + 
++ + ### Ledger-cli
++ + 
++ + How do you herd cats? Count them very carefully. Twice. Thanks to ledger-cli, the perfect plaintext accounting system was ready and waiting to drop into a git repo for version control.
++ + 
++ + ### gitolite
++ + 
++ + Gitolite was a late find but natural fit for gitguild development. Comprehensive permissions inside a git repo, including ssh keyring... it is just begging to be decentralized.
++ + We're honored to try extending gitolite into a P2P network.
++ + 
++ + ### Individual People
++ + 
++ +  + Ira Miller aka isysd
++ +  + Cindy Zimmerman
++ +  + Andre Haynes
++ +  + d3brouille
++ +  + et4te
++ +  + welshjf
++ + 
++ diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//doc/consensus.md /new//doc/consensus.md
++ *** /old//doc/consensus.md	1969-12-31 19:00:00.000000000 -0500
++ --- /new//doc/consensus.md	2017-01-01 11:30:27.252182375 -0500
++ ***************
++ *** 0 ****
++ --- 1,31 ----
++ + # Consensus
++ + 
++ + ## Abstract
++ + 
++ + Git is a flexible version control system in use by tens of millions of collaborators worldwide. Git [stores data](https://git-scm.com/book/en/v2/Git-Internals-Git-Objects) in sha1 hash trees, and [supports](https://git-scm.com/book/en/v2/Git-Tools-Signing-Your-Work) gpg signing of commits (since v1.7.9). With strict usage guidelines, these cryptographic utilities create a blockchain made up of gpg-signed, sha1-hashed commits.
++ + 
++ + ## Proof of Labor
++ + 
++ + A chain of signed commits is hearafter referred to as Proof of Labor. Proof of Labor is a flexible, meritocratic mining system.
++ + 
++ + Each block of data is made up of a pgp-signed git commit. This commit consistitutes some Labor performed by one or more members of the guild. The other members of the guild then vote on accepting the PR or not by merging the commit or creating a fork.
++ + 
++ + Once a commit has been merged into the master branch, it may not be reverted or overwritten without being detected by other members of the guild. Git guild are immutable unless a fork aka rebase is explicitely voted for. This is similar to other blockchains, where immutability is subject to maintaining consensus.
++ + 
++ + #### Crypto
++ + 
++ + While this system has not yet been reviewed by cryptographers, it should not be controversial. Proof of Labor uses standard, well established tools in a downright orthodox way.  
++ + 
++ + GNU Privacy Guard aka GPG is a popular encryption program first released in 1999. GPG is open source software package compliant with [RFC 4880](https://tools.ietf.org/html/rfc4880), which is the IETF standards track specification of OpenPGP. The latest version (2.0.30) supports RSA, ElGamal and DSA signing, as well as a number of ciphers, hashes, and compression algorithms. It is commonly used for encrypting and/or signing emails, and is growing in use in the git community.
++ + 
++ + Git was developed as a file system, by Linus Torvalds, in 2005. The SHA1 hash tree that git uses was introduced in that first version. Since git has become one of the most popular software projects of all time, this hash tree has seen a lot of real world use, as well as development. Key to the hash tree is that all files are hashed into a commit, along with the parent commit(s). Git's hash tree is a directed acyclic graph. This means it is a one directional, immutable tree with branches and branch resolution. Loops, rewriting history, and a number of other logical inconsistencies are prevented.
++ + 
++ + Since git v1.7.9, released in 2012, git has supported GPG signing commits. This release was the final technical pre-requisite for Proof of Labor.
++ + 
++ + ## Summary
++ + 
++ + If this seems too easy, you're not alone. For software developers, git feels like water to a fish. It is challenging to discover something new about the environment you survive in.
++ + 
++ + The contributors to Proof of Labor are amazed at how broad the applications seem to be. The natural contracting language and strong reputation system of PoL are unique in a blockchain. Due to this broad scope, we have erred on the side of abstraction over specification. While Proof of Labor could be even more loose, and many alternate implementations are possible, we believe this is a flexible, minimal working ruleset.
++ + 
++ + Proof of Labor is complimentary with PoW systems in many ways, and could even be applied after the fact as a governance layer to blockchains like Bitcoin. It could be used as an oracle by other blockchains, or lend them sidechain functionality. It is not likely to be as fast or as directly scalable, but perhaps with advanced sidechain usage, even massive parallel processing could be possible. Most likely, however, an optimal hybrid will emerge after much experimentation.
++ diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//doc/templates.md /new//doc/templates.md
++ *** /old//doc/templates.md	2017-01-01 11:35:02.796178706 -0500
++ --- /new//doc/templates.md	2017-01-01 11:30:27.252182375 -0500
++ ***************
++ *** 22,28 ****
++   
++   ### Parameters
++   
++ ! To transform a strict patch into a more flexible template, add parameters. Gitguild template parameters are surrounded by triple tri-angle brackets. i.e. `<<< param_name >>>`. As far as the developers can tell, this is a previously unused format, which will avoid collisions with any documents under revision control.
++   
++   At runtime, these parameters will be replaced by the appropriate values from the context of the transaction. For instance, `<<< user_name >>>` would be the current user's name when creating a transaction using a patch, but would be the committer's name when checking said transaction.
++   
++ --- 22,28 ----
++   
++   ### Parameters
++   
++ ! To transform a strict patch into a more flexible template, add parameters. Gitguild template parameters are surrounded by triple angle brackets. i.e. `<<< param_name >>>`. As far as the developers can tell, this is a previously unused format, which will avoid collisions with any documents under revision control.
++   
++   At runtime, these parameters will be replaced by the appropriate values from the context of the transaction. For instance, `<<< user_name >>>` would be the current user's name when creating a transaction using a patch, but would be the committer's name when checking said transaction.
++   
++ diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//doc/whitepaper.md /new//doc/whitepaper.md
++ *** /old//doc/whitepaper.md	2017-01-01 11:35:02.800178706 -0500
++ --- /new//doc/whitepaper.md	1969-12-31 19:00:00.000000000 -0500
++ ***************
++ *** 1,84 ****
++ - # Git Guild Blockchain
++ - 
++ - *A git guild is a git-native contract and payment network.*
++ - 
++ - __Document version 0.2.0__
++ - 
++ - ## Abstract
++ - 
++ - Git is a flexible version control system in use by tens of millions of collaborators worldwide. Git [stores data](https://git-scm.com/book/en/v2/Git-Internals-Git-Objects) in sha1 hash trees, and [supports](https://git-scm.com/book/en/v2/Git-Tools-Signing-Your-Work) gpg signing of commits (since v1.7.9). With strict usage guidelines, these cryptographic utilities create a blockchain made up of gpg-signed, sha1-hashed commits.
++ - 
++ - ## Proof of Labor
++ - 
++ - A chain of signed commits is hearafter referred to as Proof of Labor. Proof of Labor is a flexible, meritocratic mining system.
++ - 
++ - Each block of data is made up of a pgp-signed git commit. This commit consistitutes some Labor performed by one or more members of the guild. The other members of the guild then vote on accepting the PR or not by merging the commit or creating a fork.
++ - 
++ - Once a commit has been merged into the master branch, it may not be reverted or overwritten without being detected by other members of the guild. Git guild are immutable unless a fork aka rebase is explicitely voted for. This is similar to other blockchains, where immutability is subject to maintaining consensus.
++ - 
++ - #### Crypto
++ - 
++ - While this system has not yet been reviewed by cryptographers, it should not be controversial. Proof of Labor uses standard, well established tools in a downright orthodox way.  
++ - 
++ - GNU Privacy Guard aka GPG is a popular encryption program first released in 1999. GPG is open source software package compliant with [RFC 4880](https://tools.ietf.org/html/rfc4880), which is the IETF standards track specification of OpenPGP. The latest version (2.0.30) supports RSA, ElGamal and DSA signing, as well as a number of ciphers, hashes, and compression algorithms. It is commonly used for encrypting and/or signing emails, and is growing in use in the git community.
++ - 
++ - Git was developed as a file system, by Linus Torvalds, in 2005. The SHA1 hash tree that git uses was introduced in that first version. Since git has become one of the most popular software projects of all time, this hash tree has seen a lot of real world use, as well as development. Key to the hash tree is that all files are hashed into a commit, along with the parent commit(s). Git's hash tree is a directed acyclic graph. This means it is a one directional, immutable tree with branches and branch resolution. Loops, rewriting history, and a number of other logical inconsistencies are prevented.
++ - 
++ - Since git v1.7.9, released in 2012, git has supported GPG signing commits. This release was the final technical pre-requisite for Proof of Labor.
++ - 
++ - ## Rules & Requirements
++ - 
++ - The following rules of git and other software usage are necessary for the Proof of Labor model to function.
++ - 
++ - | Rule | Description |
++ - |-------|----------------|
++ - | Must sign | Every commit must be signed by a signature of a member to be considered for merge. |
++ - | Member branches | A member's branch is their vote on the state and contents of the chain. Only the member is allowed to sign their own branch. |
++ - | Must merge votes | Any new master block must include every passing vote. Basically, master branch is consensus of valid votes. |
++ - | Auto-merge conflict resolution | Votes that are non-conflicting but behind the master branch must be merged. |
++ - | Higher | Every commit must have a higher `<guild_name>:Height` than it's parent.  |
++ - | Highest | Consensus is the highest valid branch of a guild. This should be mirrored to master and the guild's own branch as commits are made to member branches. |
++ - | Max Depth | Each member can only vote up to their total `<user_name>:Height` on each parent hash. |
++ - 
++ - The first four rules are all git best practices. These rules, and the automation of execution of checks on them, ensure a complete chain of responsibility for each change. Incomplete usage of gpg signing is not nearly good enough, as Mike Gerwitz points out in [A Git Horror Story: Repository Integrity With Signed Commits](https://mikegerwitz.com/papers/git-horror-story.html).
++ - 
++ - "[H]ow can you be sure that their commits are actually their own? Furthermore, how can you be sure that any commits they approve (or sign off on using git commit -s) were actually approved by them?
++ - 
++ - That is, of course, assuming that they have no ill intent. For example, what of the pissed off employee looking to get the arrogant, obnoxious co-worker fired by committing under the coworker’s name/email? What if you were the manager or project lead? Whose word would you take? How would you even know whom to suspect?"
++ - 
++ - The answer to these questions is strict standards and enforcement, i.e. rules 1-4.
++ - 
++ - The last three rules are all for ledger use, and ensure consensus is calculated and enforced. Git actions are recorded by spending XP in the ledger in `Height` and `Depth` accounts. The amount of XP in the `Height` of any commit determines it's acceptance or rejection by the organization, and therefore it's mergability into master.
++ - 
++ - #### Branches
++ - 
++ - Proof of Labor uses git branches for its data structure, and so needs strict control of these. The following keywords are reserved branch names.
++ - 
++ - | Branch             | Maintainer       | Description           |
++ - |--------------------|--------------------|------------------------|
++ - | master             | Last to commit  | The master branch is a protected communal branch. It reflects the latest valid state of the sum of all member branches. |
++ - | username             | username  | Each member must maintain their own branch, and use this branch for submitting votes (commits) or voting on the commits of others (merging). |
++ - 
++ - Currently a trusted git server is used as the source of truth. The master branch must always be kept in a signed and complete state. Git's hash tree is also independently maintained by each member, serving as a complete, independent record of events. There are many ways this basic hosting setup can be enhanced, such as inserting the master commit hashes into a proof of work blockchain.
++ - 
++ - #### Members
++ - 
++ - Members apply to a guild by creating branch named after themselves, adding themselves to `AUTHORS`, adding their accounts and checks to the ledger files, adding a file with their ssh public key to the `keydir` directory, and committing the gpg-signed result. The existing members then vote, and, if the XP approval threshold is reached, the new user branch is merged, accepting the member into the guild.
++ - 
++ - Because usernames are used throughout the guild data structures, a number of names are forbidden. As of now, usernames may only contain letters, numbers, `-`, and `_`. Note that usernames are not case-sensitive. The following keyword(s) are also reserved as forbidden usernames.
++ - 
++ - | Name               | Reason Forbidden       |
++ - |--------------------|------------------------|
++ - | master             | Keyword for the consensus branch. |
++ - 
++ - ## Summary
++ - 
++ - If this seems too easy, you're not alone. For software developers, git feels like water to a fish. It is challenging to discover something new about the environment you survive in.
++ - 
++ - The contributors to Proof of Labor are amazed at how broad the applications seem to be. The natural contracting language and strong reputation system of PoL are unique in a blockchain. Due to this broad scope, we have erred on the side of abstraction over specification. While Proof of Labor could be even more loose, and many alternate implementations are possible, we believe this is a flexible, minimal working ruleset.
++ - 
++ - Proof of Labor is complimentary with PoW systems in many ways, and could even be applied after the fact as a governance layer to blockchains like Bitcoin. It could be used as an oracle by other blockchains, or lend them sidechain functionality. It is not likely to be as fast or as directly scalable, but perhaps with advanced sidechain usage, even massive parallel processing could be possible. Most likely, however, an optimal hybrid will emerge after much experimentation.
++ - 
++ - #### Living Document
++ - 
++ - Don't take our word for it. This paper is governed by [a guild](https://github.com/GitGuild/GitGuild/tree/master). Try the bundled alpha client to demo and register with the founding guild.
++ --- 0 ----
++ diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//gitguild /new//gitguild
++ *** /old//gitguild	2017-01-01 11:35:02.800178706 -0500
++ --- /new//gitguild	2017-01-01 11:34:36.184179061 -0500
++ ***************
++ *** 270,277 ****
++         shift
++         tname="$1"
++         shift
++ !       if [ "$2" != "" ] && [ "$(echo "$2" | grep .patch$ )" = "" ]; then
++ !         phash="$2"
++           shift
++           build_tpl "$tname" "$phash" "$@"
++         else
++ --- 270,277 ----
++         shift
++         tname="$1"
++         shift
++ !       if [ "$1" != "" ] && [ "$(echo "$1" | grep .patch$ )" = "" ]; then
++ !         phash="$1"
++           shift
++           build_tpl "$tname" "$phash" "$@"
++         else
++ ***************
++ *** 683,689 ****
++   # $1 is a parameter
++   # $2 is a value for $1
++   build_param_replace_command() {
++ !   echo " | sed 's/<<< $1 >>>/$2/g'"
++   }
++   
++   # $1 is a param to guess
++ --- 683,690 ----
++   # $1 is a parameter
++   # $2 is a value for $1
++   build_param_replace_command() {
++ !   esc_str=$(echo "$2" | sed "s/\,/\\\\,/g")
++ !   echo " | sed 's,<<< $1 >>>,$esc_str,g'"
++   }
++   
++   # $1 is a param to guess
++ ***************
++ *** 713,721 ****
++       ;;
++       user_height)
++         if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
++ !         ledger -f ledger/chain.ledger bal "$USER_NAME":Height | head -n 1 | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
++         else
++ !         ledger -f ledger/equity.parent bal "$USER_NAME":Height | head -n 1 | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
++         fi
++       ;;
++       date)
++ --- 714,723 ----
++       ;;
++       user_height)
++         if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
++ !         ledger -f ledger/equity.parent bal "$USER_NAME":Height | head -n 1 | grep -o "[^ ][0-9.,]* XP" | tr -d " XP"
++         else
++ !         OTHER_USER=$(git log -n 1 "$2".. --pretty="%cn")
++ !         ledger -f ledger/equity.parent bal "$OTHER_USER":Height | head -n 1 | grep -o "[^ ][0-9.,]* XP" | tr -d " XP"
++         fi
++       ;;
++       date)
++ ***************
++ *** 768,774 ****
++       ;;
++       height)
++         if [ -d ledger ]; then
++ !         GUILD_NAME=guess_template_param guild_name
++           ledger -f ledger/chain.ledger bal "$GUILD_NAME":Height | head -n 1 | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
++         else
++            echo 0
++ --- 770,776 ----
++       ;;
++       height)
++         if [ -d ledger ]; then
++ !         GUILD_NAME=guess_template_param "guild_name"
++           ledger -f ledger/chain.ledger bal "$GUILD_NAME":Height | head -n 1 | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
++         else
++            echo 0
++ ***************
++ *** 781,786 ****
++ --- 783,804 ----
++           echo "$LAST_TRANSACTION"
++         fi
++       ;;
++ +     patch_path)
++ +       grep ".*\; wild_patch:" ledger/transaction.ledger | grep -o "[^ ]*$"
++ +     ;;
++ +     XGG_amount)
++ +       highest=0
++ +       IFS="<literal linefeed here>"
++ +       # shellcheck disable=SC2013
++ +       for line in $(cat ledger/transaction.ledger); do
++ +         amt=$( echo "$line" | grep -o "[0-9.] *XGG$" | tr -d "XG " )
++ +         if [ "$(echo "$amt > $highest" | bc)" != "0" ]; then
++ +           highest=$amt
++ +         fi
++ +       done
++ +       IFS=$ORIG_IFS
++ +       echo "$highest"
++ +     ;;
++     esac
++   }
++   
++ ***************
++ *** 857,863 ****
++         else
++           INTAG=true
++         fi
++ !     elif [ "$INTAG" = "true" ]; then
++         echo "$line" | grep -o "[^; ].*$"
++       fi
++     done
++ --- 875,881 ----
++         else
++           INTAG=true
++         fi
++ !     elif [ "$INTAG" = "true" ] && [ "$(echo "$line" | grep \;)" != "" ]; then
++         echo "$line" | grep -o "[^; ].*$"
++       fi
++     done
++ ***************
++ *** 908,913 ****
++ --- 926,935 ----
++       if [ "$( echo "$tpl" | grep '^patch .*patch$' )" != "" ]; then
++         ptpl="$( echo "$tpl" | grep -o '[^ ]*$' )"
++         build_tpl "$ptpl" "$phash" "$reverse" "$@"
++ +     elif [ "$( echo "$tpl" | grep '^wild_patch' )" != "" ]; then
++ +       # fild patch_path from transaction tag
++ +       patch_path=$(grep ".*\; wild_patch:" ledger/transaction.ledger | grep -o "[^ ]*$")
++ +       build_tpl "$patch_path" "$phash" "$reverse" "$@"
++       fi
++     done
++     if [  "$reverse" = "" ]; then
++ ***************
++ *** 1012,1018 ****
++       echo "#"
++       echo
++     fi
++ !   diff -cr -N "$INPATH" "$OUTPATH" -x .git -x ./template/*.patch | sed "s,$INPATH,/old/,g" | sed "s,$OUTPATH,/new/,g"
++   }
++   
++   # $1 remote name to check
++ --- 1034,1040 ----
++       echo "#"
++       echo
++     fi
++ !   diff -cr -N "$INPATH" "$OUTPATH" -x .git -x .\*template/\*.patch -x \*generated_check.ledger | sed "s,$INPATH,/old/,g" | sed "s,$OUTPATH,/new/,g"
++   }
++   
++   # $1 remote name to check
++ diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//gitguild~ /new//gitguild~
++ *** /old//gitguild~	1969-12-31 19:00:00.000000000 -0500
++ --- /new//gitguild~	2017-01-01 11:32:49.008180488 -0500
++ ***************
++ *** 0 ****
++ --- 1,1138 ----
++ + #!/bin/sh
++ + #MIT License
++ + #
++ + #Copyright (c) 2016 GitGuild developers
++ + #
++ + #Permission is hereby granted, free of charge, to any person obtaining a copy
++ + #of this software and associated documentation files (the "Software"), to deal
++ + #in the Software without restriction, including without limitation the rights
++ + #to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ + #copies of the Software, and to permit persons to whom the Software is
++ + #furnished to do so, subject to the following conditions:
++ + #
++ + #The above copyright notice and this permission notice shall be included in all
++ + #copies or substantial portions of the Software.
++ + #
++ + #THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ + #IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ + #FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++ + #AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++ + #LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++ + #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++ + #SOFTWARE.
++ + 
++ + ORIG_IFS=$IFS
++ + 
++ + # Save $0 so we can shift
++ + # $1 must be a cmd.
++ + export PROG_NAME=$( echo "$0" | grep -o "[^/]*$" )
++ + export COMMAND=$1
++ + 
++ + # Git user configuration is a pre-requisite of this script.
++ + export USER_NAME=$( git config user.name )
++ + export USER_EMAIL=$( git config user.email )
++ + export USER_SIGNINGKEY=$( git config user.signingkey )
++ + USER_IS_CONFIGURED=true
++ + 
++ + # gitolite user home, where repos are hosted
++ + # shellcheck disable=SC2116
++ + export GIT_HOME=$(echo ~git)
++ + 
++ + # default working directory, where repos are cloned
++ + export GG_DIR=$HOME"/gitguild"
++ + 
++ + # Normally this should be run inside such a git repo
++ + GIT_DIR=$( readlink -f "$( git rev-parse -q --git-dir )" | grep -o ".*[^.git]" )
++ + 
++ + # change to the root of any git dir for the duration of the script
++ + if [ -d "$GIT_DIR" ]; then
++ +   cd "$GIT_DIR"
++ + fi
++ + 
++ + if [ "$( which ok.sh )" != "" ]; then
++ +   export USE_GITHUB=true
++ + else
++ +   export USE_GITHUB=false
++ + fi
++ + 
++ + if [ "$( which gitolite )" != "" ]; then
++ +   export USE_GITOLITE=true
++ + else
++ +   export USE_GITOLITE=false
++ + fi
++ + 
++ + #------------------------CLI Helpers--------------------------
++ + 
++ + USAGE_PREAMBLE="
++ + \t$PROG_NAME\tA helpful blockchain in a script.
++ + 
++ + \tUsage:
++ + "
++ + GENERAL_USAGE="\t\t$PROG_NAME help\t\tShow the general help.
++ + \t\t$PROG_NAME version\tShow the program version.
++ + 
++ + \tOptions:
++ + "
++ + 
++ + USAGE_SUFFIX="\t\t$PROG_NAME <cmd> -h\tShow command help details."
++ + 
++ + command_usage_line() {
++ +   printf "\t\t%s %s\t%s" "$PROG_NAME" "$COMMAND" "$*"
++ + }
++ + subcommand_usage_line() {
++ +   SUBCMD=$1
++ +   shift
++ +   printf "\t\t%s %s\t%s\t%s" "$PROG_NAME" "$COMMAND" "$SUBCMD" "$*"
++ + }
++ + # $1 the arg string
++ + # $2 the help
++ + command_option_line() {
++ +   OPTSTR=$1
++ +   shift
++ +   printf "\t\t%s\t\t%s" "$OPTSTR" "$*"
++ + }
++ + 
++ + 
++ + #------------------------CLI Handlers-----------------------------
++ + 
++ + # The main handler. Takes raw user input from command line.
++ + # $1 is the command
++ + __main() {
++ +   case $1 in
++ +     user)
++ +       shift
++ +       handle_user_cmd "$@"
++ +       ;;
++ +     ledger)
++ +       shift
++ +       get_or_set_all_cfg_values
++ +       if [ ! $USER_IS_CONFIGURED ]; then
++ +         exit 1
++ +       fi
++ +       handle_ledger_cmd "$@"
++ +       ;;
++ +     tx)
++ +       shift
++ +       get_or_set_all_cfg_values
++ +       if [ ! $USER_IS_CONFIGURED ]; then
++ +         exit 1
++ +       fi
++ +       handle_tx_cmd "$@"
++ +       ;;
++ +     template)
++ +       shift
++ +       handle_tpl_cmd "$@"
++ +       ;;
++ +     push)
++ +       shift
++ +       get_or_set_all_cfg_values
++ +       if [ ! $USER_IS_CONFIGURED ]; then
++ +         exit 1
++ +       fi
++ +       gg_push "$@"
++ +       ;;
++ +     clone)
++ +       shift
++ +       get_or_set_all_cfg_values
++ +       if [ ! $USER_IS_CONFIGURED ]; then
++ +         exit 1
++ +       fi
++ +       clone_guild "$@"
++ +       ;;
++ +     fork)
++ +       shift
++ +       get_or_set_all_cfg_values
++ +       if [ ! $USER_IS_CONFIGURED ]; then
++ +         exit 1
++ +       fi
++ +       gg_fork "$@"
++ +       ;;
++ +     version|--version)
++ +       cat VERSION
++ +       ;;
++ +     setup-repo)
++ +       gname=$(guess_template_param guild_name)
++ +       if [ "$gname" != "" ]; then
++ +         setup_repo "$gname"
++ +       fi
++ +       ;;
++ +     *)
++ +       COMMAND="user"
++ +       cmdl="$( command_usage_line Manage guild users.)\n"
++ +       COMMAND="tx"
++ +       cmdl="$cmdl$( command_usage_line build and check transactions.)\n"
++ +       COMMAND="ledger"
++ +       cmdl="$cmdl$( command_usage_line Perform guild-related ledger actions. )\n"
++ +       COMMAND="clone"
++ +       cmdl="$cmdl$( subcommand_usage_line \<guild\> \(\<remote\>\) Clone a guild from optional remote. )\n"
++ +       COMMAND="push"
++ +       cmdl="$cmdl$( command_usage_line git push with extra checks and remotes. )\n"
++ +       COMMAND="fork"
++ +       cmdl="$cmdl$( subcommand_usage_line \<remote\> Fork a guild with one or more remotes. )\n"
++ +       COMMAND="setup-repo"
++ +       cmdl="$cmdl$( subcommand_usage_line Setup remotes and hooks in current git repo. )\n"
++ +       COMMAND="template"
++ +       cmdl="$cmdl$( command_usage_line Create and list tx templates. )\n"
++ +       echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
++ +       exit
++ +       ;;
++ +   esac
++ + }
++ + 
++ + handle_user_cmd() {
++ +   case $1 in
++ +     keygen)
++ +       gpgkeygen
++ +       setup_ssh
++ +       exit
++ +       ;;
++ +     unset)
++ +       git config --global --unset-all user.name
++ +       git config --global --unset-all user.email
++ +       git config --global --unset-all user.signingkey
++ +       exit
++ +       ;;
++ +     status)
++ +       get_or_set_all_cfg_values
++ +       USERSTR="$USER_NAME $USER_EMAIL $USER_SIGNINGKEY"
++ +       echo "Operating as user: $USERSTR"
++ +       ensure_members_uniq
++ +       exit
++ +       ;;
++ +     *)
++ +       cmdl="$( subcommand_usage_line keygen Generate and/or configure gpg \
++ +  and ssh keys)\n"
++ +       cmdl="$cmdl$( subcommand_usage_line unset Unset git user configs.)\n"
++ +       cmdl="$cmdl$( subcommand_usage_line status Print user status.)\n"
++ +       echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
++ +       exit
++ +       ;;
++ +   esac
++ + }
++ + 
++ + # $1 is now sub-command (build, check)
++ + handle_tx_cmd() {
++ +   case $1 in
++ +     check)
++ +       shift
++ +       check_tx "$@"
++ +       ;;
++ +     build)
++ +       shift
++ +       # $1 is now a tag name
++ +       build_tx "$@"
++ +       ;;
++ +     list)
++ +       list_tx_tags
++ +       ;;
++ +     archive)
++ +       shift
++ +       archive_tx_ledger "$@"
++ +       ;;
++ +     finish)
++ +       finish_tx
++ +       ;;
++ +     reset)
++ +       # $2 is an optional flag to pass to git clean
++ +       flag="-i"
++ +       if [ "$2" != "" ]; then
++ +         flag=$2
++ +       fi
++ +       git clean "$flag" -d
++ +       git reset -q --hard HEAD^
++ +       git pull -q "$USER_NAME" "$USER_NAME"
++ +       ;;
++ +     *)
++ +       cmdl="$( subcommand_usage_line check Check the tx at HEAD or the given \
++ + commit hash. )\n"
++ +       cmdl="$cmdl$( subcommand_usage_line archive Archive any current transactions \
++ + \(put in equity.ledger\). )\n"
++ +       cmdl="$cmdl$( subcommand_usage_line build \<tag\> Build the given tx \
++ + tag, which probably is multiple patches. )\n"
++ +       cmdl="$cmdl$( subcommand_usage_line finish Perform TX finishing actions, i.e. equity.ledger. )\n"
++ +       cmdl="$cmdl$( subcommand_usage_line list List the available tx tags. )\n"
++ +       cmdl="$cmdl$( subcommand_usage_line reset Clean and reset to HEAD. )\n"
++ +       echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
++ +       exit
++ +       ;;
++ +   esac
++ + }
++ + 
++ + # $1 is now sub-command
++ + # $@ are params for the sub-command
++ + handle_tpl_cmd() {
++ +   case $1 in
++ +     create)
++ +       shift
++ +       create_patch "$@"
++ +       ;;
++ +     build)
++ +       shift
++ +       tname="$1"
++ +       shift
++ +       if [ "$1" != "" ] && [ "$(echo "$1" | grep .patch$ )" = "" ]; then
++ +         phash="$1"
++ +         shift
++ +         build_tpl "$tname" "$phash" "$@"
++ +       else
++ +         build_tpl "$tname" "HEAD" "$@"
++ +       fi
++ +       ;;
++ +     list)
++ +       if [ "$2" = "" ]; then
++ +         ls "$GG_DIR"/*/template/*.patch
++ +       else
++ +         shift
++ +         list_tx_tag_templates "$@"
++ +       fi
++ +       ;;
++ +     *)
++ +       cmdl="$( subcommand_usage_line create Create a stub template for future \
++ +       transactions. )\n"
++ +       cmdl="$cmdl$( subcommand_usage_line build \<patch file\> Build the given \
++ + template. )\n"
++ +       cmdl="$cmdl$( subcommand_usage_line list List the available templates. )\n"
++ +       echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
++ +       exit
++ +       ;;
++ +   esac
++ + }
++ + 
++ + # $1 is the name of the guild to clone
++ + # $2 is optional remote to clone from. Assumed to be github if not specified.
++ + clone_guild() {
++ +   exists=$( [ ! -d "$GG_DIR/$1" ] || echo true )
++ +   if [ "$(echo "$1" | grep -E '^[-]{1,2}h[elp]{0,3}$')" = "" ] && [ "$exists" != "true" ]; then
++ +     if [ "$2" = "" ]; then
++ +       url="https://github.com/$1/$1.git"
++ +     else
++ +       url="$2"
++ +     fi
++ +     git clone "$url" "$GG_DIR/$1"
++ +     setup_repo "$1"
++ +   else
++ +     if [ "$exists" = "true" ]; then
++ +       echo "$GG_DIR/$1 exists. Will not overwrite it."
++ +     fi
++ +     cmdl="$( subcommand_usage_line clone \<guild\> \(\<remote\>\) Clone a guild from optional remote. )\n"
++ +     echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
++ +     exit
++ +   fi
++ + }
++ + 
++ + # push
++ + gg_push() {
++ +   branch=$( git branch | grep "\*" | tr -d "* " )
++ +   if [ "$branch" = "$USER_NAME" ]; then
++ +     for remote in $( git remote ); do
++ +       if [ "$( use_gitolite_push "$remote" )" ]; then
++ +         gitolite push -q "$remote" "$branch"
++ +       else
++ +         git push -q "$remote" "$branch"
++ +       fi
++ +     done
++ +     git checkout -q master
++ +     git merge -q "$USER_NAME"
++ +     # only push master to your own gitolite and github
++ +     remotes=$( git remote | grep "$USER_NAME" | uniq)
++ +     for remote in $remotes; do
++ +       if [ "$( use_gitolite_push "$remote" )" ]; then
++ +         gitolite push -q "$remote" master
++ +       else
++ +         git push -q "$remote" master
++ +       fi
++ +     done
++ +     git checkout -q "$USER_NAME"
++ +   else
++ +     echo "You are not on your own branch. Are you sure you want to push?"
++ +     read writeob
++ +     echo
++ +     if [ "$( echo "$writeob" | grep '[yY].*' )" != "" ]; then
++ +       if [ "$( use_gitolite_push "$USER_NAME" )" ]; then
++ +         gitolite push -q "$USER_NAME" "$branch"
++ +       else
++ +         git push -q "$USER_NAME" "$branch"
++ +       fi
++ +     fi
++ +   fi
++ + }
++ + 
++ + fork_help() {
++ +   cmdl="$( subcommand_usage_line fork \<remote\> Fork a guild. )\n"
++ +   echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
++ + }
++ + 
++ + # $1 the name of the guild to fork
++ + # $2 remote If none is provided, github is guessed.
++ + gg_fork() {
++ +   if [ "$1" = "" ]; then
++ +     fork_help
++ +     exit 1
++ +   fi
++ +   remote=$2
++ +   if [ "$remote" = "" ]; then # guess github
++ +     remote=https://github.com/"$1/$1".git
++ +     if "$(github_repo_exists "$1" "$1")" = "false"; then
++ +       echo "Cannot fork $1. Try forking something else."
++ +       echo
++ +       fork_help
++ +       exit 1
++ +     fi
++ +   fi
++ +   # try to fork using ok.sh's github fork
++ +   if [ "$USE_GITHUB" = "true" ]; then
++ +     if [ "$( echo "$remote" | grep github.com )" != "" ]; then
++ +       _=$( ok.sh fork_repo "$1" "$1" ) # ignore, since always returns repo data
++ +     else
++ +       _=$( ok.sh create_repo "$1" 2>&1 )
++ +     fi
++ +   fi
++ +   if [ "$USE_GITOLITE" = "true" ]; then
++ +     # clone locally if necessary
++ +     if [ "$( gitolite list-phy-repos | grep "$1" )" = "" ]; then
++ +       git clone -q --bare "$remote" "$GIT_HOME/repositories/$1.git"
++ +       gitolite setup
++ +     fi
++ +     # add to gitolite.conf
++ +     # shellcheck disable=SC2016
++ +     if [ "$( grep 'repo "$1"' "$GG_DIR"/"$USER_NAME"/conf/gitolite.conf )" = "" ]; then
++ +       cd "$GG_DIR/$USER_NAME"
++ +       git checkout -q "$USER_NAME"
++ +       build_tx fork_repo "other_guild=$1"
++ +       git add -A
++ +       git commit -m "forked $1"
++ +       gitguild push
++ +     fi
++ +   fi
++ +   if [ ! -d "$GG_DIR/$1" ]; then
++ +     git clone "$remote" "$GG_DIR/$1"
++ +   fi
++ +   # setup remotes
++ +   setup_repo "$1"
++ +   # register?
++ + }
++ + 
++ + ledger_help() {
++ +   cmdl="$( subcommand_usage_line equity Print the equity gitguild style)\n"
++ +   cmdl="$cmdl$( subcommand_usage_line build Build the ledger for the current commit.)\n"
++ +   echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
++ + }
++ + 
++ + # $1 subcommand
++ + handle_ledger_cmd() {
++ +   case $1 in
++ +     equity)
++ +       ledger_equity
++ +     ;;
++ +     build)
++ +       ledger_build
++ +     ;;
++ +     *)
++ +       ledger_help
++ +       exit
++ +     ;;
++ +   esac
++ + }
++ + 
++ + #--------------Checks, setup, and installation helpers---------------
++ + 
++ + # $1 is the github user to search
++ + github_list_user_repos() {
++ +   ok.sh list_repos gitguild | grep clone_url | tr -d "\"," | grep -o '[^ ]*$'
++ + }
++ + 
++ + # $1 is the github user
++ + # $2 is the repo name
++ + github_repo_exists() {
++ +   rf=$( ok.sh list_repos gitguild | grep github.com/"$1"/"$2" )
++ +   if [ "$rf" = "" ]; then
++ +     echo "false"
++ +   else
++ +     echo "true"
++ +   fi
++ + }
++ + 
++ + # $1 is the name of the guild
++ + setup_repo() {
++ +   cd "$GG_DIR/$1"
++ +   # sense official github remote
++ +   ghr=$(git remote -v | grep "github.com/$1/$1" | grep -o "^\w*" | uniq)
++ +   if [ "$ghr" != "" ] && [ "$ghr" != "github" ]; then
++ +     grep -rl "$ghr" "$GG_DIR/$1/.git" | xargs sed -i "s,$ghr,github,g"
++ +   elif [ "$ghr" = "" ] && [ "$USE_GITHUB" = "true" ] && [ "$(github_repo_exists "$1" "$1")" = "true" ]; then
++ +     git remote add github https://github.com/"$1"/"$1".git
++ +   fi
++ +   # sense personal github remote
++ +   if [ "$1" != "$USER_NAME" ]; then
++ +     pghr=$(git remote -v | grep "github.com/$USER_NAME/$1" | grep -o "^\w*" | uniq)
++ +     if [ "$USE_GITHUB" = "true" ]; then
++ +       if [ "$pghr" != "" ] && [ "$pghr" != "$USER_NAME"_gh ]; then
++ +         grep -rl "$pghr" "$GG_DIR/$1/.git" | xargs sed -i "s,$pghr,$USER_NAME_gh,g"
++ +       elif [ "$ghr" = "" ] && [ "$USE_GITHUB" = "true" ] && [ "$(github_repo_exists "$USER_NAME" "$1")" = "true" ]; then
++ +         git remote add "$USER_NAME"_gh https://github.com/"$USER_NAME"/"$1".git
++ +       fi
++ +     fi
++ +   fi
++ +   # sense local gitolite remote
++ +   if [ "$USE_GITOLITE" = "true" ]; then
++ +     lgor=$(git remote -v | grep "file://.*$1" | grep -o "^\w*" | uniq)
++ +     if [ "$lgor" != "" ] && [ "$lgor" != "$USER_NAME" ]; then
++ +       grep -rl "$lgor" "$GG_DIR/$1/.git" | xargs sed -i "s,$lgor,$USER_NAME,g"
++ +     elif [ "$lgor" = "" ] && [ "$( gitolite list-phy-repos | grep "$1" )" = "" ]; then
++ +       git remote add "$USER_NAME" "file://$GIT_HOME/repositories/$1.git"
++ +     fi
++ +   fi
++ +   # sense other gitolite remotes
++ +   ogor=$(git remote -v | grep fetch | grep "git@.*:$1" | grep -o "^\w*" )
++ +   for lname in $ogor; do
++ +     url=$(git remote get-url "$lname" | grep -o "^[^:]*")
++ +     # shellcheck disable=SC2029
++ +     ginfo=$( ssh "$url" info "$1" )
++ +     gname=$( echo "$ginfo" | grep -o '@[^ ]*' | tr -d "@" )
++ +     if [ "$lname" != "$gname" ] && [ "$( echo "$ginfo" | grep -v 'this is' | grep "$1" )" != "" ]; then
++ +       grep -rl "$lname" "$GG_DIR/$1/.git" | xargs sed -i "s,$lname,$gname,g"
++ +     fi
++ +   done
++ +   if [ "$( git branch | grep "$USER_NAME" )" = "" ]; then
++ +     git checkout -b "$USER_NAME"
++ +   fi
++ +   # add hooks
++ +   if [ -d ./h ]; then
++ +     for hook in ./h/*; do
++ +       if [ "$(echo "$hook" | grep pre-commit)" = "" ]; then
++ +         cp "h/$hook" .git/hooks/pre-commit
++ +       fi
++ +     done
++ +   fi
++ + }
++ + 
++ + #-------------------user prep and command section--------------------------
++ + 
++ + gpgkeygen() {
++ +   echo "The gpg --gen-key walk-through is about to be run."
++ +   echo "For GitGuild to function, a dual key (RSA and RSA or DSA and Elgamal)"
++ +   echo "is required. Other parameters (name, email) should match your"
++ +   echo "git identity."
++ +   echo
++ +   echo "It is highly recommended to create a passphrase for your security!"
++ +   echo "Your passphrase is what stops someone using your machine"
++ +   echo "from stealing your identity."
++ +   echo "Use a strong password, back it up and create a revocation key."
++ +   echo
++ +   echo "The developers recommend using a free and open source password manager."
++ +   echo "The pass program is used internally, and if you like the command line,"
++ +   echo "it could be for you even outside of gitguild."
++ +   echo ""
++ +   echo "OK, ready to generate keys?"
++ +   read readyono
++ +   echo
++ +   if [ "$( echo "$readyono" | grep '[yY].*' )" != "" ]; then
++ +       gpg --gen-key
++ +   else
++ +     user_cfg_error "signingkey" "gpg key id"
++ +   fi
++ + }
++ + 
++ + # $1 is the official git config format
++ + # $2 is the user understandable format
++ + user_cfg_error() {
++ +   echo "OK, to try setting your git $1 at any time, run:" 1>&2
++ +   echo 1>&2
++ +   echo "gitguild user status" 1>&2
++ +   USER_IS_CONFIGURED=false
++ + }
++ + 
++ + # $1 is the username to search for
++ + guess_cfg_from_authors_by_value() {
++ +   if [ -f ./AUTHORS ]; then
++ +     cfginfo=$( grep "$1" ./AUTHORS )
++ +     if [ "$cfginfo" != "" ]; then
++ +       USER_NAME="$( echo "$cfginfo" | grep -o '^[^ ]*')"
++ +       git config --global --add user.email "$USER_EMAIL"
++ +       USER_EMAIL="$( echo "$cfginfo" | grep -o ' [^ ]* ' | tr -d ' ' )"
++ +       git config --global --add user.email "$USER_EMAIL"
++ +       USER_SIGNINGKEY="$( echo "$cfginfo" | grep -o '[^ ]*$' )"
++ +       git config --global --add user.signingkey "$USER_SIGNINGKEY"
++ +     fi
++ +   fi
++ + }
++ + 
++ + print_sig_guesses() {
++ +   if [ "$USER_EMAIL" != "" ]; then
++ +     keylist=$( gpg --list-secret-keys --fast-list-mode "$USER_EMAIL" | grep sec | \
++ +       grep -o "[A-Z0-9]\{8\} " )
++ +   elif [ "$USER_NAME" != "" ]; then
++ +     keylist=$( gpg --list-secret-keys --fast-list-mode "$USER_NAME" | grep sec | \
++ +       grep -o "[A-Z0-9]\{8\} " )
++ +   fi
++ +   if [ "$keylist" != "" ]; then
++ +     echo "Detected one or more keys matching your name or email."
++ +     echo "The one you want is probably among these."
++ +     echo "$keylist"
++ +     echo
++ +   elif [ "$USER_EMAIL" != "" ] && [ "$USER_NAME" != "" ]; then
++ +     echo "Could not detect a key matching your name or email."
++ +     echo
++ +     gpgkeygen
++ +   fi
++ + }
++ + 
++ + # $1 the git config name of the field
++ + get_cfg_by_name() {
++ +   case $1 in
++ +     name)
++ +       echo "$USER_NAME"
++ +       ;;
++ +     email)
++ +       echo "$USER_EMAIL"
++ +       ;;
++ +     signingkey)
++ +       echo "$USER_SIGNINGKEY"
++ +       ;;
++ +   esac
++ + }
++ + 
++ + # $1 the git config name of the field
++ + # $2 the value to set
++ + set_cfg_by_name() {
++ +   case $1 in
++ +     name)
++ +       USER_NAME=$2
++ +       ;;
++ +     email)
++ +       USER_EMAIL=$2
++ +       ;;
++ +     signingkey)
++ +       USER_SIGNINGKEY=$2
++ +       ;;
++ +   esac
++ + }
++ + 
++ + # $1 is the official git config format of the field name 
++ + # $2 is the user understandable format
++ + get_or_set_cfg_value() {
++ +   if [ "$( get_cfg_by_name "$1" )" = "" ]; then
++ +     echo "WARNING: Git user.$1 not configured."
++ +     echo
++ +     if [ "$1" != "name" ] && [ "$( get_cfg_by_name "$1" )" = "" ]; then
++ +       # try to guess based on name
++ +       echo "guessing"
++ +       guess_cfg_from_authors_by_value "$USER_NAME"
++ +     fi
++ +     if [ "$( get_cfg_by_name "$1" )" = "" ] && [ "$1" = "signingkey" ]; then
++ +       print_sig_guesses
++ +     elif [ "$1" = "signingkey" ]; then
++ +       return 
++ +     fi
++ +     if [ "$( get_cfg_by_name "$1" )" = "" ]; then
++ +       echo "Please enter your git $1 followed by [ENTER]"
++ +       read userval
++ +       if [ "$userval" != "" ]; then
++ +         git config --global --add user."$1" "$userval"
++ +         echo
++ +         set_cfg_by_name "$1" "$userval"
++ +       else
++ +         user_cfg_error "$2" "$3"
++ +       fi
++ +     fi
++ +   fi
++ + }
++ + 
++ + get_or_set_all_cfg_values() {
++ +   get_or_set_cfg_value "name" "user name"
++ +   get_or_set_cfg_value "email" "email"
++ +   get_or_set_cfg_value "signingkey" "gpg key id"
++ +   git config --global commit.gpgsign true
++ + }
++ + 
++ + # This is a user-related check function that can be run at any point.
++ + # Exits with error status and message if members are not unique.
++ + ensure_members_uniq() {
++ +   if [ -f ./AUTHORS ]; then
++ +     USR_STR=$( grep "$USER_NAME $USER_EMAIL $USER_SIGNINGKEY" ./AUTHORS )
++ +     if [ "$USR_STR" != "$USER_NAME $USER_EMAIL $USER_SIGNINGKEY" ]; then
++ +       echo "ERROR: current user not found in AUTHORS" 1>&2
++ +       exit 1
++ +     fi
++ +     total=$( grep -c "^[^\n].*" AUTHORS )
++ +     names=$( grep -o '^[^ ]*' AUTHORS | sort | uniq | wc -l )
++ +     emails=$( grep -o ' [^ ]* ' AUTHORS | tr -d ' ' | sort | uniq | \
++ +       wc -l )
++ +     sigkeys=$( grep -o '[^ ]*$' AUTHORS | sort | uniq | wc -l )
++ +     if [ "$total" != "$names" ]; then
++ +       echo "ERROR: found duplicate names" 1>&2
++ +       exit 1
++ +     elif [ "$total" != "$emails" ]; then
++ +       echo "ERROR: found duplicate emails" 1>&2
++ +       exit 1
++ +     elif [ "$total" != "$sigkeys" ]; then
++ +       echo "ERROR: found duplicate sigkey" 1>&2
++ +       exit 1
++ +     fi
++ +   else
++ +     echo "ERROR: unable to find the required AUTHORS file" 1>&2
++ +     exit 1
++ +   fi
++ + }
++ + 
++ + 
++ + #---------------tx (transaction) section----------------
++ + # Functions and handlers related to building, checking, 
++ + # and managing transactions.
++ + 
++ + # $1 is a parameter
++ + # $2 is a value for $1
++ + build_param_replace_command() {
++ +   esc_str=$(echo "$2" | sed "s/\,/\\\\,/g")
++ +   echo " | sed 's,<<< $1 >>>,$esc_str,g'"
++ + }
++ + 
++ + # $1 is a param to guess
++ + # $2 is a commit hash or HEAD where the tx is described
++ + guess_template_param() {
++ +   case $1 in
++ +     user_name)
++ +       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
++ +         echo "$USER_NAME"
++ +       else
++ +         git log -n 1 "$2".. --pretty="%cn"
++ +       fi
++ +     ;;
++ +     user_email)
++ +       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
++ +         echo "$USER_EMAIL"
++ +       else
++ +         git log -n 1 "$2".. --pretty="%ce"
++ +       fi
++ +     ;;
++ +     user_signingkey)
++ +       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
++ +         echo "$USER_SIGNINGKEY"
++ +       else
++ +         git log -n 1 "$2".. --pretty="%GK"
++ +       fi
++ +     ;;
++ +     user_height)
++ +       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
++ +         ledger -f ledger/equity.parent bal "$USER_NAME":Height | head -n 1 | grep -o "[^ ][0-9.,]* XP" | tr -d " XP"
++ +       else
++ +         OTHER_USER=$(git log -n 1 "$2".. --pretty="%cn")
++ +         ledger -f ledger/equity.parent bal "$OTHER_USER":Height | head -n 1 | grep -o "[^ ][0-9.,]* XP" | tr -d " XP"
++ +       fi
++ +     ;;
++ +     date)
++ +       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
++ +         date -u +%F
++ +       else
++ +         date -u +%F --date="@$( git log -n 1 "$2".. --pretty='%ct' )"
++ +       fi
++ +     ;;
++ +     epoch)
++ +       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
++ +         date -u +%s
++ +       else
++ +         git log -n 1 "$2".. --pretty="%ct"
++ +       fi
++ +     ;;
++ +     vote_parent|parent)
++ +       if [ "$2" = "" ]; then
++ +         git log -n 1 HEAD --pretty="%H"
++ +       else
++ +         git log -n 1 "$2" --pretty="%H"
++ +       fi
++ +     ;;
++ +     version)
++ +       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
++ +         if [ -f VERSION ]; then
++ +           cat VERSION
++ +         else
++ +           echo "0.0.1"  # default starting version number
++ +         fi
++ +       else
++ +         git show "$2":VERSION
++ +       fi
++ +     ;;
++ +     guild_name)
++ +       if [ ! -f GUILD ]; then
++ +         # assume we're at initialization phase of personal guild
++ +         echo "$USER_NAME"
++ +       else # otherwise it must exist and never change!
++ +         head -n 1 GUILD | grep -o "[^NAME ].*"
++ +       fi
++ +     ;;
++ +     other_guild)
++ +       if [ "$2" = "" ]; then
++ +         exit 1
++ +       else
++ +         gdate=$(guess_template_param 'date' "$2")
++ +         grep "$gdate" ledger/transaction.ledger | grep -o "[^ ]*$"
++ +       fi
++ +     ;;
++ +     height)
++ +       if [ -d ledger ]; then
++ +         GUILD_NAME=guess_template_param "guild_name"
++ +         ledger -f ledger/chain.ledger bal "$GUILD_NAME":Height | head -n 1 | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
++ +       else
++ +          echo 0
++ +       fi
++ +     ;;
++ +     last_transaction)
++ +       if [ "$LAST_TRANSACTION" = "" ]; then
++ +         grep "LAST_TRANSACTION" GUILD | grep -o "[^ ].*$"
++ +       else
++ +         echo "$LAST_TRANSACTION"
++ +       fi
++ +     ;;
++ +     patch_path)
++ +       grep ".*\; wild_patch:" ledger/transaction.ledger | grep -o "[^ ]*$"
++ +     ;;
++ +     XGG_amount)
++ +       highest=0
++ +       IFS="<literal linefeed here>"
++ +       # shellcheck disable=SC2013
++ +       for line in $(cat ledger/transaction.ledger); do
++ +         amt=$( echo "$line" | grep -o "[0-9.] *XGG$" | tr -d "XG " )
++ +         if [ "$(echo "$amt > $highest" | bc)" != "0" ]; then
++ +           highest=$amt
++ +         fi
++ +       done
++ +       IFS=$ORIG_IFS
++ +       echo "$highest"
++ +     ;;
++ +   esac
++ + }
++ + 
++ + get_template_params() {
++ +   # first argument should be a file or directory to look for templates
++ +   if [ -e "$GG_DIR/$1" ]; then
++ +     tdir=$GG_DIR/$1
++ +   elif [ -d ./template ]; then
++ +     # if no argument given, assume current directory is base of repo
++ +     tdir=$( readlink -f ./template )
++ +   else
++ +     echo "Unable to find template(s) at: ""$1" 1>&2
++ +     echo 1>&2
++ +   fi
++ +   # Find all param tags in file(s), remove brackets, and filter
++ +   grep -roh '<<< [a-zA-Z0-9_-.]\{1,80\} >>>' "$tdir" | tr -d '<> ' | sort | uniq
++ + }
++ + 
++ + # $1 is the name of the template
++ + # $2 is the revision (default to HEAD)
++ + # $@ are param values to use, as pairs (key=val), preceded by optional flags (--flag)
++ + build_tpl() {
++ +   echo "DEBUG build_tpl start $@" 1>&2
++ +   tpl_name="$1"
++ +   shift
++ +   echo "DEBUG build_tpl shift 1 $@" 1>&2
++ +   revision="$1"
++ +   shift
++ +   reverse=""  
++ +   if [ "$1" = "--reverse" ]; then
++ +     reverse="--reverse"
++ +     shift
++ +   fi
++ +   echo "DEBUG build_tpl $tpl_name $revision $reverse" 1>&2
++ +   params=$( get_template_params "$tpl_name" )
++ +   echo "DEBUG build_tpl $params" 1>&2
++ +   cmd_str="cat $GG_DIR/$tpl_name"
++ +   echo "DEBUG build_tpl $cmd_str $@" 1>&2
++ +   for kv in "$@"; do
++ +     echo "DEBUG build_tpl $kv" 1>&2
++ +     key="$(echo "$kv" | grep -o '^[^=]*')"
++ +     val="$(echo "$kv" | grep -o '[^=]*$')"
++ +     IFS=" "
++ +     # shellcheck disable=SC2016
++ +     if [ "$(echo "$params" | grep '^"$key"$')" = "" ]; then
++ +       cmd_str="$cmd_str $( build_param_replace_command "$key" "$val" )"
++ +       params=$(echo "$params" | sed "s,^$key$,,g")
++ +     fi
++ +     IFS=$ORIG_IFS
++ +   done
++ +   for p in $params; do
++ +     echo "DEBUG build_tpl $p in $params" 1>&2
++ +     if [ "$p" != "" ]; then
++ +       cmd_str="$cmd_str $( build_param_replace_command "$p" "$( guess_template_param "$p" "$revision")" )"
++ +     fi
++ +   done
++ +   if [ "$reverse" = "" ]; then
++ +     cmd_str="$cmd_str | patch -s -p2"  # TODO what p level to set?
++ +   else
++ +     cmd_str="$cmd_str | patch -s -R -p2"  # TODO what p level to set?
++ +   fi
++ +   echo "DEBUG $cmd_str" 1>&2
++ +   eval "$cmd_str"
++ + }
++ + 
++ + list_tx_tags() {
++ +   grep tag ledger/tag.ledger | grep -o "[^ ].*$"
++ + }
++ + 
++ + # $1 the name of the tag to list templates for
++ + # $2 to reverse the list, set this to "--reverse"
++ + list_tx_tag_templates() {
++ +   INTAG=false
++ +   if [ "$2" = "--reverse" ]; then
++ +     tac ledger/tag.ledger
++ +   else
++ +     cat ledger/tag.ledger
++ +   fi | while read line; do
++ +     if [ "$(echo "$line" | grep -E "[\;# ]*[end]{0,3}tag $1")" != "" ]; then
++ +       if [ "$INTAG" = "true" ]; then
++ +         return
++ +       else
++ +         INTAG=true
++ +       fi
++ +     elif [ "$INTAG" = "true" ] && [ "$(echo "$line" | grep \;)" != "" ]; then
++ +       echo "$line" | grep -o "[^; ].*$"
++ +     fi
++ +   done
++ + }
++ + 
++ + # $1 to reverse the archive action, set this to "--reverse"
++ + # $2 is an optional commit hash (should always be HEAD or HEAD^)
++ + archive_tx_ledger() {
++ +   if [ "$1" = "--reverse" ]; then
++ +     if [ "$2" = "HEAD^" ]; then
++ +       phash="HEAD^"
++ +     fi
++ +     # also "unfinishes" the tx by resetting GUILD
++ +     rm ledger/equity.parent ledger/equity.ledger ledger/transaction.ledger GUILD
++ +     git checkout "$phash" ledger/equity.ledger ledger/equity.parent ledger/transaction.ledger GUILD
++ +     ledger_build
++ +   else
++ +     ledger_build
++ +     cp ledger/equity.ledger ledger/equity.parent
++ +     echo "" > ledger/transaction.ledger
++ +   fi
++ + }
++ + 
++ + finish_tx() {
++ +   ledger_build
++ +   sed -i GUILD -e "s,EPOCH_TIME.*,EPOCH_TIME $(date -u +%s),g" \
++ +     -e "s,LAST_TRANSACTION.*,LAST_TRANSACTION $LAST_TRANSACTION,g"
++ +   ledger_equity > ledger/equity.ledger
++ + }
++ + 
++ + # $1 is a tag name
++ + # $@ are build tpl params or flags with no '=' (i.e. --reverse)
++ + build_tx() {
++ +   export LAST_TRANSACTION="$1"
++ +   shift
++ +   reverse=""
++ +   phash="HEAD"
++ +   if [ "$1" = "--reverse" ]; then
++ +     reverse="--reverse"
++ +     shift
++ +     if [ "$(git status --short)" = "" ]; then
++ +       phash="HEAD^"
++ +     fi
++ +   else
++ +     archive_tx_ledger
++ +   fi
++ +   list_tx_tag_templates "$LAST_TRANSACTION" "$reverse" | while read tpl; do
++ +     if [ "$( echo "$tpl" | grep '^patch .*patch$' )" != "" ]; then
++ +       ptpl="$( echo "$tpl" | grep -o '[^ ]*$' )"
++ +       build_tpl "$ptpl" "$phash" "$reverse" "$@"
++ +     elif [ "$( echo "$tpl" | grep '^wild_patch' )" != "" ]; then
++ +       # fild patch_path from transaction tag
++ +       patch_path=$(grep ".*\; wild_patch:" ledger/transaction.ledger | grep -o "[^ ]*$")
++ +       build_tpl "$patch_path" "$phash" "$reverse" "$@"
++ +     fi
++ +   done
++ +   if [  "$reverse" = "" ]; then
++ +     finish_tx
++ +   else
++ +     archive_tx_ledger "$reverse" "$phash"
++ +   fi
++ + }
++ + 
++ + # $1 is the parent commit to check against (default HEAD, then HEAD^)
++ + check_tx() {
++ +   if [ "$1" = "" ]; then
++ +     wdelta=$(git status --short)
++ +     if [ "$wdelta" = "" ]; then
++ +       phash="HEAD^"
++ +     else
++ +       phash="HEAD"
++ +       git stash --keep-index
++ +     fi
++ +   else
++ +     phash="$1"
++ +     git checkout "$phash" ||
+\ No newline at end of file
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//template/ledger_basics.patch /new//template/ledger_basics.patch
+*** /old//template/ledger_basics.patch	2017-01-01 11:35:02.800178706 -0500
+--- /new//template/ledger_basics.patch	2017-01-01 11:30:27.256182375 -0500
+***************
+*** 111,117 ****
+  --- /new//ledger/tag.ledger	2016-12-23 20:15:02.071512655 -0500
+  ***************
+  *** 0 ****
+! --- 1,34 ----
+  + tag init_personal
+  + ; patch gitguild/template/clean_gitolite_admin.patch
+  + ; patch gitguild/template/add_member_authors.patch
+--- 111,117 ----
+  --- /new//ledger/tag.ledger	2016-12-23 20:15:02.071512655 -0500
+  ***************
+  *** 0 ****
+! --- 1,38 ----
+  + tag init_personal
+  + ; patch gitguild/template/clean_gitolite_admin.patch
+  + ; patch gitguild/template/add_member_authors.patch
+***************
+*** 142,151 ****
+  + 
+  + tag contribute
+  + ; patch gitguild/template/contribute.patch
+- + ; patch gitguild/template/tx_post_process.patch
+  + ; min_votes 0.66
+  + ; endtag contribute
+  + 
+  diff -cr -N -x .git -x '*.patch' /old//ledger/transaction.ledger /new//ledger/transaction.ledger
+  *** /old//ledger/transaction.ledger	1969-12-31 19:00:00.000000000 -0500
+  --- /new//ledger/transaction.ledger	2016-12-23 20:15:08.539512539 -0500
+--- 142,155 ----
+  + 
+  + tag contribute
+  + ; patch gitguild/template/contribute.patch
+  + ; min_votes 0.66
+  + ; endtag contribute
+  + 
++ + tag paid_contribution
++ + ; patch gitguild/template/paid_contribution.patch
++ + ; min_votes 0.75
++ + ; endtag paid_contribution
++ + 
+  diff -cr -N -x .git -x '*.patch' /old//ledger/transaction.ledger /new//ledger/transaction.ledger
+  *** /old//ledger/transaction.ledger	1969-12-31 19:00:00.000000000 -0500
+  --- /new//ledger/transaction.ledger	2016-12-23 20:15:08.539512539 -0500
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//template/paid_contribution.patch /new//template/paid_contribution.patch
+*** /old//template/paid_contribution.patch	1969-12-31 19:00:00.000000000 -0500
+--- /new//template/paid_contribution.patch	2017-01-01 11:30:27.256182375 -0500
+***************
+*** 0 ****
+--- 1,18 ----
++ diff -cr -N -x .git -x '*.patch' /old//ledger/transaction.ledger /new//ledger/transaction.ledger
++ *** /old//ledger/transaction.ledger	2015-12-31 19:00:00.000000000 -0500
++ --- /new//ledger/transaction.ledger	2016-12-23 20:15:53.519511733 -0500
++ ***************
++ *** 0 ****
++ --- 1,12 ----
++ + <<< date >>> Paid Contribution
++ +     ; paid_contribution
++ +     ; wild_patch: <<< patch_path >>>
++ +     <<< user_name >>>:Income:<<< guild_name >>>:<<< user_name >>>:<<< parent >>>       -<<< XGG_amount >>> XGG
++ +     <<< user_name >>>:Assets:<<< guild_name >>>:<<< user_name >>>:<<< parent >>>       <<< XGG_amount >>> XGG
++ +     <<< guild_name >>>:Liabilities:<<< guild_name >>>:<<< user_name >>>:<<< parent >>>      -<<< XGG_amount >>> XGG
++ +     <<< guild_name >>>:Expenses:<<< guild_name >>>:<<< user_name >>>:<<< parent >>>      <<< XGG_amount >>> XGG
++ +     <<< user_name >>>:Height:<<< guild_name >>>:<<< user_name >>>:<<< parent >>>      <<< XGG_amount >>> XP
++ +     <<< user_name >>>:Depth:<<< guild_name >>>:<<< user_name >>>:<<< parent >>>       -<<< user_height >>> XP
++ +     <<< guild_name >>>:Height:<<< guild_name >>>:<<< user_name >>>:<<< parent >>>      <<< user_height >>> XP
++ +     <<< guild_name >>>:Depth:<<< guild_name >>>:<<< user_name >>>:<<< parent >>>       -<<< XGG_amount >>> XP
++ + 
+diff -cr -N -x .git -x '.*template/*.patch' -x '*generated_check.ledger' /old//VERSION /new//VERSION
+*** /old//VERSION	2017-01-01 11:35:02.788178706 -0500
+--- /new//VERSION	2017-01-01 11:30:27.252182375 -0500
+***************
+*** 1 ****
+! 0.2.8
+--- 1 ----
+! 0.2.9

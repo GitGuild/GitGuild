@@ -1,6 +1,7 @@
 !include commodity.ledger
 !include account.ledger
 !include tag.ledger
-!include equity.ledger
+!include equity.parent
 !include transaction.ledger
 !include check.ledger
+!include generated_check.ledger

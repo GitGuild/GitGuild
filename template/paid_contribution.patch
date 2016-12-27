@@ -1,0 +1,18 @@
+diff -cr -N -x .git -x '*.patch' /old//ledger/transaction.ledger /new//ledger/transaction.ledger
+*** /old//ledger/transaction.ledger	2015-12-31 19:00:00.000000000 -0500
+--- /new//ledger/transaction.ledger	2016-12-23 20:15:53.519511733 -0500
+***************
+*** 0 ****
+--- 1,12 ----
++ <<< date >>> Paid Contribution
++     ; paid_contribution
++     ; wild_patch: <<< patch_path >>>
++     <<< user_name >>>:Income:<<< guild_name >>>:<<< user_name >>>:<<< parent >>>       -<<< XGG_amount >>> XGG
++     <<< user_name >>>:Assets:<<< guild_name >>>:<<< user_name >>>:<<< parent >>>       <<< XGG_amount >>> XGG
++     <<< guild_name >>>:Liabilities:<<< guild_name >>>:<<< user_name >>>:<<< parent >>>      -<<< XGG_amount >>> XGG
++     <<< guild_name >>>:Expenses:<<< guild_name >>>:<<< user_name >>>:<<< parent >>>      <<< XGG_amount >>> XGG
++     <<< user_name >>>:Height:<<< guild_name >>>:<<< user_name >>>:<<< parent >>>      <<< XGG_amount >>> XP
++     <<< user_name >>>:Depth:<<< guild_name >>>:<<< user_name >>>:<<< parent >>>       -<<< user_height >>> XP
++     <<< guild_name >>>:Height:<<< guild_name >>>:<<< user_name >>>:<<< parent >>>      <<< user_height >>> XP
++     <<< guild_name >>>:Depth:<<< guild_name >>>:<<< user_name >>>:<<< parent >>>       -<<< XGG_amount >>> XP
++ 

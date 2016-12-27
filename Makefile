@@ -3,6 +3,7 @@ USE_GITHUB ?= true
 USE_GITOLITE ?= true
 
 GG_DIR = $(HOME)/gitguild
+GIT_HOME = $(shell echo ~git)
 USER_NAME := $(shell git config user.name)
 USER_EMAIL := $(shell git config user.email)
 IDENT_REMOTE = ""
@@ -38,10 +39,10 @@ setup_ssh = if [ -e "$(HOME)/.ssh/$(USER_NAME).pub" ]; then \
 elif [ -f "$(HOME)/.ssh/id_rsa.pub" ]; then \
 	echo "found default id_rsa.pub ssh key to use, making a symbolic link with \
 username"; \
-	ln -sf "$(HOME)/.ssh/id_rsa" "$(HOME)/.ssh/$(USER_NAME)"; \
-	ln -sf "$(HOME)/.ssh/id_rsa.pub" "$(HOME)/.ssh/$(USER_NAME).pub"; \
+	ln -sf $(HOME)/.ssh/id_rsa $(HOME)/.ssh/$(USER_NAME); \
+	ln -sf $(HOME)/.ssh/id_rsa.pub $(HOME)/.ssh/$(USER_NAME).pub; \
 else \
-	ssh-keygen -t rsa -b 4096 -C "$USER_EMAIL -f $(HOME)/.ssh/$(USER_NAME)"; \
+	ssh-keygen -t rsa -b 4096 -C $(USER_EMAIL) -f $(HOME)/.ssh/$(USER_NAME); \
 fi
 
 setup_github = if [ "$(USE_GITHUB)" = "true" ] && [ ! -d $(GG_DIR)/ok.sh ]; then \
@@ -65,14 +66,20 @@ setup_gitolite = [ "$(USE_GITOLITE)" = "true" ]; then \
 		sed -z -i.bak "s/\# GL_ADMIN_REPO                   =>  \"gitolite-admin\"/ GL_ADMIN_REPO                   =>  \"$(USER_NAME)\"/g" src/lib/Gitolite/Rc.pm; \
 		sudo ./install -to /usr/lib/gitolite; \
 		sudo ln -sf /usr/lib/gitolite/gitolite /usr/bin/gitolite; \
-		gitolite setup -pk "$(HOME)/.ssh/$(USER_NAME)".pub -m "guild seeded w gitolite-admin template"; \
-		rm -fR ~/repositories ~/.gitolite; \
-		gitolite setup -pk "$(HOME)/.ssh/$(USER_NAME)".pub -m "guild seeded w gitolite-admin template"; \
+		cp "$(HOME)/.ssh/$(USER_NAME).pub" "/tmp/$(USER_NAME).pub"; \
+		sudo -H -u git sh -c 'gitolite setup -pk /tmp/$(USER_NAME).pub -m "guild seeded w gitolite-admin template"'; \
+		sudo rm -fR $(GIT_HOME)/repositories $(GIT_HOME)/.gitolite; \
+		sudo -H -u git sh -c 'gitolite setup -pk /tmp/$(USER_NAME).pub -m "guild seeded w gitolite-admin template"'; \
+		sudo chmod -R g+rwx $(GIT_HOME)/repositories; \
+		sudo chmod -R g+rwx $(GIT_HOME)/.gitolite*; \
+		sudo ln -sf $(GIT_HOME)/repositories $(HOME)/repositories; \
+		sudo ln -sf $(GIT_HOME)/.gitolite $(HOME)/.gitolite; \
+		sudo ln -sf $(GIT_HOME)/.gitolite.rc $(HOME)/.gitolite.rc; \
 	fi; \
 fi
 
 uninstall_gitolite = if [ "$(USE_GITOLITE)" = "true" ]; then \
-	sudo rm -fR $(HOME)/repositories $(HOME)/.gitolite $(HOME)/.gitolite.rc /usr/lib/gitolite /usr/bin/gitolite; \
+	sudo rm -fR $(GIT_HOME)/repositories $(HOME)/repositories $(GIT_HOME)/.gitolite $(HOME)/.gitolite $(HOME)/.gitolite.rc $(GIT_HOME)/.gitolite.rc /usr/lib/gitolite /usr/bin/gitolite; \
 fi
 
 uninstall_github = if [ "$(USE_GITHUB)" = "true" ]; then \
@@ -81,24 +88,31 @@ uninstall_github = if [ "$(USE_GITHUB)" = "true" ]; then \
 fi
 
 clone_ident = if [ "$(USE_GITOLITE)" = "true" ]; then \
-	gitguild clone $(USER_NAME) file://$(HOME)/repositories/$(USER_NAME).git; \
+	gitguild clone $(USER_NAME) file://$(GIT_HOME)/repositories/$(USER_NAME).git; \
 else \
 	gitguild clone $(USER_NAME); \
 fi; \
 cd $(GG_DIR)/$(USER_NAME); \
-gitguild template build "$(GG_DIR)/gitguild/template/clean_gitolite_admin.patch"; \
-gitguild template build "$(GG_DIR)/gitguild/template/add_member_authors.patch"; \
-gitguild template build "$(GG_DIR)/gitguild/template/add_general_project_files.patch"; \
-gitguild template build "$(GG_DIR)/gitguild/template/ledger_basics.patch"; \
-gitguild template build "$(GG_DIR)/gitguild/template/personal_ledger_init.patch"; \
-export LAST_TRANSACTION='init_personal'; \
-gitguild template build "$(GG_DIR)/gitguild/template/tx_post_process.patch"; \
+gitguild template build gitguild/template/clean_gitolite_admin.patch; \
+gitguild template build gitguild/template/add_member_authors.patch; \
+gitguild template build gitguild/template/add_general_project_files.patch; \
+gitguild template build gitguild/template/ledger_basics.patch; \
+gitguild template build gitguild/template/personal_ledger_init.patch; \
+gitguild template build gitguild/template/add_GUILD.patch; \
+export LAST_TRANSACTION=init_personal; \
+gitguild tx finish; \
+cat ledger/equity.*; \
+git add .gitignore; \
 git add -A; \
-git commit -m "initialize identity guild"; \
+git commit -q -m "initialize identity guild"; \
 gitguild push
 
-fork_gitguild = if [ ! -d "$(GG_DIR)/gitguild" ]; then \
-	gitguild clone "gitguild" https://github.com/gitguild/gitguild.git; \
+clone_gitguild = if [ ! -d "$(GG_DIR)/gitguild" ]; then \
+	./gitguild clone "gitguild" git@mirror.gitguild.com:gitguild; \
+fi
+
+fork_gitguild = if [ ! -d "$(GIT_HOME)/repositories/gitguild.git" ]; then \
+	gitguild fork "gitguild" git@mirror.gitguild.com:gitguild; \
 fi
 
 rm_user_dir = if [ "$(USER_NAME)" != "" ]; then \
@@ -112,12 +126,12 @@ install:
 	$(call setup_ssh)
 	$(call setup_gitolite)
 	$(call setup_github)
-	cd $(HOME)/gitguild
-	$(call fork_gitguild)
+	$(call clone_gitguild)
 	sudo ln -sf $(GG_DIR)/gitguild/gitguild $(DESTDIR)/gitguild
 
-installpersonal:
+personal:
 	$(call clone_ident)
+	$(call fork_gitguild)
 
 test:
 	cd "./t"; \

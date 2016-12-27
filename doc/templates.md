@@ -22,7 +22,7 @@ The patch shows one line being added to the AUTHORS file. It could be run in rev
 
 ### Parameters
 
-To transform a strict patch into a more flexible template, add parameters. Gitguild template parameters are surrounded by triple tri-angle brackets. i.e. `<<< param_name >>>`. As far as the developers can tell, this is a previously unused format, which will avoid collisions with any documents under revision control.
+To transform a strict patch into a more flexible template, add parameters. Gitguild template parameters are surrounded by triple angle brackets. i.e. `<<< param_name >>>`. As far as the developers can tell, this is a previously unused format, which will avoid collisions with any documents under revision control.
 
 At runtime, these parameters will be replaced by the appropriate values from the context of the transaction. For instance, `<<< user_name >>>` would be the current user's name when creating a transaction using a patch, but would be the committer's name when checking said transaction.
 

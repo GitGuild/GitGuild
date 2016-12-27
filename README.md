@@ -1,8 +1,8 @@
 # gitguild
 
-Guild governance for a git repository, using PGP identities.
+__WARNING This is still experimental software! Use at your own risk.__
 
-IRC: #gitguild on freenode (see https://freenode.net/kb/answer/chat)
+Governance for a git repository, using PGP identities.
 
  + Issue digital value tokens
  + Create, sign, and enforce contracts
@@ -12,9 +12,9 @@ IRC: #gitguild on freenode (see https://freenode.net/kb/answer/chat)
 
 Just download and run `gitguild`.
 
-Since this version is a bourne shell script, it should be runnable as a standalone program on most systems except bare, newby Windows.
+Since this version is a bourne shell script, it should be runnable as a standalone program on most linux and MacOS systems. More work is necessary to make the script Windows compatible, but there are no barriers.
 
-As a command line suppliment to git, the help menus are comprehensive.
+As a command line supplement to git, the help menus are comprehensive.
 
 ```
 	gitguild           	A helpful blockchain in a script.
@@ -22,32 +22,50 @@ As a command line suppliment to git, the help menus are comprehensive.
 	Usage:
 		gitguild user	Manage your gitguild user.
 		gitguild tx	    build and check transactions.
+		gitguild ledger	Perform gitguild-related ledger actions.
+		gitguild clone	<guild>	(<remote>) Clone a guild from optional remote.
 		gitguild push	git push with extra checks and remotes.
-		gitguild fork	fork	<remote> Fork a guild with one or more remotes.
-		gitguild setup	    Install pre-requisites and configure gitguild.
+		gitguild fork	<remote>	Fork a guild with one or more remotes.
+		gitguild setup-repo	Setup remotes and hooks in current git repo.
 		gitguild template	Create and list tx templates.
 		gitguild help		Show the general help.
 		gitguild version	    Show the program version.
 
 	Options:
 		gitguild <cmd> -h	Show command help details.
-
 ```
 
 ## Install
 
 Installing in the specific location shown below is a more permanent and full featured method, providing transaction templates and a subscription to changes in the core.
 
-If you're only trying it out, but want to run make, set `USE_GITOLITE=false`.
-
 ```
-mkdir -r $HOME/gitguild
-git clone https://github.com/isysd/gitguild-cli $HOME/gitguild/gitguild
-./configure
+mkdir $HOME/gitguild
+git clone git://mirror.gitguild.com:gitguild $HOME/gitguild/gitguild
+cd $HOME/gitguild/gitguild
+./configure # will ask for password for new 'git' user
 make install
 ```
 
-For more details on the ouput of this full install process, read `./doc/file-structure.md`.
+__*System restart will be required at this point!*__
+
+The install process created a new 'git' user and group on your system, and additionally changed the hostname. These require a system reboot before taking affect, and the next step will not work without it.
+
+After your reboot, you can create your personal guild, if you haven't done so on a previous occasion.
+
+```
+make personal
+```
+
+For more details on the output of this full install process, read `./doc/file-structure.md`.
+
+##### Pre-requisites
+
+The following programs are required to be installed on the system prior to running gitguild. Note that git and ledger-cli must have recent versions! Depending on your system, the configure and make commands may help you install these. (Ubuntu only, for now)
+
+ + [git](https://git-scm.com/downloads) 2.0+
+ + [Ledger-cli](http://ledger-cli.org/download.html) 3.0+ (2.x is not good enough!)
+ + [GnuPG](https://gnupg.org/download/index.html)
 
 ### Configure your user
 
@@ -70,15 +88,28 @@ The one you want is probably among these.
 Please enter your git signingkey followed by [ENTER]
 ```
 
-Assuming you satisfy the script's prerequisites, it will no longer ask you these questions.
+Assuming you satisfy the script's prerequisites, it will no longer ask you these questions. It may, however, warn you that you are not in the AUTHORS file. This is expected until you register for a specific guild.
 
 ##### Github Integration
 
-Thanks to [ok.sh](https://github.com/whiteinge/ok.sh), gitguild can also integrate with [github](https://github.com) seamlessly. Just run `make install` with `USE_GITHUB=true` (the default), and add your github credentials to `~/.netrc` as described in [ok.sh setup](https://github.com/whiteinge/ok.sh#setup).
+Thanks to [ok.sh](https://github.com/whiteinge/ok.sh), gitguild can also integrate with [github](https://github.com) seamlessly. Just run `make install` with `USE_GITHUB=true` (the default), and it will add your github credentials to `~/.netrc` as described in [ok.sh setup](https://github.com/whiteinge/ok.sh#setup).
+
+Note that gitguild asks for the following permissions for your token:
+
++ [x] repo (three boxes)
++ [ ] admin:repo_hook
++ [ ] admin:org_hook
++ [ ] user:email
++ [ ] read:public_key
++ [ ] read:gpg_key
+
+The unchecked ones are not currently used, but planned for the future. Unlisted ones will probably never be needed by this program.
+
+If you wish to disable github integration, run `configure` and `make install` with argument `USE_GITHUB=false`.
 
 ## Additional Resources
 
-Guilds keep all documentatation, issues, and other project-relevant information inside the repository. There are a number of detailed documents in the top level of this directory that are a good place to start.
+Guilds keep all documentation, issues, and other project-relevant information inside the repository. There are a number of detailed documents in the top level of this docs directory that are a good place to start.
 
 ### General
 
@@ -90,6 +121,12 @@ Guilds keep all documentatation, issues, and other project-relevant information 
  + docs/file-structure.md
  + docs/templates.md
  + docs/ledger.md
+
+## Help
+
+Make an issue on github, or in the `docs/issues` directory, if you are a member.
+
+Join us on IRC chat channel `#gitguild` on freenode (see https://freenode.net/kb/answer/chat).
 
 ## License
 

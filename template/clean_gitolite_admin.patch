@@ -1,4 +1,3 @@
-HEAD is now at ba7b6fe generalize
 diff -cr -N -x .git -x '*.patch' /old//conf/gitolite.conf /new//conf/gitolite.conf
 *** /old//conf/gitolite.conf	2016-12-23 10:57:00.243364028 -0500
 --- /new//conf/gitolite.conf	2016-12-23 10:56:21.707364718 -0500

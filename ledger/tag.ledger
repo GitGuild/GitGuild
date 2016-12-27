@@ -1,0 +1,45 @@
+tag init_personal
+; patch gitguild/template/clean_gitolite_admin.patch
+; patch gitguild/template/add_member_authors.patch
+; patch gitguild/template/add_general_project_files.patch
+; patch gitguild/template/add_ledger_basics.patch
+; patch gitguild/template/personal_ledger_init.patch
+; patch gitguild/template/add_GUILD.patch
+; min_votes 0
+; endtag init_personal
+
+tag register_member
+; patch gitguild/template/add_member_authors.patch
+; patch gitguild/template/add_member_ledger.patch
+; patch gitguild/template/add_member_gitolite.patch
+; min_votes 0
+; endtag register_member
+
+tag fork_repo
+; patch gitguild/template/fork_repo.patch
+; min_votes 0.5
+; endtag fork_repo
+
+tag register_personal_gitguild
+; patch gitguild/template/add_member_authors.patch
+; patch gitguild/template/register_personal_gitguild_ledger.patch
+; min_votes 0.66
+; endtag register_personal_gitguild
+
+tag contribute
+; patch gitguild/template/contribute.patch
+; min_votes 0.66
+; wild_patch
+; endtag contribute
+
+tag paid_contribution
+; patch gitguild/template/paid_contribution.patch
+; min_votes 0.75
+; wild_patch
+; endtag paid_contribution
+
+tag wild_patch
+    check  value =~ /.*template.*.patch$/
+; min_votes 0.66
+; endtag patch
+

@@ -37,39 +37,34 @@ diff -cr -N -x .git -x '*.patch' /old//ledger/chain.ledger /new//ledger/chain.le
 --- /new//ledger/chain.ledger	2016-12-23 20:15:53.519511733 -0500
 ***************
 *** 0 ****
---- 1,6 ----
+--- 1,7 ----
 + !include commodity.ledger
 + !include account.ledger
 + !include tag.ledger
-+ !include equity.ledger
++ !include equity.parent
 + !include transaction.ledger
 + !include check.ledger
++ !include generated_check.ledger
 diff -cr -N -x .git -x '*.patch' /old//ledger/check.ledger /new//ledger/check.ledger
 *** /old//ledger/check.ledger	1969-12-31 19:00:00.000000000 -0500
 --- /new//ledger/check.ledger	2016-12-23 20:13:47.011513999 -0500
 ***************
 *** 0 ****
---- 1,21 ----
-+ ; TODO lots of assertions and checks go here to ensure proper behavior
-+ ; How can we add loops to make checks more generic?
-+ 
+--- 1,15 ----
 + define GUILD_DEPTH = (-account("<<< guild_name >>>:Depth:<<< guild_name >>>").total)
 + define GUILD_HEIGHT = (account("<<< guild_name >>>:Height:<<< guild_name >>>").total)
 + 
 + ; Each user must have net positive score
-+ define user_vote_check(user_name) = (account(user_name + ":Height").total >= GUILD_DEPTH / 2)
++ define user_vote_check(user_name) = (account(user_name + ":Height").total >= 0 XP)
 + 
 + ; Each branch of this guild must have net positive score
-+ define branch_vote_check(user_name, vote_guild_name, vote_branch) = (account(user_name + ":Height:" + vote_guild_name + ":" + vote_branch).total >= GUILD_DEPTH / 2)
++ define branch_vote_check(user_name, vote_guild_name, vote_branch) = (account(user_name + ":Height:" + vote_guild_name + ":" + vote_branch).total >= 0)
 + 
-+ ; Each issue must have net positive score
-+ define issue_vote_check(user_name, vote_guild_name, vote_branch, vote_parent) = (account(user_name + ":Height:" + vote_guild_name + ":" + vote_branch + ":" + vote_parent).total >= GUILD_DEPTH / 2)
++ ; Each issue must have score higher than given in the tag
++ define issue_vote_check(user_name, vote_guild_name, vote_branch, vote_parent, min_votes) = (account(user_name + ":Height:" + vote_guild_name + ":" + vote_branch + ":" + vote_parent).total >= GUILD_DEPTH * min_votes)
 + 
 + ; user has not spent more XP than allowed on this issue
 + define user_issue_vote_check(user_name, vote_guild_name, vote_branch, vote_parent) = (account(user_name + ":Height").total >= abs(account(user_name + ":Depth:" + vote_guild_name + ":" + vote_branch + ":" + vote_parent).total))
-+ 
-+ ; Guild itself must have positive height
-+ check user_vote_check("<<< guild_name >>>")
 + 
 diff -cr -N -x .git -x '*.patch' /old//ledger/commodity.ledger /new//ledger/commodity.ledger
 *** /old//ledger/commodity.ledger	1969-12-31 19:00:00.000000000 -0500
@@ -85,7 +80,7 @@ diff -cr -N -x .git -x '*.patch' /old//ledger/commodity.ledger /new//ledger/comm
 + commodity XGG
 +    note GitGuild token of value. Transferable and redeemable at bid rate if part of approved Income transaction.
 +    format 1,000.0000 XGG
-+    nomarket
++    ; governor gitguild
 + 
 + commodity DASH
 +    note See dash.org
@@ -101,28 +96,59 @@ diff -cr -N -x .git -x '*.patch' /old//ledger/equity.ledger /new//ledger/equity.
 --- /new//ledger/equity.ledger	2016-12-23 20:14:47.879512909 -0500
 ***************
 *** 0 ****
+--- 1,2 ----
++ # This file should always have an 'equity' summary of all history,
++ # including the transaction in this commit.
+diff -cr -N -x .git -x '*.patch' /old//ledger/equity.parent /new//ledger/equity.parent
+*** /old//ledger/equity.parent	1969-12-31 19:00:00.000000000 -0500
+--- /new//ledger/equity.parent	2016-12-23 20:14:47.879512909 -0500
+***************
+*** 0 ****
 --- 1 ----
-+ # This file should have an 'equity' summary of all history up to the parent commit.
++ # This file should always have an 'equity' summary of all history up to the parent.
 diff -cr -N -x .git -x '*.patch' /old//ledger/tag.ledger /new//ledger/tag.ledger
 *** /old//ledger/tag.ledger	1969-12-31 19:00:00.000000000 -0500
 --- /new//ledger/tag.ledger	2016-12-23 20:15:02.071512655 -0500
 ***************
 *** 0 ****
---- 1,15 ----
+--- 1,38 ----
 + tag init_personal
-+ ; patch template/clean_gitolite_admin.patch
-+ ; patch template/add_member_authors.patch
-+ ; patch template/add_general_project_files.patch
-+ ; patch template/add_ledger_basics.patch
-+ ; patch template/personal_ledger_init.patch
-+ ; patch template/tx_post_process.patch
++ ; patch gitguild/template/clean_gitolite_admin.patch
++ ; patch gitguild/template/add_member_authors.patch
++ ; patch gitguild/template/add_general_project_files.patch
++ ; patch gitguild/template/add_ledger_basics.patch
++ ; patch gitguild/template/personal_ledger_init.patch
++ ; patch gitguild/template/add_GUILD.patch
++ ; min_votes 0
++ ; endtag init_personal
 + 
 + tag register_member
-+ ; gitguild tx archive
-+ ; patch template/add_member_authors.patch
-+ ; patch template/add_member_ledger.patch
-+ ; patch template/add_member_gitolite.patch
-+ ; patch template/tx_post_process.patch
++ ; patch gitguild/template/add_member_authors.patch
++ ; patch gitguild/template/add_member_ledger.patch
++ ; patch gitguild/template/add_member_gitolite.patch
++ ; min_votes 0
++ ; endtag register_member
++ 
++ tag fork_repo
++ ; patch gitguild/template/fork_repo.patch
++ ; min_votes 0.5
++ ; endtag fork_repo
++ 
++ tag register_personal_gitguild
++ ; patch gitguild/template/add_member_authors.patch
++ ; patch gitguild/template/register_personal_gitguild_ledger.patch
++ ; min_votes 0.66
++ ; endtag register_personal_gitguild
++ 
++ tag contribute
++ ; patch gitguild/template/contribute.patch
++ ; min_votes 0.66
++ ; endtag contribute
++ 
++ tag paid_contribution
++ ; patch gitguild/template/paid_contribution.patch
++ ; min_votes 0.75
++ ; endtag paid_contribution
 + 
 diff -cr -N -x .git -x '*.patch' /old//ledger/transaction.ledger /new//ledger/transaction.ledger
 *** /old//ledger/transaction.ledger	1969-12-31 19:00:00.000000000 -0500
@@ -130,4 +156,4 @@ diff -cr -N -x .git -x '*.patch' /old//ledger/transaction.ledger /new//ledger/tr
 ***************
 *** 0 ****
 --- 1 ----
-+ # This file should have any transactions in the current commit.
++ # This file should not have any transactions in the current commit.

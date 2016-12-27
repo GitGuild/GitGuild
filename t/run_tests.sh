@@ -2,7 +2,7 @@ tests=$( find ./ -name "test_*.sh" )
 
 execute_all() {
   for t in $tests; do
-    $( t )
+    ./"$t"
   done
 }
 
@@ -12,7 +12,7 @@ execute_install() {
   read readyono
   echo
   if [ "$( echo "$readyono" | grep '[yY].*' )" != "" ]; then
-    . "./install_unsafe_test.sh"
+    . "./unsafe_install_test.sh"
   fi
 }
 
@@ -23,3 +23,4 @@ case "$1" in
   *)
     execute_all
 esac
+
