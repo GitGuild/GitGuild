@@ -302,7 +302,7 @@ gg_push() {
   branch=$( git branch | grep "\*" | tr -d "* " )
   if [ "$branch" = "$USER_NAME" ]; then
     for remote in $( git remote ); do
-      if [ "$( use_gitolite_push "$remote" )" = "true" ]; then
+      if [ "$( use_gitolite_push "$remote" )" ]; then
         gitolite push "$remote" "$branch"
       else
         git push "$remote" "$branch"
@@ -313,7 +313,7 @@ gg_push() {
     # only push master to your own gitolite and github
     remotes=$( git remote | grep "$USER_NAME" | uniq)
     for remote in $remotes; do
-      if [ "$( use_gitolite_push "$remote" )" = "true" ]; then
+      if [ "$( use_gitolite_push "$remote" )" ]; then
         gitolite push "$remote" master
       else
         git push "$remote" master
