@@ -1,0 +1,34 @@
+#!/bin/sh
+# This sets up your local git configuration.
+# It is a pre-requisite for installation.
+USE_GITHUB=true
+for p in $*; do
+  USE_GH=$(echo "$p" | grep 'USE_GITHUB' | grep -o '\w*$')
+  if [ "$USE_GH" != "" ]; then
+    USE_GITHUB=$USE_GH
+  fi
+done
+
+./gitguild user status
+USER_NAME=$(git config user.name)
+echo $USER_NAME
+if [ "$USE_GITHUB" = "true" ]; then
+  if [ ! -f "$HOME"/.netrc ] || \
+      [ "$(cat "$HOME"/.netrc | grep api.github.com)" = "" ]; then
+    echo "Enter your github api token. Will not display."
+    echo "Create a token at https://github.com/settings/tokens if you need to."
+    stty -echo
+    read token
+    stty echo
+    if [ "$token" = "" ]; then
+      echo "If you do not want github, rerun with USE_GITHUB=false"
+      exit 2
+    fi
+    echo "machine api.github.com" >> "$HOME"/.netrc
+    echo "  login ""$USER_NAME" >> "$HOME"/.netrc
+    echo "  password ""$token" >> "$HOME"/.netrc
+    echo >> "$HOME"/.netrc
+    echo "github configured."
+  fi
+fi
+

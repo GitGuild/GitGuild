@@ -137,6 +137,12 @@ __main() {
     version|--version)
       cat VERSION
       ;;
+    setup-repo)
+      gname=$(guess_template_param guild_name)
+      if [ "$gname" != "" ]; then
+        setup_repo "$gname"
+      fi
+      ;;
     *)
       COMMAND="user"
       cmdl="$( command_usage_line Manage your gitguild user.)\n"
@@ -147,7 +153,9 @@ __main() {
       COMMAND="push"
       cmdl="$cmdl$( command_usage_line git push with extra checks and remotes. )\n"
       COMMAND="fork"
-      cmdl="$cmdl$( subcommand_usage_line fork \<remote\> Fork a guild with one or more remotes. )\n"
+      cmdl="$cmdl$( subcommand_usage_line \<remote\> Fork a guild with one or more remotes. )\n"
+      COMMAND="setup-repo"
+      cmdl="$cmdl$( subcommand_usage_line Setup remotes \(and hooks?\) in current git repo. )\n"
       COMMAND="template"
       cmdl="$cmdl$( command_usage_line Create and list tx templates. )\n"
       echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
@@ -325,45 +333,121 @@ gg_push() {
   fi
 }
 
+fork_help() {
+  cmdl="$( subcommand_usage_line fork \<remote\> Fork a guild. )\n"
+  echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
+}
+
 # $1 the name of the guild to fork
 # $2 remote If none is provided, github is guessed.
 gg_fork() {
-  if [ "$1" = "" ] || [ -d "$GG_DIR/$1" ]; then
-    echo "Cannot fork $1. Try forking something else."
-    echo
-    cmdl="$( subcommand_usage_line fork \<remote\> Fork a guild. )\n"
-    echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
+  if [ "$1" = "" ]; then
+    fork_help
     exit 1
-  elif [ "$2" = "" ]; then # guess github
-    git clone https://github.com:"$1/$1".git "$GG_DIR/$1"
-  else
-    git clone "$2" "$GG_DIR/$1"
   fi
-  if [ -d "$GG_DIR/$1"/.git ]; then
-    cd "$GG_DIR/$USER_NAME"
-    # TODO fork template
+  remote=$2
+  if [ "$remote" = "" ]; then # guess github
+    remote=https://github.com/"$1/$1".git
+    if "$(github_repo_exists $1 $1)" = "false"; then
+      echo "Cannot fork $1. Try forking something else."
+      echo
+      fork_help
+      exit 1
+    fi
   fi
+  # try to fork using ok.sh's github fork
+  if [ "$USE_GITHUB" = "true" ]; then
+    if [ "$( echo "$remote" | grep 'github.com' )" ]; then
+      _=$( ok.sh fork_repo "$1" "$1" ) # ignore, since always returns repo data
+    else
+      _=$( ok.sh create_repo "$USER_NAME" "$1" ) # ignore, since always returns repo data
+    fi
+  fi
+  if [ "$USE_GITOLITE" = "true" ]; then
+    # clone locally if necessary
+    if [ "$( gitolite list-phy-repos | grep "$1" )" = "" ]; then
+      git clone --bare "$remote" "$HOME/repositories/$1.git"
+      gitolite setup
+    fi
+    # add to gitolite.conf
+    echo "$(cat $GG_DIR/$USER_NAME/conf/gitolite.conf | grep 'repo $1')"
+    if [ "$(cat $GG_DIR/$USER_NAME/conf/gitolite.conf | grep 'repo $1')" = "" ]; then
+      cd "$GG_DIR/$USER_NAME"
+      git checkout $USER_NAME
+      echo "repo $1" >> conf/gitolite.conf
+      git add conf/gitolite.conf
+      git commit -m "forked $1"
+      gitguild push
+    fi
+  fi
+  # setup remotes
+  if [ ! -d "$GG_DIR/$1" ]; then
+    git clone $remote "$GG_DIR/$1"
+  fi
+  setup_repo $1
+  # register?
 }
 
 #--------------Checks, setup, and installation helpers---------------
 
+# $1 is the github user to search
+github_list_user_repos() {
+  ok.sh list_repos gitguild | grep clone_url | tr -d "\"," | grep -o '[^ ]*$'
+}
+
+# $1 is the github user
+# $2 is the repo name
+github_repo_exists() {
+  rf=$( ok.sh list_repos gitguild | grep 'github.com/"$1/$2"' )
+  if [ "$rf" = "" ]; then
+    echo "false"
+  else
+    echo "true"
+  fi
+}
+
 # $1 is the name of the guild
 setup_repo() {
   cd "$GG_DIR/$1"
-  ghr=$(git remote -v) | grep 'github.com/$1' | grep -o "$.* "
-  echo "github remote $ghr"
-  if [ "$ghr" != "" ]; then
-    grep -rl "$ghr" "$GG_DIR/$1/.git" | xargs sed -i s,"$ghr",github,g
-  elif [ "$USE_GITHUB" = "true" ]; then
+  # sense official github remote
+  ghr=$(git remote -v | grep "github.com/$1/$1" | grep -o "^\w*" | uniq)
+  if [ "$ghr" != "" ] && [ "$ghr" != "github" ]; then
+    grep -rl "$ghr" "$GG_DIR/$1/.git" | xargs sed -i "s,$ghr,github,g"
+  elif [ "$ghr" = "" ] && [ "$USE_GITHUB" = "true" ] && [ "$(github_repo_exists $1 $1)" = "true" ]; then
     git remote add github "https://github.com/$1/$1.git"
   fi
-  if [ "$(git remote -v) | grep origin" != "" ]; then
-    grep -rl "origin" "$GG_DIR/$1/.git" | xargs sed -i s,origin,"$1",g
+  # sense personal github remote
+  if [ "$1" != "$USER_NAME" ]; then
+    pghr=$(git remote -v | grep "github.com/$USER_NAME/$1" | grep -o "^\w*" | uniq)
+    if [ "$USE_GITHUB" = "true" ]; then
+      if [ "$pghr" != "" ] && [ "$pghr" != "$USER_NAME"_gh ]; then
+        grep -rl "$pghr" "$GG_DIR/$1/.git" | xargs sed -i "s,$pghr,$USER_NAME_gh,g"
+      elif [ "$ghr" = "" ] && [ "$USE_GITHUB" = "true" ] && [ "$(github_repo_exists $USER_NAME $1)" = "true" ]; then
+        git remote add "$USER_NAME"_gh "https://github.com/$USER_NAME/$1.git"
+      fi
+    fi
   fi
-  if [ "$USE_GITOLITE" != "" ] && [ "$(git remote -v) | grep file://" = "" ]; then
-    git remote add "$USER_NAME" "file://$HOME/repositories/$1.git"
-    # TODO fork in gitolite-admin
+  # sense local gitolite remote
+  if [ "$USE_GITOLITE" = "true" ]; then
+    lgor=$(git remote -v | grep 'file://.*$1' | grep -o "^\w*" | uniq)
+    if [ "$lgor" != "" ] && [ "$lgor" != "$USER_NAME" ]; then
+      grep -rl "$lgor" "$GG_DIR/$1/.git" | xargs sed -i "s,$lgor,$USER_NAME,g"
+    elif [ "$lgor" = "" ] && [ "$( gitolite list-phy-repos | grep "$1" )" = "" ]; then
+      git remote add "$USER_NAME" "file://$HOME/repositories/$1.git"
+    fi
   fi
+  # sense other gitolite remotes
+  ogor="$(git remote -v | grep fetch | grep 'git://.*:$1')"
+  for gor in $ogor; do
+    url=$( echo "$ogor" | grep -o '/.*:' | tr -d "/:" )
+    echo $url
+    ginfo=$( ssh "$url" info "$1" )
+    gname=$( echo "$ginfo" | grep '@[^ ]*' | tr -d "@" )
+    lname=$( echo "$ogor" | grep -o "^\w*" )
+    if [ "$lname" != "$gname" ] && [ "$( echo "$ginfo" | grep -v 'this is' | grep "$1" )" ]; then
+      grep -rl "$lname" "$GG_DIR/$1/.git" | xargs sed -i "s,$lname,$gname,g"
+    fi
+  done
   if [ "$( git branch | grep "$USER_NAME" )" = "" ]; then
     git checkout -b "$USER_NAME"
   fi
@@ -574,6 +658,9 @@ guess_template_param() {
         git log -n 1 "$2"~.. --pretty="%GK"
       fi
     ;;
+    user_height)
+      ledger -f ledger/chain.ledger bal "$USER_NAME":Height | head -n 1 | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
+    ;;
     date)
       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
         date -u +%F
@@ -590,7 +677,7 @@ guess_template_param() {
     ;;
     vote_parent|parent)
       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
-        git log HEAD --pretty="%H"
+        git log -n 1 HEAD --pretty="%H"
       else
         git log -n 1 "$2"~~.. --pretty="%H"
       fi
@@ -616,7 +703,8 @@ guess_template_param() {
     ;;
     height)
       if [ -d ledger ]; then
-        ledger -f ledger/chain.ledger bal "$USER_NAME":Height | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
+        GUILD_NAME=guess_template_param guild_name
+        ledger -f ledger/chain.ledger bal "$GUILD_NAME":Height | head -n 1 | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
       else
          echo 1
       fi
@@ -701,7 +789,7 @@ create_patch() {
     echo "#"
     echo
   fi
-  diff -cr -N "$INPATH" "$OUTPATH" -x .git -x ./template/*.patch | sed s,"$INPATH",/old/,g | sed s,"$OUTPATH",/new/,g
+  diff -cr -N "$INPATH" "$OUTPATH" -x .git -x ./template/*.patch | sed "s,$INPATH,/old/,g" | sed "s,$OUTPATH,/new/,g"
 }
 
 # $1 remote name to check

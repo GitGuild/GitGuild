@@ -1,0 +1,12 @@
+diff -cr -N -x .git -x './template/*.patch' /old//ledger/transaction.ledger /new//ledger/transaction.ledger
+*** /old//ledger/transaction.ledger	2016-12-27 17:58:48.328360708 -0500
+--- /new//ledger/transaction.ledger	2016-12-27 17:57:37.616361975 -0500
+***************
+*** 1 ****
+--- 1,6 ----
++ <<< date >>> * GitGuild Personal Registration
++     <<< user_name >>>:Depth:<<< user_name >>>:<<< user_name >>>:<<< parent >>>    -<<< user_height >>> XP
++     <<< user_name >>>:Height:<<< user_name >>>:<<< user_name >>>:<<< parent >>>  <<< user_height >>> XP
++     <<< user_name >>>:Payable:<<< user_name >>>:<<< user_name >>>:<<< parent >>>     -1 XGG
++     gitguild:Receivable:<<< user_name >>>:<<< user_name >>>:<<< parent >>>    1 XGG
+  

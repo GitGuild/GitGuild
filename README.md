@@ -41,8 +41,9 @@ Installing in the specific location shown below is a more permanent and full fea
 If you're only trying it out, but want to run make, set `USE_GITOLITE=false`.
 
 ```
-mkdir -r $HOME/gitguild
+mkdir $HOME/gitguild
 git clone https://github.com/isysd/gitguild-cli $HOME/gitguild/gitguild
+cd $HOME/gitguild/gitguild
 ./configure
 make install
 ```
@@ -70,7 +71,7 @@ The one you want is probably among these.
 Please enter your git signingkey followed by [ENTER]
 ```
 
-Assuming you satisfy the script's prerequisites, it will no longer ask you these questions.
+Assuming you satisfy the script's prerequisites, it will no longer ask you these questions. It may, however, warn you that you are not in the AUTHORS file. This is expected until you register for a specific guild.
 
 ##### Github Integration
 

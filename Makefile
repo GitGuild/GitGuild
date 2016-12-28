@@ -38,10 +38,10 @@ setup_ssh = if [ -e "$(HOME)/.ssh/$(USER_NAME).pub" ]; then \
 elif [ -f "$(HOME)/.ssh/id_rsa.pub" ]; then \
 	echo "found default id_rsa.pub ssh key to use, making a symbolic link with \
 username"; \
-	ln -sf "$(HOME)/.ssh/id_rsa" "$(HOME)/.ssh/$(USER_NAME)"; \
-	ln -sf "$(HOME)/.ssh/id_rsa.pub" "$(HOME)/.ssh/$(USER_NAME).pub"; \
+	ln -sf $(HOME)/.ssh/id_rsa $(HOME)/.ssh/$(USER_NAME); \
+	ln -sf $(HOME)/.ssh/id_rsa.pub $(HOME)/.ssh/$(USER_NAME).pub; \
 else \
-	ssh-keygen -t rsa -b 4096 -C "$USER_EMAIL -f $(HOME)/.ssh/$(USER_NAME)"; \
+	ssh-keygen -t rsa -b 4096 -C $(USER_EMAIL) -f $(HOME)/.ssh/$(USER_NAME); \
 fi
 
 setup_github = if [ "$(USE_GITHUB)" = "true" ] && [ ! -d $(GG_DIR)/ok.sh ]; then \
