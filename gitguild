@@ -311,7 +311,8 @@ gg_push() {
     git checkout master
     git merge "$USER_NAME"
     # only push master to your own gitolite and github
-    for remote in $( git remote | grep "($USER_NAME|github)" ); do
+    remotes=$( git remote | grep "$USER_NAME" | uniq)
+    for remote in $remotes; do
       if [ $( use_gitolite_push "$remote" ) ]; then
         gitolite push "$remote" master
       else
