@@ -2,8 +2,6 @@
 
 Guild governance for a git repository, using PGP identities.
 
-IRC: #gitguild on freenode (see https://freenode.net/kb/answer/chat)
-
  + Issue digital value tokens
  + Create, sign, and enforce contracts
  + Participate in projects in a democratic, decentralized manner
@@ -50,6 +48,14 @@ make install
 
 For more details on the ouput of this full install process, read `./doc/file-structure.md`.
 
+##### Pre-requisites
+
+The following programs are required to be installed on the system prior to running gitguild. Note that git and ledger-cli must have recent versions! Depending on your system, the configure and make commands may help you install these. (Ubuntu only, for now)
+
+ + [git](https://git-scm.com/downloads) 2.0+
+ + [Ledger-cli](http://ledger-cli.org/download.html) 3.0+ (2.x is not good enough!)
+ + [GnuPG](https://gnupg.org/download/index.html)
+
 ### Configure your user
 
 This should happen during the `./configure` step of the above setup phase, or the first time gitguild is run. Gitguild has high expectations for the local git configuration, and may ask for some settings to be filled in.
@@ -75,11 +81,22 @@ Assuming you satisfy the script's prerequisites, it will no longer ask you these
 
 ##### Github Integration
 
-Thanks to [ok.sh](https://github.com/whiteinge/ok.sh), gitguild can also integrate with [github](https://github.com) seamlessly. Just run `make install` with `USE_GITHUB=true` (the default), and add your github credentials to `~/.netrc` as described in [ok.sh setup](https://github.com/whiteinge/ok.sh#setup).
+Thanks to [ok.sh](https://github.com/whiteinge/ok.sh), gitguild can also integrate with [github](https://github.com) seamlessly. Just run `make install` with `USE_GITHUB=true` (the default), and it will add your github credentials to `~/.netrc` as described in [ok.sh setup](https://github.com/whiteinge/ok.sh#setup).
+
+Note that gitguild asks for the following permissions for your token:
+
++ [x] repo (three boxes)
++ [ ] admin:repo_hook
++ [ ] admin:org_hook
++ [ ] user:email
++ [ ] read:public_key
++ [ ] read:gpg_key
+
+The unchecked ones are not currently used, but planned for the future. Unlisted ones will probably never be needed by this program.
 
 ## Additional Resources
 
-Guilds keep all documentatation, issues, and other project-relevant information inside the repository. There are a number of detailed documents in the top level of this directory that are a good place to start.
+Guilds keep all documentatation, issues, and other project-relevant information inside the repository. There are a number of detailed documents in the top level of this docs directory that are a good place to start.
 
 ### General
 
@@ -91,6 +108,12 @@ Guilds keep all documentatation, issues, and other project-relevant information 
  + docs/file-structure.md
  + docs/templates.md
  + docs/ledger.md
+
+## Help
+
+Make an issue on github, or in the `docs/issues` directory, if you are a member.
+
+Join us on IRC chat channel `#gitguild` on freenode (see https://freenode.net/kb/answer/chat).
 
 ## License
 

@@ -95,7 +95,7 @@ __main() {
   case $1 in
     user)
       shift 1
-      handle_user_cmd $@
+      handle_user_cmd "$@"
       ;;
     tx)
       shift 1
@@ -103,11 +103,11 @@ __main() {
       if [ ! $USER_IS_CONFIGURED ]; then
         exit 1
       fi
-      handle_tx_cmd $@
+      handle_tx_cmd "$@"
       ;;
     template)
       shift 1
-      handle_tpl_cmd $@
+      handle_tpl_cmd "$@"
       ;;
     push)
       shift 1
@@ -115,7 +115,7 @@ __main() {
       if [ ! $USER_IS_CONFIGURED ]; then
         exit 1
       fi
-      gg_push $@
+      gg_push "$@"
       ;;
     clone)
       shift 1
@@ -124,7 +124,7 @@ __main() {
         exit 1
       fi
       echo "$@"
-      clone_guild $@
+      clone_guild "$@"
       ;;
     fork)
       shift 1
@@ -132,7 +132,7 @@ __main() {
       if [ ! $USER_IS_CONFIGURED ]; then
         exit 1
       fi
-      gg_fork $@
+      gg_fork "$@"
       ;;
     version|--version)
       cat VERSION
@@ -302,7 +302,7 @@ gg_push() {
   branch=$( git branch | grep "\*" | tr -d "* " )
   if [ "$branch" = "$USER_NAME" ]; then
     for remote in $( git remote ); do
-      if [ $( use_gitolite_push "$remote" ) ]; then
+      if [ "$( use_gitolite_push "$remote" )" = "true" ]; then
         gitolite push "$remote" "$branch"
       else
         git push "$remote" "$branch"
@@ -313,7 +313,7 @@ gg_push() {
     # only push master to your own gitolite and github
     remotes=$( git remote | grep "$USER_NAME" | uniq)
     for remote in $remotes; do
-      if [ $( use_gitolite_push "$remote" ) ]; then
+      if [ "$( use_gitolite_push "$remote" )" = "true" ]; then
         gitolite push "$remote" master
       else
         git push "$remote" master
@@ -349,7 +349,7 @@ gg_fork() {
   remote=$2
   if [ "$remote" = "" ]; then # guess github
     remote=https://github.com/"$1/$1".git
-    if "$(github_repo_exists $1 $1)" = "false"; then
+    if "$(github_repo_exists "$1" "$1")" = "false"; then
       echo "Cannot fork $1. Try forking something else."
       echo
       fork_help
@@ -358,7 +358,7 @@ gg_fork() {
   fi
   # try to fork using ok.sh's github fork
   if [ "$USE_GITHUB" = "true" ]; then
-    if [ "$( echo "$remote" | grep 'github.com' )" ]; then
+    if [ "$( echo "$remote" | grep github.com )" != "" ]; then
       _=$( ok.sh fork_repo "$1" "$1" ) # ignore, since always returns repo data
     else
       _=$( ok.sh create_repo "$USER_NAME" "$1" ) # ignore, since always returns repo data
@@ -371,10 +371,9 @@ gg_fork() {
       gitolite setup
     fi
     # add to gitolite.conf
-    echo "$(cat $GG_DIR/$USER_NAME/conf/gitolite.conf | grep 'repo $1')"
-    if [ "$(cat $GG_DIR/$USER_NAME/conf/gitolite.conf | grep 'repo $1')" = "" ]; then
+    if [ "$( grep repo "$1" "$GG_DIR"/"$USER_NAME"/conf/gitolite.conf )" = "" ]; then
       cd "$GG_DIR/$USER_NAME"
-      git checkout $USER_NAME
+      git checkout "$USER_NAME"
       echo "repo $1" >> conf/gitolite.conf
       git add conf/gitolite.conf
       git commit -m "forked $1"
@@ -383,9 +382,9 @@ gg_fork() {
   fi
   # setup remotes
   if [ ! -d "$GG_DIR/$1" ]; then
-    git clone $remote "$GG_DIR/$1"
+    git clone "$remote" "$GG_DIR/$1"
   fi
-  setup_repo $1
+  setup_repo "$1"
   # register?
 }
 
@@ -399,7 +398,7 @@ github_list_user_repos() {
 # $1 is the github user
 # $2 is the repo name
 github_repo_exists() {
-  rf=$( ok.sh list_repos gitguild | grep 'github.com/"$1/$2"' )
+  rf=$( ok.sh list_repos gitguild | grep github.com/"$1"/"$2" )
   if [ "$rf" = "" ]; then
     echo "false"
   else
@@ -414,8 +413,8 @@ setup_repo() {
   ghr=$(git remote -v | grep "github.com/$1/$1" | grep -o "^\w*" | uniq)
   if [ "$ghr" != "" ] && [ "$ghr" != "github" ]; then
     grep -rl "$ghr" "$GG_DIR/$1/.git" | xargs sed -i "s,$ghr,github,g"
-  elif [ "$ghr" = "" ] && [ "$USE_GITHUB" = "true" ] && [ "$(github_repo_exists $1 $1)" = "true" ]; then
-    git remote add github "https://github.com/$1/$1.git"
+  elif [ "$ghr" = "" ] && [ "$USE_GITHUB" = "true" ] && [ "$(github_repo_exists "$1" "$1")" = "true" ]; then
+    git remote add github https://github.com/"$1"/"$1".git
   fi
   # sense personal github remote
   if [ "$1" != "$USER_NAME" ]; then
@@ -423,14 +422,14 @@ setup_repo() {
     if [ "$USE_GITHUB" = "true" ]; then
       if [ "$pghr" != "" ] && [ "$pghr" != "$USER_NAME"_gh ]; then
         grep -rl "$pghr" "$GG_DIR/$1/.git" | xargs sed -i "s,$pghr,$USER_NAME_gh,g"
-      elif [ "$ghr" = "" ] && [ "$USE_GITHUB" = "true" ] && [ "$(github_repo_exists $USER_NAME $1)" = "true" ]; then
-        git remote add "$USER_NAME"_gh "https://github.com/$USER_NAME/$1.git"
+      elif [ "$ghr" = "" ] && [ "$USE_GITHUB" = "true" ] && [ "$(github_repo_exists "$USER_NAME" "$1")" = "true" ]; then
+        git remote add "$USER_NAME"_gh https://github.com/"$USER_NAME"/"$1".git
       fi
     fi
   fi
   # sense local gitolite remote
   if [ "$USE_GITOLITE" = "true" ]; then
-    lgor=$(git remote -v | grep 'file://.*$1' | grep -o "^\w*" | uniq)
+    lgor=$(git remote -v | grep "file://.*$1" | grep -o "^\w*" | uniq)
     if [ "$lgor" != "" ] && [ "$lgor" != "$USER_NAME" ]; then
       grep -rl "$lgor" "$GG_DIR/$1/.git" | xargs sed -i "s,$lgor,$USER_NAME,g"
     elif [ "$lgor" = "" ] && [ "$( gitolite list-phy-repos | grep "$1" )" = "" ]; then
@@ -438,20 +437,26 @@ setup_repo() {
     fi
   fi
   # sense other gitolite remotes
-  ogor="$(git remote -v | grep fetch | grep 'git://.*:$1')"
+  ogor=$(git remote -v | grep fetch | grep "git://.*:$1")
   for gor in $ogor; do
-    url=$( echo "$ogor" | grep -o '/.*:' | tr -d "/:" )
-    echo $url
+    url=$( echo "$gor" | grep -o '/.*:' | tr -d "/:" )
+    # shellcheck disable=SC2029
     ginfo=$( ssh "$url" info "$1" )
     gname=$( echo "$ginfo" | grep '@[^ ]*' | tr -d "@" )
-    lname=$( echo "$ogor" | grep -o "^\w*" )
-    if [ "$lname" != "$gname" ] && [ "$( echo "$ginfo" | grep -v 'this is' | grep "$1" )" ]; then
+    lname=$( echo "$gor" | grep -o "^\w*" )
+    if [ "$lname" != "$gname" ] && [ "$( echo "$ginfo" | grep -v 'this is' | grep "$1" )" != "" ]; then
       grep -rl "$lname" "$GG_DIR/$1/.git" | xargs sed -i "s,$lname,$gname,g"
     fi
   done
   if [ "$( git branch | grep "$USER_NAME" )" = "" ]; then
     git checkout -b "$USER_NAME"
   fi
+  # add hooks
+  for hook in ./h/*; do
+    if [ "$(echo "$hook" | grep pre-commit)" = "" ]; then
+      cp h/"$hook" .git/hooks/pre-commit
+    fi
+  done
 }
 
 #-------------------user prep and command section--------------------------
