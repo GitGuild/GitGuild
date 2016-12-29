@@ -363,7 +363,7 @@ gg_fork() {
     if [ "$( echo "$remote" | grep github.com )" != "" ]; then
       _=$( ok.sh fork_repo "$1" "$1" ) # ignore, since always returns repo data
     else
-      _=$( ok.sh create_repo "$USER_NAME" "$1" ) # ignore, since always returns repo data
+      _=$( ok.sh create_repo "$1" 2>&1 )
     fi
   fi
   if [ "$USE_GITOLITE" = "true" ]; then
@@ -373,7 +373,7 @@ gg_fork() {
       gitolite setup
     fi
     # add to gitolite.conf
-    if [ "$( grep repo "$1" "$GG_DIR"/"$USER_NAME"/conf/gitolite.conf )" = "" ]; then
+    if [ "$( grep \"repo "$1"\" "$GG_DIR"/"$USER_NAME"/conf/gitolite.conf )" = "" ]; then
       cd "$GG_DIR/$USER_NAME"
       git checkout "$USER_NAME"
       echo "repo $1" >> conf/gitolite.conf
@@ -382,10 +382,10 @@ gg_fork() {
       gitguild push
     fi
   fi
-  # setup remotes
   if [ ! -d "$GG_DIR/$1" ]; then
     git clone "$remote" "$GG_DIR/$1"
   fi
+  # setup remotes
   setup_repo "$1"
   # register?
 }
@@ -439,13 +439,12 @@ setup_repo() {
     fi
   fi
   # sense other gitolite remotes
-  ogor=$(git remote -v | grep fetch | grep "git://.*:$1")
-  for gor in $ogor; do
-    url=$( echo "$gor" | grep -o '/.*:' | tr -d "/:" )
+  ogor=$(git remote -v | grep fetch | grep "git@.*:$1" | grep -o "^\w*" )
+  for lname in $ogor; do
+    url=$(git remote get-url "$lname" | grep -o "^[^:]*")
     # shellcheck disable=SC2029
     ginfo=$( ssh "$url" info "$1" )
-    gname=$( echo "$ginfo" | grep '@[^ ]*' | tr -d "@" )
-    lname=$( echo "$gor" | grep -o "^\w*" )
+    gname=$( echo "$ginfo" | grep -o '@[^ ]*' | tr -d "@" )
     if [ "$lname" != "$gname" ] && [ "$( echo "$ginfo" | grep -v 'this is' | grep "$1" )" != "" ]; then
       grep -rl "$lname" "$GG_DIR/$1/.git" | xargs sed -i "s,$lname,$gname,g"
     fi
@@ -454,11 +453,13 @@ setup_repo() {
     git checkout -b "$USER_NAME"
   fi
   # add hooks
-  for hook in ./h/*; do
-    if [ "$(echo "$hook" | grep pre-commit)" = "" ]; then
-      cp h/"$hook" .git/hooks/pre-commit
-    fi
-  done
+  if [ -d ./h ]; then
+    for hook in ./h/*; do
+      if [ "$(echo "$hook" | grep pre-commit)" = "" ]; then
+        cp "h/$hook" .git/hooks/pre-commit
+      fi
+    done
+  fi
 }
 
 #-------------------user prep and command section--------------------------

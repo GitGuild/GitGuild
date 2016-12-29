@@ -71,9 +71,10 @@ setup_gitolite = [ "$(USE_GITOLITE)" = "true" ]; then \
 		sudo rm -fR $(GIT_HOME)/repositories $(GIT_HOME)/.gitolite; \
 		sudo -H -u git sh -c 'gitolite setup -pk /tmp/$(USER_NAME).pub -m "guild seeded w gitolite-admin template"'; \
 		sudo chmod -R g+rwx $(GIT_HOME)/repositories; \
-		sudo chmod -R g+rwx $(GIT_HOME)/.gitolite; \
+		sudo chmod -R g+rwx $(GIT_HOME)/.gitolite*; \
 		sudo ln -sf $(GIT_HOME)/repositories $(HOME)/repositories; \
 		sudo ln -sf $(GIT_HOME)/.gitolite $(HOME)/.gitolite; \
+		sudo ln -sf $(GIT_HOME)/.gitolite.rc $(HOME)/.gitolite.rc; \
 	fi; \
 fi
 
@@ -103,8 +104,12 @@ git add -A; \
 git commit -m "initialize identity guild"; \
 gitguild push
 
-fork_gitguild = if [ ! -d "$(GG_DIR)/gitguild" ]; then \
-	gitguild clone "gitguild" git://mirror.gitguild.com:gitguild; \
+clone_gitguild = if [ ! -d "$(GG_DIR)/gitguild" ]; then \
+	./gitguild clone "gitguild" git@mirror.gitguild.com:gitguild; \
+fi
+
+fork_gitguild = if [ ! -d "$(GIT_HOME)/repositories/gitguild.git" ]; then \
+	gitguild fork "gitguild" git@mirror.gitguild.com:gitguild; \
 fi
 
 rm_user_dir = if [ "$(USER_NAME)" != "" ]; then \
@@ -118,12 +123,12 @@ install:
 	$(call setup_ssh)
 	$(call setup_gitolite)
 	$(call setup_github)
-	cd $(HOME)/gitguild
-	$(call fork_gitguild)
+	$(call clone_gitguild)
 	sudo ln -sf $(GG_DIR)/gitguild/gitguild $(DESTDIR)/gitguild
 
 installpersonal:
 	$(call clone_ident)
+	$(call fork_gitguild)
 
 test:
 	cd "./t"; \
