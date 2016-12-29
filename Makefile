@@ -93,13 +93,15 @@ else \
 	gitguild clone $(USER_NAME); \
 fi; \
 cd $(GG_DIR)/$(USER_NAME); \
-gitguild template build "$(GG_DIR)/gitguild/template/clean_gitolite_admin.patch"; \
-gitguild template build "$(GG_DIR)/gitguild/template/add_member_authors.patch"; \
-gitguild template build "$(GG_DIR)/gitguild/template/add_general_project_files.patch"; \
-gitguild template build "$(GG_DIR)/gitguild/template/ledger_basics.patch"; \
-gitguild template build "$(GG_DIR)/gitguild/template/personal_ledger_init.patch"; \
-export LAST_TRANSACTION='init_personal'; \
-gitguild template build "$(GG_DIR)/gitguild/template/tx_post_process.patch"; \
+cp -fR $(GG_DIR)/gitguild/template .; \
+gitguild template build template/clean_gitolite_admin.patch; \
+gitguild template build template/add_member_authors.patch; \
+gitguild template build template/add_general_project_files.patch; \
+gitguild template build template/ledger_basics.patch; \
+gitguild template build template/personal_ledger_init.patch; \
+gitguild template build template/add_GUILD.patch; \
+export LAST_TRANSACTION=init_personal; \
+gitguild tx finish; \
 git add -A; \
 git commit -m "initialize identity guild"; \
 gitguild push

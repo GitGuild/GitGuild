@@ -1,20 +1,7 @@
 #!/bin/sh
-#
 
-shellcheck gitguild
-if [ $? != 0 ]; then
-  exit 1
-fi
-shellcheck configure
-if [ $? != 0 ]; then
-  exit 1
-fi
-shellcheck t/*.sh
-if [ $? != 0 ]; then
-  exit 1
-fi
-make test
-if [ $? != 0 ]; then
-  exit 1
-fi
+shellcheck gitguild || exit 1
+shellcheck configure || exit 1
+shellcheck t/*.sh || exit 1
+ledger -f ledger/chain.ledger bal || exit 1
 

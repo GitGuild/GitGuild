@@ -1,0 +1,17 @@
+diff -cr -N -x .git -x '*.patch' /old//conf/gitolite.conf /new//conf/gitolite.conf
+*** /old//conf/gitolite.conf	2016-12-23 11:00:00.000000000 -0500
+--- /new//conf/gitolite.conf	2016-12-23 11:00:15.859360525 -0500
+***************
+*** 0 ****
+--- 1 ----
++ repo <<< other_guild >>>
+diff -cr -N -x .git -x '*.patch' /old//conf/gitolite.conf /new//conf/gitolite.conf
+*** /old//ledger/transaction.ledger	2016-12-23 11:00:00.000000000 -0500
+--- /new//ledger/transaction.ledger	2016-12-23 11:00:15.859360525 -0500
+***************
+*** 0 ****
+--- 1,4 ----
++ <<< date >>> * Fork <<< other_guild >>>
++     <<< guild_name >>>:Height:<<< guild_name >>>:<<< user_name >>>:<<< parent >>>      <<< user_height >>> XP
++     <<< guild_name >>>:Depth:<<< guild_name >>>:<<< user_name >>>:<<< parent >>>       -<<< user_height >>> XP
++ 

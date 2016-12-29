@@ -7,26 +7,25 @@ tag init_personal
 ; patch template/tx_post_process.patch
 
 tag register_member
-; gitguild tx archive
 ; patch template/add_member_authors.patch
 ; patch template/add_member_ledger.patch
 ; patch template/add_member_gitolite.patch
 ; patch template/tx_post_process.patch
 
+tag fork_repo
+; patch template/fork_repo.patch
+
 tag register_personal_gitguild
-; gitguild tx archive
 ; patch template/add_member_authors.patch
 ; patch template/register_personal_gitguild_ledger.patch
 ; patch template/tx_post_process.patch
 
 tag contribute
-; gitguild tx archive
 ; review 'doc.*\|gitguild$\|h/.*\|README.md\|t/.*\|CREDITS*\|CHANGELOG.md\|Makefile\|VERSION\|src*'
 ; patch template/contribute.patch
 ; patch template/tx_post_process.patch
 
 tag core_contribute
-; gitguild tx archive
 ; review '*'
 ; patch template/core_contribute.patch
 ; patch template/tx_post_process.patch

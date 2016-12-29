@@ -41,7 +41,7 @@ diff -cr -N -x .git -x '*.patch' /old//ledger/chain.ledger /new//ledger/chain.le
 + !include commodity.ledger
 + !include account.ledger
 + !include tag.ledger
-+ !include equity.ledger
++ !include equity.parent
 + !include transaction.ledger
 + !include check.ledger
 diff -cr -N -x .git -x '*.patch' /old//ledger/check.ledger /new//ledger/check.ledger
@@ -101,27 +101,51 @@ diff -cr -N -x .git -x '*.patch' /old//ledger/equity.ledger /new//ledger/equity.
 --- /new//ledger/equity.ledger	2016-12-23 20:14:47.879512909 -0500
 ***************
 *** 0 ****
+--- 1,2 ----
++ # This file should always have an 'equity' summary of all history,
++ # including the transaction in this commit.
+diff -cr -N -x .git -x '*.patch' /old//ledger/equity.parent /new//ledger/equity.parent
+*** /old//ledger/equity.parent	1969-12-31 19:00:00.000000000 -0500
+--- /new//ledger/equity.parent	2016-12-23 20:14:47.879512909 -0500
+***************
+*** 0 ****
 --- 1 ----
-+ # This file should have an 'equity' summary of all history up to the parent commit.
++ # This file should always have an 'equity' summary of all history up to the parent.
 diff -cr -N -x .git -x '*.patch' /old//ledger/tag.ledger /new//ledger/tag.ledger
 *** /old//ledger/tag.ledger	1969-12-31 19:00:00.000000000 -0500
 --- /new//ledger/tag.ledger	2016-12-23 20:15:02.071512655 -0500
 ***************
 *** 0 ****
---- 1,15 ----
+--- 1,31 ----
 + tag init_personal
 + ; patch template/clean_gitolite_admin.patch
 + ; patch template/add_member_authors.patch
 + ; patch template/add_general_project_files.patch
 + ; patch template/add_ledger_basics.patch
 + ; patch template/personal_ledger_init.patch
-+ ; patch template/tx_post_process.patch
++ ; patch template/add_GUILD.patch
 + 
 + tag register_member
-+ ; gitguild tx archive
 + ; patch template/add_member_authors.patch
 + ; patch template/add_member_ledger.patch
 + ; patch template/add_member_gitolite.patch
++ 
++ tag fork_repo
++ ; patch template/fork_repo.patch
++ 
++ tag register_personal_gitguild
++ ; patch template/add_member_authors.patch
++ ; patch template/register_personal_gitguild_ledger.patch
++ ; patch template/tx_post_process.patch
++ 
++ tag contribute
++ ; review 'doc.*\|gitguild$\|h/.*\|README.md\|t/.*\|CREDITS*\|CHANGELOG.md\|Makefile\|VERSION\|src*'
++ ; patch template/contribute.patch
++ ; patch template/tx_post_process.patch
++ 
++ tag core_contribute
++ ; review '*'
++ ; patch template/core_contribute.patch
 + ; patch template/tx_post_process.patch
 + 
 diff -cr -N -x .git -x '*.patch' /old//ledger/transaction.ledger /new//ledger/transaction.ledger

@@ -1,13 +1,1 @@
 
-2016-12-27 * GitGuild Initialization
-    ; pay founder Income for contributing this
-    gitguild:Expenses:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6       1000 XGG
-    gitguild:Liabilities:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6    -1000 XGG
-    isysd:Income:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6        1000 XGG
-    isysd:Assets:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6        -1000 XGG
-    ; Create XP by giving to the founder
-    isysd:Height:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6    1000 XP
-    gitguild:Depth:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6    -1000 XP
-    ; Founder votes using new XP
-    gitguild:Height:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6    1000 XP
-    isysd:Depth:gitguild:isysd:172209b109dd42cc53ce3556b929dde7a21134b6         -1000 XP

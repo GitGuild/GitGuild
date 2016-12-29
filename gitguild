@@ -21,6 +21,8 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 
+ORIG_IFS=$IFS
+
 # Save $0 so we can shift
 # $1 must be a cmd.
 export PROG_NAME=$( echo "$0" | grep -o "[^/]*$" )
@@ -201,26 +203,22 @@ handle_user_cmd() {
 handle_tx_cmd() {
   case $1 in
     check)
-      get_template_params "$2"
+      shift 1
+      check_tx "$@"
       ;;
     build)
-      # $2 is a tag name
-      archive_tx_ledger
-      for tpl in $( list_tx_tag_templates "$2" ); do
-        echo "$tpl"
-        if [ "$( grep "^patch template.*patch$" "$tpl" )" != "" ]; then
-          handle_tpl_cmd build "$( grep "[^ ].*$" "$tpl" )"
-        elif [ "$( grep "^gitguild .*" "$tpl" )" != "" ]; then
-          eval "$tpl"
-        fi
-      done
-      LAST_TRANSACTION=$2
+      shift 1
+      # $1 is now a tag name
+      build_tx "$@"
       ;;
     list)
       list_tx_tags
       ;;
     archive)
       archive_tx_ledger
+      ;;
+    finish)
+      finish_tx
       ;;
     reset)
       # $2 is an optional flag to pass to git clean
@@ -249,7 +247,7 @@ tag, which probably is multiple patches. )\n"
 }
 
 # $1 is now sub-command
-# $2 and $3 are probably template files or dirs, depending
+# $@ are params for the sub-command
 handle_tpl_cmd() {
   case $1 in
     create)
@@ -257,13 +255,8 @@ handle_tpl_cmd() {
       create_patch "$@"
       ;;
     build)
-      params=$( get_template_params "$2" )
-      cmd_str="cat $2"
-      for p in $params; do
-        cmd_str="$cmd_str $( build_param_replace_command "$p" "$( guess_template_param "$p" HEAD)" )"
-      done
-      cmd_str="$cmd_str | patch -p2"  # TODO what p level to set?
-      eval "$cmd_str"
+      shift 1
+      build_tpl "$@"
       ;;
     list)
       ls ./template/*.patch
@@ -376,8 +369,8 @@ gg_fork() {
     if [ "$( grep \"repo "$1"\" "$GG_DIR"/"$USER_NAME"/conf/gitolite.conf )" = "" ]; then
       cd "$GG_DIR/$USER_NAME"
       git checkout "$USER_NAME"
-      echo "repo $1" >> conf/gitolite.conf
-      git add conf/gitolite.conf
+      build_tx fork_repo "other_guild=$1"
+      git add -A
       git commit -m "forked $1"
       gitguild push
     fi
@@ -500,10 +493,12 @@ user_cfg_error() {
 }
 
 # $1 is the username to search for
-guess_cfg_from_authors_by_name() {
+guess_cfg_from_authors_by_value() {
   if [ -f ./AUTHORS ]; then
     cfginfo=$( grep "$1" ./AUTHORS )
     if [ "$cfginfo" != "" ]; then
+      USER_NAME="$( echo "$cfginfo" | grep -o '^[^ ]*')"
+      git config --global --add user.email "$USER_EMAIL"
       USER_EMAIL="$( echo "$cfginfo" | grep -o ' [^ ]* ' | tr -d ' ' )"
       git config --global --add user.email "$USER_EMAIL"
       USER_SIGNINGKEY="$( echo "$cfginfo" | grep -o '[^ ]*$' )"
@@ -572,7 +567,7 @@ get_or_set_cfg_value() {
     if [ "$1" != "name" ] && [ "$( get_cfg_by_name "$1" )" = "" ]; then
       # try to guess based on name
       echo "guessing"
-      guess_cfg_from_authors_by_name "$USER_NAME"
+      guess_cfg_from_authors_by_value "$USER_NAME"
     fi
     if [ "$( get_cfg_by_name "$1" )" = "" ] && [ "$1" = "signingkey" ]; then
       print_sig_guesses
@@ -715,7 +710,7 @@ guess_template_param() {
         GUILD_NAME=guess_template_param guild_name
         ledger -f ledger/chain.ledger bal "$GUILD_NAME":Height | head -n 1 | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
       else
-         echo 1
+         echo 0
       fi
     ;;
     last_transaction)
@@ -743,6 +738,31 @@ get_template_params() {
   grep -roh '<<< [a-zA-Z0-9_-.]\{1,80\} >>>' "$tdir" | tr -d '<> ' | sort | uniq
 }
 
+# $1 is the name of the template
+# $@ are param values to use, as pairs (key=val)
+build_tpl() {
+  params=$( get_template_params "$1" )
+  cmd_str="cat $1"
+  shift 1
+  for kv in "$@"; do
+    key="$(echo "$kv" | grep -o '^[^=]*')"
+    val="$(echo "$kv" | grep -o '[^=]*$')"
+    IFS=" "
+    if [ "$(echo "$params" | grep \"^"$key"$\")" = "" ]; then
+      cmd_str="$cmd_str $( build_param_replace_command "$key" "$val" )"
+      params=$(echo "$params" | sed "s,^$key$,,g")
+    fi
+    IFS=$ORIG_IFS
+  done
+  for p in $params; do
+    if [ "$p" != "" ]; then
+      cmd_str="$cmd_str $( build_param_replace_command "$p" "$( guess_template_param "$p" HEAD)" )"
+    fi
+  done
+  cmd_str="$cmd_str | patch -p2"  # TODO what p level to set?
+  eval "$cmd_str"
+}
+
 list_tx_tags() {
   grep tag ledger/tag.ledger | grep -o "[^tag ].*$"
 }
@@ -751,23 +771,110 @@ list_tx_tags() {
 list_tx_tag_templates() {
   INTAG=false
   while read line; do
-    if [ "$line" = "tag $1" ]; then
+    if [ "$(echo "$line" | grep '^tag ')" != "" ] && [ "$INTAG" = "true" ]; then
+      return
+    elif [ "$line" = "tag $1" ]; then
       INTAG=true
     elif [ "$INTAG" = "true" ]; then
-      echo "$line" | grep -o "[^: ].*$"
+      echo "$line" | grep -o "[^; ].*$"
     fi
   done < ledger/tag.ledger
 }
 
+ledger_equity() {
+  if [ -f ledger/transaction.ledger ]; then
+    ledger -C -f ledger/chain.ledger equity | sed 's/ Opening Balances/ * Cleared Balances/g'
+    ledger -U -f ledger/chain.ledger equity | sed 's/Opening Balances/Uncleared Balances/g'
+  fi
+}
 
 archive_tx_ledger() {
-  if [ -f ledger/transaction.ledger ] && \
-     [ "$( cat ledger/transaction.ledger )" != "" ]; then
-    echo "# This file should have an 'equity' summary of all history up to the parent commit." > ledger/equity.ledger
-    ledger -C -f ledger/chain.ledger equity | sed 's/ Opening Balances/ * Cleared Balances/g' >> ledger/equity.ledger
-    ledger -U -f ledger/chain.ledger equity | sed 's/Opening Balances/Uncleared Balances/g' >> ledger/equity.ledger
-    echo '' > ledger/transaction.ledger
+  if [ -f ledger/equity.ledger ]; then
+    cp ledger/equity.ledger ledger/equity.parent
+    echo "" > ledger/transaction.ledger
+  fi # otherwise nothing to archive
+}
+
+finish_tx() {
+  sed -i GUILD -e "s,EPOCH_TIME.*,EPOCH_TIME $(date -u +%s),g" \
+    -e "s,LAST_TRANSACTION.*,LAST_TRANSACTION $LAST_TRANSACTION,g"
+  ledger_equity > ledger/equity.ledger
+}
+
+# $1 is a tag name
+# $@ are build tpl params
+build_tx() {
+  archive_tx_ledger
+  tpllist=$( list_tx_tag_templates "$1" )
+  export LAST_TRANSACTION="$1"
+  shift 1
+  for tpl in $tpllist; do
+    if [ "$( echo "$tpl" | grep '^patch .*patch$' )" != "" ]; then
+      ptpl="$( echo "$tpl" | grep -o '[^ ]*$' )"
+      build_tpl "$ptpl" "$@"
+    elif [ "$( echo "$tpl" | grep '^gitguild ' )" != "" ]; then
+      echo evaling tpl "$tpl"
+      eval "$tpl"
+    fi
+  done
+  finish_tx
+}
+
+# $1 is the parent commit to check against (default HEAD, then HEAD~)
+check_tx() {
+  if [ "$1" = "" ]; then
+    wdelta=$(git status --short)
+    if [ "$wdelta" = "" ]; then
+      phash="HEAD^"
+    else
+      phash="HEAD"
+    fi
+  else
+    phash="$1"
+    git checkout "$phash" || exit 1
   fi
+  # if committed, check signer
+  if [ "$phash" != "HEAD" ]; then
+    sigkey="$(git log "$phash^..$phash" --pretty="%GK" | grep -o '.\{8\}$')"
+    if [ "$sigkey" = "" ]; then
+      echo "No gpg signature found for tx at $1" 1>&2
+      exit 1
+    fi
+    signer=$(grep " $sigkey$" ./AUTHORS)
+    if [ "$signer" = "" ]; then
+      echo "Signer $signer is not known to this guild." 1>&2
+      exit 1
+    fi
+  fi
+  gdata=$(cat GUILD)
+  #parent_gdata=$(git show "$phash":GUILD)
+  # lookup last tx in GUILD
+  last_tx=$(echo "$gdata" | grep "LAST_TRANSACTION" | grep -o "[^ ]*$")
+  # ensure equity.parent is same as parent's equity.ledger
+  parent_equity="$(git show "$phash":ledger/equity.ledger)"
+  equity_parent="$(cat ledger/equity.parent)"
+  if [ "$parent_equity" != "$equity_parent" ]; then
+    echo "Equity of parent was not used for this commit" 1>&2
+    exit 1
+  fi
+  # ensure height increased
+  height=$(ledger -f ledger/equity.ledger bal "$GUILD_NAME:Height:$GUILD_NAME" | head -n 1 | grep -o "[0-9.]* *XP" | tr -d "XP ")
+  parent_height=$(ledger -f ledger/equity.parent bal "$GUILD_NAME:Height:$GUILD_NAME" | head -n 1 | grep -o "[0-9.]* *XP" | tr -d "XP ")
+  if [ "$(echo "$height > $parent_height" | bc)" = "0" ]; then
+    echo "Height $height not greater than parent $parent_height" 1>&2
+    exit 1
+  fi
+  tpl_list=$(list_tx_tag_templates "$last_tx")
+  if [ "$tpl_list" = "" ]; then
+    echo "Last transaction tag $last_tx is unknown" 1>&2
+    exit 1
+  fi
+  IFS=" "
+  inv_tpl_list=$(echo "$tpl_list" | tac)
+  IFS="$ORIG_IFS"
+  printf "inv_tpl_list\n%s\n" "$inv_tpl_list"
+  # ensure tag instructions were followed
+  # ensure output matches exactly
 }
 
 
@@ -778,16 +885,16 @@ create_patch() {
   INPATH=$1
   OUTPATH=$2
   if [ "$1" = "" ]; then
-    rm -fR /tmp/gitguild_working_dir
-    mkdir /tmp/gitguild_working_dir
-    cp -fR ./.git /tmp/gitguild_working_dir/
-    cp -fR ./* /tmp/gitguild_working_dir/
+    rm -fR "$GG_DIR/tmp"
+    mkdir "$GG_DIR/tmp"
+    cp -fR ./.git "$GG_DIR/tmp"/
+    cp -fR ./* "$GG_DIR/tmp"/
     OLD_TOO_MANY_DIRS=$( pwd )
-    cd /tmp/gitguild_working_dir
+    cd "$GG_DIR/tmp"
     _=$( git clean -f )
     _=$( git reset --hard HEAD )
     cd "$OLD_TOO_MANY_DIRS"
-    INPATH="/tmp/gitguild_working_dir"
+    INPATH="$GG_DIR/tmp"
   fi
   if [ "$2" = "" ]; then
     OUTPATH="$( readlink -f . )"
