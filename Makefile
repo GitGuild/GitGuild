@@ -3,6 +3,7 @@ USE_GITHUB ?= true
 USE_GITOLITE ?= true
 
 GG_DIR = $(HOME)/gitguild
+GIT_HOME = $(shell echo ~git)
 USER_NAME := $(shell git config user.name)
 USER_EMAIL := $(shell git config user.email)
 IDENT_REMOTE = ""
@@ -65,14 +66,19 @@ setup_gitolite = [ "$(USE_GITOLITE)" = "true" ]; then \
 		sed -z -i.bak "s/\# GL_ADMIN_REPO                   =>  \"gitolite-admin\"/ GL_ADMIN_REPO                   =>  \"$(USER_NAME)\"/g" src/lib/Gitolite/Rc.pm; \
 		sudo ./install -to /usr/lib/gitolite; \
 		sudo ln -sf /usr/lib/gitolite/gitolite /usr/bin/gitolite; \
-		gitolite setup -pk "$(HOME)/.ssh/$(USER_NAME)".pub -m "guild seeded w gitolite-admin template"; \
-		rm -fR ~/repositories ~/.gitolite; \
-		gitolite setup -pk "$(HOME)/.ssh/$(USER_NAME)".pub -m "guild seeded w gitolite-admin template"; \
+		cp "$(HOME)/.ssh/$(USER_NAME).pub" "/tmp/$(USER_NAME).pub"; \
+		sudo -H -u git sh -c 'gitolite setup -pk /tmp/$(USER_NAME).pub -m "guild seeded w gitolite-admin template"'; \
+		sudo rm -fR $(GIT_HOME)/repositories $(GIT_HOME)/.gitolite; \
+		sudo -H -u git sh -c 'gitolite setup -pk /tmp/$(USER_NAME).pub -m "guild seeded w gitolite-admin template"'; \
+		sudo chmod -R g+rwx $(GIT_HOME)/repositories; \
+		sudo chmod -R g+rwx $(GIT_HOME)/.gitolite; \
+		sudo ln -sf $(GIT_HOME)/repositories $(HOME)/repositories; \
+		sudo ln -sf $(GIT_HOME)/.gitolite $(HOME)/.gitolite; \
 	fi; \
 fi
 
 uninstall_gitolite = if [ "$(USE_GITOLITE)" = "true" ]; then \
-	sudo rm -fR $(HOME)/repositories $(HOME)/.gitolite $(HOME)/.gitolite.rc /usr/lib/gitolite /usr/bin/gitolite; \
+	sudo rm -fR $(GIT_HOME)/repositories $(HOME)/repositories $(GIT_HOME)/.gitolite $(HOME)/.gitolite $(HOME)/.gitolite.rc $(GIT_HOME)/.gitolite.rc /usr/lib/gitolite /usr/bin/gitolite; \
 fi
 
 uninstall_github = if [ "$(USE_GITHUB)" = "true" ]; then \
@@ -81,7 +87,7 @@ uninstall_github = if [ "$(USE_GITHUB)" = "true" ]; then \
 fi
 
 clone_ident = if [ "$(USE_GITOLITE)" = "true" ]; then \
-	gitguild clone $(USER_NAME) file://$(HOME)/repositories/$(USER_NAME).git; \
+	gitguild clone $(USER_NAME) file://$(GIT_HOME)/repositories/$(USER_NAME).git; \
 else \
 	gitguild clone $(USER_NAME); \
 fi; \

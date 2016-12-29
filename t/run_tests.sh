@@ -2,7 +2,7 @@ tests=$( find ./ -name "test_*.sh" )
 
 execute_all() {
   for t in $tests; do
-    $( t )
+    $( ./$t )
   done
 }
 

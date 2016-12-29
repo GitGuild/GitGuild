@@ -34,6 +34,8 @@ USER_IS_CONFIGURED=true
 
 # default working directory, where repos are cloned
 export GG_DIR=$HOME"/gitguild"
+# shellcheck disable=SC2116
+export GIT_HOME=$(echo ~git)
 
 # Normally this should be run inside such a git repo
 GIT_DIR=$( readlink -f "$( git rev-parse -q --git-dir )" | grep -o ".*[^.git]" )
@@ -367,7 +369,7 @@ gg_fork() {
   if [ "$USE_GITOLITE" = "true" ]; then
     # clone locally if necessary
     if [ "$( gitolite list-phy-repos | grep "$1" )" = "" ]; then
-      git clone --bare "$remote" "$HOME/repositories/$1.git"
+      git clone --bare "$remote" "$GIT_HOME/repositories/$1.git"
       gitolite setup
     fi
     # add to gitolite.conf
@@ -433,7 +435,7 @@ setup_repo() {
     if [ "$lgor" != "" ] && [ "$lgor" != "$USER_NAME" ]; then
       grep -rl "$lgor" "$GG_DIR/$1/.git" | xargs sed -i "s,$lgor,$USER_NAME,g"
     elif [ "$lgor" = "" ] && [ "$( gitolite list-phy-repos | grep "$1" )" = "" ]; then
-      git remote add "$USER_NAME" "file://$HOME/repositories/$1.git"
+      git remote add "$USER_NAME" "file://$GIT_HOME/repositories/$1.git"
     fi
   fi
   # sense other gitolite remotes

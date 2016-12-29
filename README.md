@@ -36,17 +36,25 @@ As a command line suppliment to git, the help menus are comprehensive.
 
 Installing in the specific location shown below is a more permanent and full featured method, providing transaction templates and a subscription to changes in the core.
 
-If you're only trying it out, but want to run make, set `USE_GITOLITE=false`.
-
 ```
 mkdir $HOME/gitguild
 git clone https://github.com/isysd/gitguild-cli $HOME/gitguild/gitguild
 cd $HOME/gitguild/gitguild
-./configure
+./configure # will ask for password for new 'git' user
 make install
 ```
 
-For more details on the ouput of this full install process, read `./doc/file-structure.md`.
+__*System restart will be required at this point!*__
+
+The install process created a new 'git' user and group on your system, and additionally changed the hostname. These require a system reboot before taking affect, and the next step will not work without it.
+
+After your reboot, you can create your personal guild, if you haven't done so on a previous occasion.
+
+```
+make installpersonal
+```
+
+For more details on the output of this full install process, read `./doc/file-structure.md`.
 
 ##### Pre-requisites
 
@@ -93,6 +101,8 @@ Note that gitguild asks for the following permissions for your token:
 + [ ] read:gpg_key
 
 The unchecked ones are not currently used, but planned for the future. Unlisted ones will probably never be needed by this program.
+
+If you wish to disable github integration, run `configure` and `make install` with argument `USE_GITHUB=false`.
 
 ## Additional Resources
 

@@ -1,6 +1,5 @@
 #!/bin/sh
-# This sets up your local git configuration.
-# It is a pre-requisite for installation.
+# parse command line args for make analogs
 USE_GITHUB=true
 for p in $*; do
   USE_GH=$(echo "$p" | grep 'USE_GITHUB' | grep -o '\w*$')
@@ -9,9 +8,13 @@ for p in $*; do
   fi
 done
 
+# This sets up your local git configuration.
+# It is a pre-requisite for installation.
 ./gitguild user status
+echo
 USER_NAME=$(git config user.name)
-echo $USER_NAME
+
+# This runs the ok.sh configuration, if USE_GITHUB is true
 if [ "$USE_GITHUB" = "true" ]; then
   if [ ! -f "$HOME"/.netrc ] || \
       [ "$(cat "$HOME"/.netrc | grep api.github.com)" = "" ]; then
@@ -29,6 +32,59 @@ if [ "$USE_GITHUB" = "true" ]; then
     echo "  password ""$token" >> "$HOME"/.netrc
     echo >> "$HOME"/.netrc
     echo "github configured."
+    echo
   fi
+fi
+
+# As explained in the echo, it is necessary to set the hostname.
+hostname=$(hostname)
+if [ "$hostname" != "$USER_NAME" ]; then
+  echo Need to set the system "hostname" to your git user name.
+  echo The reasoning is that a limited git and ssh server are created.
+  echo Once the system has a public name, it should be a logical name,
+  echo and should not leak personal information unintentionally.
+  echo
+  if [ -f "/etc/sysconfig/network" ]; then
+    sudo sed -i "s/HOSTNAME=$hostname/HOSTNAME=$USER_NAME/" /etc/sysconfig/network
+    sudo hostname $USER_NAME
+  elif [ -f "/etc/hostname" ]; then
+    sudo sed -i "s/$hostname/$USER_NAME/" /etc/hostname
+    sudo sed -i "s/ $hostname/ $USER_NAME/" /etc/hosts
+    sudo hostname $USER_NAME
+  fi
+fi
+
+gitu=$(id -u git)
+if [ "$?" != 0 ] || [ "$gitu" = "" ]; then
+  echo To further protect the system, a "git" system user and group will be created.
+  echo These will isolate the server processes and files from the rest of your system.
+  echo
+  echo "Please choose a password for this new \"git\" user."
+  stty -echo
+  read gitpass
+  stty echo
+  if [ "$gitpass" = "" ]; then
+    echo "It is highly recommended to set a strong password for the git user!"
+    echo "The security of this user is the security of the rest of your system."
+    exit 2
+  fi
+  sudo groupadd git
+  sudo useradd -m -g git git
+  if [ "$?" != 0 ]; then
+    echo "Could not create git user. Bailing."
+    exit 1
+  fi
+  echo "git:$gitpass" | sudo chpasswd
+  echo "git user created!"
+  echo
+  # also add your current user to git group
+  sudo usermod -a -G git $USER
+  newgrp git
+  echo "Also added your current user to the 'git' group"
+  echo "You will have full access to the git group files, but"
+  echo "The git user will not have access to your files."
+  echo
+  # ensure group has ownership of all of git's files
+  sudo chown -R git:git /home/git/
 fi
 
