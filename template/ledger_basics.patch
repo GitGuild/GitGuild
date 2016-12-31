@@ -55,13 +55,13 @@ diff -cr -N -x .git -x '*.patch' /old//ledger/check.ledger /new//ledger/check.le
 + define GUILD_HEIGHT = (account("<<< guild_name >>>:Height:<<< guild_name >>>").total)
 + 
 + ; Each user must have net positive score
-+ define user_vote_check(user_name) = (account(user_name + ":Height").total >= GUILD_DEPTH / 2)
++ define user_vote_check(user_name) = (account(user_name + ":Height").total >= 0 XP)
 + 
 + ; Each branch of this guild must have net positive score
-+ define branch_vote_check(user_name, vote_guild_name, vote_branch) = (account(user_name + ":Height:" + vote_guild_name + ":" + vote_branch).total >= GUILD_DEPTH / 2)
++ define branch_vote_check(user_name, vote_guild_name, vote_branch) = (account(user_name + ":Height:" + vote_guild_name + ":" + vote_branch).total >= 0)
 + 
-+ ; Each issue must have net positive score
-+ define issue_vote_check(user_name, vote_guild_name, vote_branch, vote_parent) = (account(user_name + ":Height:" + vote_guild_name + ":" + vote_branch + ":" + vote_parent).total >= GUILD_DEPTH / 2)
++ ; Each issue must have score higher than given in the tag
++ define issue_vote_check(user_name, vote_guild_name, vote_branch, vote_parent, min_votes) = (account(user_name + ":Height:" + vote_guild_name + ":" + vote_branch + ":" + vote_parent).total >= GUILD_DEPTH * min_votes)
 + 
 + ; user has not spent more XP than allowed on this issue
 + define user_issue_vote_check(user_name, vote_guild_name, vote_branch, vote_parent) = (account(user_name + ":Height").total >= abs(account(user_name + ":Depth:" + vote_guild_name + ":" + vote_branch + ":" + vote_parent).total))
@@ -111,7 +111,7 @@ diff -cr -N -x .git -x '*.patch' /old//ledger/tag.ledger /new//ledger/tag.ledger
 --- /new//ledger/tag.ledger	2016-12-23 20:15:02.071512655 -0500
 ***************
 *** 0 ****
---- 1,24 ----
+--- 1,34 ----
 + tag init_personal
 + ; patch gitguild/template/clean_gitolite_admin.patch
 + ; patch gitguild/template/add_member_authors.patch
@@ -119,22 +119,32 @@ diff -cr -N -x .git -x '*.patch' /old//ledger/tag.ledger /new//ledger/tag.ledger
 + ; patch gitguild/template/add_ledger_basics.patch
 + ; patch gitguild/template/personal_ledger_init.patch
 + ; patch gitguild/template/add_GUILD.patch
++ ; min_votes 0
++ ; endtag init_personal
 + 
 + tag register_member
 + ; patch gitguild/template/add_member_authors.patch
 + ; patch gitguild/template/add_member_ledger.patch
 + ; patch gitguild/template/add_member_gitolite.patch
++ ; min_votes 0
++ ; endtag register_member
 + 
 + tag fork_repo
 + ; patch gitguild/template/fork_repo.patch
++ ; min_votes 0.5
++ ; endtag fork_repo
 + 
 + tag register_personal_gitguild
 + ; patch gitguild/template/add_member_authors.patch
 + ; patch gitguild/template/register_personal_gitguild_ledger.patch
++ ; min_votes 0.66
++ ; endtag register_personal_gitguild
 + 
 + tag contribute
 + ; patch gitguild/template/contribute.patch
 + ; patch gitguild/template/tx_post_process.patch
++ ; min_votes 0.66
++ ; endtag contribute
 + 
 diff -cr -N -x .git -x '*.patch' /old//ledger/transaction.ledger /new//ledger/transaction.ledger
 *** /old//ledger/transaction.ledger	1969-12-31 19:00:00.000000000 -0500

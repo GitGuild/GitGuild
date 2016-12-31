@@ -6,7 +6,7 @@ diff -cr -N -x .git -x '*.patch' /old//ledger/transaction.ledger /new//ledger/tr
 ! # This file should not have any transactions in the current commit.
 --- 1,5 ----
 ! 
-! <<< date >>> * <<< user_name >>> Personal Guild Initialization
-!     ; Create XP by giving the founder Equity
+! <<< date >>> <<< user_name >>> Personal Guild Initialization
+!     ; init_personal
 !     <<< user_name >>>:Height:<<< user_name >>>:<<< user_name >>>:<<< parent >>>    1 XP
 !     <<< user_name >>>:Depth:<<< user_name >>>:<<< user_name >>>:<<< parent >>>    -1 XP

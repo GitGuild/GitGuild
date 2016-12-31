@@ -27,6 +27,22 @@ __main() {
     exit 1
   fi
   echo "OK, ready for tests"
+  # build a new tx but don't commit
+  gitguild tx build fork_repo other_guild=fakeguildnoexiste
+  gitguild tx check
+  if [ "$?" != 0 ]; then
+    fail "Working transaction check failed."
+    teardown
+    exit 1
+  fi
+  # now commit and check again
+  git commit -m "test fork"
+  gitguild tx check
+  if [ "$?" != 0 ]; then
+    fail "Working transaction check failed."
+    teardown
+    exit 1
+  fi
 }
 
 __main "$@"

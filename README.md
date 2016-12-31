@@ -10,9 +10,9 @@ Guild governance for a git repository, using PGP identities.
 
 Just download and run `gitguild`.
 
-Since this version is a bourne shell script, it should be runnable as a standalone program on most systems except bare, newby Windows.
+Since this version is a bourne shell script, it should be runnable as a standalone program on most linux and MacOS systems. More work is necessary to make the script Windows compatible, but there are no barriers.
 
-As a command line suppliment to git, the help menus are comprehensive.
+As a command line supplement to git, the help menus are comprehensive.
 
 ```
 	gitguild           	A helpful blockchain in a script.
@@ -20,16 +20,17 @@ As a command line suppliment to git, the help menus are comprehensive.
 	Usage:
 		gitguild user	Manage your gitguild user.
 		gitguild tx	    build and check transactions.
+		gitguild ledger	Perform gitguild-related ledger actions.
+		gitguild clone	<guild>	(<remote>) Clone a guild from optional remote.
 		gitguild push	git push with extra checks and remotes.
-		gitguild fork	fork	<remote> Fork a guild with one or more remotes.
-		gitguild setup	    Install pre-requisites and configure gitguild.
+		gitguild fork	<remote>	Fork a guild with one or more remotes.
+		gitguild setup-repo	Setup remotes and hooks in current git repo.
 		gitguild template	Create and list tx templates.
 		gitguild help		Show the general help.
-		gitguild version	    Show the program version.
+		gitguild version	Show the program version.
 
 	Options:
 		gitguild <cmd> -h	Show command help details.
-
 ```
 
 ## Install

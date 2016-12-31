@@ -88,7 +88,7 @@ subcommand_usage_line() {
 # $2 the help
 command_option_line() {
   OPTSTR=$1
-  shift 1
+  shift
   printf "\t\t%s\t\t%s" "$OPTSTR" "$*"
 }
 
@@ -100,11 +100,11 @@ command_option_line() {
 __main() {
   case $1 in
     user)
-      shift 1
+      shift
       handle_user_cmd "$@"
       ;;
     ledger)
-      shift 1
+      shift
       get_or_set_all_cfg_values
       if [ ! $USER_IS_CONFIGURED ]; then
         exit 1
@@ -112,7 +112,7 @@ __main() {
       handle_ledger_cmd "$@"
       ;;
     tx)
-      shift 1
+      shift
       get_or_set_all_cfg_values
       if [ ! $USER_IS_CONFIGURED ]; then
         exit 1
@@ -120,11 +120,11 @@ __main() {
       handle_tx_cmd "$@"
       ;;
     template)
-      shift 1
+      shift
       handle_tpl_cmd "$@"
       ;;
     push)
-      shift 1
+      shift
       get_or_set_all_cfg_values
       if [ ! $USER_IS_CONFIGURED ]; then
         exit 1
@@ -132,16 +132,15 @@ __main() {
       gg_push "$@"
       ;;
     clone)
-      shift 1
+      shift
       get_or_set_all_cfg_values
       if [ ! $USER_IS_CONFIGURED ]; then
         exit 1
       fi
-      echo "$@"
       clone_guild "$@"
       ;;
     fork)
-      shift 1
+      shift
       get_or_set_all_cfg_values
       if [ ! $USER_IS_CONFIGURED ]; then
         exit 1
@@ -159,11 +158,11 @@ __main() {
       ;;
     *)
       COMMAND="user"
-      cmdl="$( command_usage_line Manage your gitguild user.)\n"
+      cmdl="$( command_usage_line Manage guild users.)\n"
       COMMAND="tx"
       cmdl="$cmdl$( command_usage_line build and check transactions.)\n"
       COMMAND="ledger"
-      cmdl="$cmdl$( command_usage_line Perform gitguild-related ledger actions. )\n"
+      cmdl="$cmdl$( command_usage_line Perform guild-related ledger actions. )\n"
       COMMAND="clone"
       cmdl="$cmdl$( subcommand_usage_line \<guild\> \(\<remote\>\) Clone a guild from optional remote. )\n"
       COMMAND="push"
@@ -171,7 +170,7 @@ __main() {
       COMMAND="fork"
       cmdl="$cmdl$( subcommand_usage_line \<remote\> Fork a guild with one or more remotes. )\n"
       COMMAND="setup-repo"
-      cmdl="$cmdl$( subcommand_usage_line Setup remotes \(and hooks?\) in current git repo. )\n"
+      cmdl="$cmdl$( subcommand_usage_line Setup remotes and hooks in current git repo. )\n"
       COMMAND="template"
       cmdl="$cmdl$( command_usage_line Create and list tx templates. )\n"
       echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
@@ -215,11 +214,11 @@ handle_user_cmd() {
 handle_tx_cmd() {
   case $1 in
     check)
-      shift 1
+      shift
       check_tx "$@"
       ;;
     build)
-      shift 1
+      shift
       # $1 is now a tag name
       build_tx "$@"
       ;;
@@ -227,7 +226,8 @@ handle_tx_cmd() {
       list_tx_tags
       ;;
     archive)
-      archive_tx_ledger
+      shift
+      archive_tx_ledger "$@"
       ;;
     finish)
       finish_tx
@@ -239,8 +239,8 @@ handle_tx_cmd() {
         flag=$2
       fi
       git clean "$flag" -d
-      git reset --hard HEAD~1
-      git pull
+      git reset -q --hard HEAD^
+      git pull -q "$USER_NAME" "$USER_NAME"
       ;;
     *)
       cmdl="$( subcommand_usage_line check Check the tx at HEAD or the given \
@@ -263,15 +263,28 @@ tag, which probably is multiple patches. )\n"
 handle_tpl_cmd() {
   case $1 in
     create)
-      shift 1
+      shift
       create_patch "$@"
       ;;
     build)
-      shift 1
-      build_tpl "$@"
+      shift
+      tname="$1"
+      shift
+      if [ "$2" != "" ] && [ "$(echo "$2" | grep .patch$ )" = "" ]; then
+        phash="$2"
+        shift
+        build_tpl "$tname" "$phash" "$@"
+      else
+        build_tpl "$tname" "HEAD" "$@"
+      fi
       ;;
     list)
-      ls "$GG_DIR"/*/template/*.patch
+      if [ "$2" = "" ]; then
+        ls "$GG_DIR"/*/template/*.patch
+      else
+        shift
+        list_tx_tag_templates "$@"
+      fi
       ;;
     *)
       cmdl="$( subcommand_usage_line create Create a stub template for future \
@@ -383,7 +396,6 @@ gg_fork() {
     # add to gitolite.conf
     # shellcheck disable=SC2016
     if [ "$( grep 'repo "$1"' "$GG_DIR"/"$USER_NAME"/conf/gitolite.conf )" = "" ]; then
-      echo "after"
       cd "$GG_DIR/$USER_NAME"
       git checkout -q "$USER_NAME"
       build_tx fork_repo "other_guild=$1"
@@ -526,8 +538,7 @@ gpgkeygen() {
 user_cfg_error() {
   echo "OK, to try setting your git $1 at any time, run:" 1>&2
   echo 1>&2
-  echo "git config --global --add user.$1 <$2>" 1>&2
-  echo 1>&2
+  echo "gitguild user status" 1>&2
   USER_IS_CONFIGURED=false
 }
 
@@ -683,45 +694,49 @@ guess_template_param() {
       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
         echo "$USER_NAME"
       else
-        git log -n 1 "$2"~.. --pretty="%cn"
+        git log -n 1 "$2".. --pretty="%cn"
       fi
     ;;
     user_email)
       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
         echo "$USER_EMAIL"
       else
-        git log -n 1 "$2"~.. --pretty="%ce"
+        git log -n 1 "$2".. --pretty="%ce"
       fi
     ;;
     user_signingkey)
       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
         echo "$USER_SIGNINGKEY"
       else
-        git log -n 1 "$2"~.. --pretty="%GK"
+        git log -n 1 "$2".. --pretty="%GK"
       fi
     ;;
     user_height)
-      ledger -f ledger/chain.ledger bal "$USER_NAME":Height | head -n 1 | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
+      if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
+        ledger -f ledger/chain.ledger bal "$USER_NAME":Height | head -n 1 | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
+      else
+        ledger -f ledger/equity.parent bal "$USER_NAME":Height | head -n 1 | grep -o "[^ ][0-9.]* XP" | tr -d " XP"
+      fi
     ;;
     date)
       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
         date -u +%F
       else
-        date -u +%F --date="@$( git log -n 1 "$2"~.. --pretty=\"%ct\" )"
+        date -u +%F --date="@$( git log -n 1 "$2".. --pretty='%ct' )"
       fi
     ;;
     epoch)
       if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
         date -u +%s
       else
-        git log -n 1 "$2"~.. --pretty="%ct"
+        git log -n 1 "$2".. --pretty="%ct"
       fi
     ;;
     vote_parent|parent)
-      if [ "$2" = "" ] || [ "$2" = "HEAD" ]; then
+      if [ "$2" = "" ]; then
         git log -n 1 HEAD --pretty="%H"
       else
-        git log -n 1 "$2"~~.. --pretty="%H"
+        git log -n 1 "$2" --pretty="%H"
       fi
     ;;
     version)
@@ -741,6 +756,14 @@ guess_template_param() {
         echo "$USER_NAME"
       else # otherwise it must exist and never change!
         head -n 1 GUILD | grep -o "[^NAME ].*"
+      fi
+    ;;
+    other_guild)
+      if [ "$2" = "" ]; then
+        exit 1
+      else
+        gdate=$(guess_template_param 'date' "$2")
+        grep "$gdate" ledger/transaction.ledger | grep -o "[^ ]*$"
       fi
     ;;
     height)
@@ -777,11 +800,20 @@ get_template_params() {
 }
 
 # $1 is the name of the template
-# $@ are param values to use, as pairs (key=val)
+# $2 is the revision (default to HEAD)
+# $@ are param values to use, as pairs (key=val), preceded by optional flags (--flag)
 build_tpl() {
-  params=$( get_template_params "$1" )
-  cmd_str="cat $GG_DIR/$1"
-  shift 1
+  tpl_name="$1"
+  shift
+  revision="$1"
+  shift
+  reverse=""  
+  if [ "$1" = "--reverse" ]; then
+    reverse="--reverse"
+    shift
+  fi
+  params=$( get_template_params "$tpl_name" )
+  cmd_str="cat $GG_DIR/$tpl_name"
   for kv in "$@"; do
     key="$(echo "$kv" | grep -o '^[^=]*')"
     val="$(echo "$kv" | grep -o '[^=]*$')"
@@ -795,10 +827,14 @@ build_tpl() {
   done
   for p in $params; do
     if [ "$p" != "" ]; then
-      cmd_str="$cmd_str $( build_param_replace_command "$p" "$( guess_template_param "$p" HEAD)" )"
+      cmd_str="$cmd_str $( build_param_replace_command "$p" "$( guess_template_param "$p" "$revision")" )"
     fi
   done
-  cmd_str="$cmd_str | patch -s -p2"  # TODO what p level to set?
+  if [ "$reverse" = "" ]; then
+    cmd_str="$cmd_str | patch -s -p2"  # TODO what p level to set?
+  else
+    cmd_str="$cmd_str | patch -s -R -p2"  # TODO what p level to set?
+  fi
   eval "$cmd_str"
 }
 
@@ -807,25 +843,42 @@ list_tx_tags() {
 }
 
 # $1 the name of the tag to list templates for
+# $2 to reverse the list, set this to "--reverse"
 list_tx_tag_templates() {
   INTAG=false
-  while read line; do
-    if [ "$(echo "$line" | grep '^tag ')" != "" ] && [ "$INTAG" = "true" ]; then
-      return
-    elif [ "$line" = "tag $1" ]; then
-      INTAG=true
+  if [ "$2" = "--reverse" ]; then
+    tac ledger/tag.ledger
+  else
+    cat ledger/tag.ledger
+  fi | while read line; do
+    if [ "$(echo "$line" | grep -E "[\;# ]*[end]{0,3}tag $1")" != "" ]; then
+      if [ "$INTAG" = "true" ]; then
+        return
+      else
+        INTAG=true
+      fi
     elif [ "$INTAG" = "true" ]; then
       echo "$line" | grep -o "[^; ].*$"
     fi
-  done < ledger/tag.ledger
+  done
 }
 
+# $1 to reverse the archive action, set this to "--reverse"
+# $2 is an optional commit hash (should always be HEAD or HEAD^)
 archive_tx_ledger() {
-  ledger_build
-  if [ -f ledger/equity.ledger ]; then
+  if [ "$1" = "--reverse" ]; then
+    if [ "$2" = "HEAD^" ]; then
+      phash="HEAD^"
+    fi
+    # also "unfinishes" the tx by resetting GUILD
+    rm ledger/equity.parent ledger/equity.ledger ledger/transaction.ledger GUILD
+    git checkout "$phash" ledger/equity.ledger ledger/equity.parent ledger/transaction.ledger GUILD
+    ledger_build
+  else
+    ledger_build
     cp ledger/equity.ledger ledger/equity.parent
     echo "" > ledger/transaction.ledger
-  fi # otherwise nothing to archive
+  fi
 }
 
 finish_tx() {
@@ -836,22 +889,35 @@ finish_tx() {
 }
 
 # $1 is a tag name
-# $@ are build tpl params
+# $@ are build tpl params or flags with no '=' (i.e. --reverse)
 build_tx() {
-  archive_tx_ledger
   export LAST_TRANSACTION="$1"
-  shift 1
-  #for tpl in "$( list_tx_tag_templates "$LAST_TRANSACTION" )"; do
-  list_tx_tag_templates "$LAST_TRANSACTION" | while read tpl; do
+  shift
+  reverse=""
+  phash="HEAD"
+  if [ "$1" = "--reverse" ]; then
+    reverse="--reverse"
+    shift
+    if [ "$(git status --short)" = "" ]; then
+      phash="HEAD^"
+    fi
+  else
+    archive_tx_ledger
+  fi
+  list_tx_tag_templates "$LAST_TRANSACTION" "$reverse" | while read tpl; do
     if [ "$( echo "$tpl" | grep '^patch .*patch$' )" != "" ]; then
       ptpl="$( echo "$tpl" | grep -o '[^ ]*$' )"
-      build_tpl "$ptpl" "$@"
+      build_tpl "$ptpl" "$phash" "$reverse" "$@"
     fi
   done
-  finish_tx
+  if [  "$reverse" = "" ]; then
+    finish_tx
+  else
+    archive_tx_ledger "$reverse" "$phash"
+  fi
 }
 
-# $1 is the parent commit to check against (default HEAD, then HEAD~)
+# $1 is the parent commit to check against (default HEAD, then HEAD^)
 check_tx() {
   if [ "$1" = "" ]; then
     wdelta=$(git status --short)
@@ -859,6 +925,7 @@ check_tx() {
       phash="HEAD^"
     else
       phash="HEAD"
+      git stash --keep-index
     fi
   else
     phash="$1"
@@ -885,6 +952,8 @@ check_tx() {
   parent_equity="$(git show "$phash":ledger/equity.ledger)"
   equity_parent="$(cat ledger/equity.parent)"
   if [ "$parent_equity" != "$equity_parent" ]; then
+    #echo "$parent_equity" 1>&2
+    #echo "$equity_parent" 1>&2
     echo "Equity of parent was not used for this commit" 1>&2
     exit 1
   fi
@@ -900,12 +969,19 @@ check_tx() {
     echo "Last transaction tag $last_tx is unknown" 1>&2
     exit 1
   fi
-  IFS=" "
-  inv_tpl_list=$(echo "$tpl_list" | tac)
-  IFS="$ORIG_IFS"
-  printf "inv_tpl_list\n%s\n" "$inv_tpl_list"
   # ensure tag instructions were followed
   # ensure output matches exactly
+  build_tx "$last_tx" --reverse
+  git diff "$phash"
+  if [ "$(git diff "$phash")" != "" ]; then
+    echo "Reverse tx build of $last_tx failed." 1>&2
+    exit 1
+  fi
+  if [ "$phash" = "HEAD" ]; then
+    git stash apply
+  else
+    git reset --hard HEAD
+  fi
 }
 
 
@@ -990,8 +1066,8 @@ generate_checks_from_accounts() {
         ;;
       5)
         top="$account"
-        echo "$1 issue_vote_check(\"$user\", \"$guild\", \"$branch\", \"$top\")"
-        echo "$1 user_issue_vote_check(\"$user\", \"$guild\", \"$branch\", \"$top\")"
+        echo "assert user_issue_vote_check(\"$user\", \"$guild\", \"$branch\", \"$top\")"
+        IFS=$ORIG_IFS
         return
         ;;
     esac
@@ -1013,6 +1089,17 @@ ledger_build() {
     elif [ "$line" != "" ]; then
       acline="$(echo "$line" | grep -o '^ *[0-9a-zA-Z:]*' | tr -d ' ')"
       generate_checks_from_accounts "$ACCT_PREFIX" "$acline"
+      if [ "$(grep "$acline" ledger/transaction.ledger )" != "" ]; then
+        grep \; ledger/transaction.ledger | grep -o "[^ ]*$" | while read txl
+        do
+          if [ "$(grep "$txl" ledger/tag.ledger)" != "" ]; then
+            min_votes=$(list_tx_tag_templates "$txl" | grep min_votes | grep -o '[^ ]*$')
+            if [ "$min_votes" != "" ]; then
+              echo "$ACCT_PREFIX issue_vote_check(\"$user\", \"$guild\", \"$branch\", \"$top\", $min_votes XP)"
+            fi
+          fi
+        done
+      fi
     fi
   done < ledger/equity.ledger | sort | uniq > ledger/generated_check.ledger
 }
