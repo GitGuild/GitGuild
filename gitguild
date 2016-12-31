@@ -34,10 +34,12 @@ export USER_EMAIL=$( git config user.email )
 export USER_SIGNINGKEY=$( git config user.signingkey )
 USER_IS_CONFIGURED=true
 
-# default working directory, where repos are cloned
-export GG_DIR=$HOME"/gitguild"
+# gitolite user home, where repos are hosted
 # shellcheck disable=SC2116
 export GIT_HOME=$(echo ~git)
+
+# default working directory, where repos are cloned
+export GG_DIR=$HOME"/gitguild"
 
 # Normally this should be run inside such a git repo
 GIT_DIR=$( readlink -f "$( git rev-parse -q --git-dir )" | grep -o ".*[^.git]" )
@@ -94,7 +96,7 @@ command_option_line() {
 #------------------------CLI Handlers-----------------------------
 
 # The main handler. Takes raw user input from command line.
-# $1 is the 
+# $1 is the command
 __main() {
   case $1 in
     user)
@@ -237,7 +239,6 @@ handle_tx_cmd() {
         flag=$2
       fi
       git clean "$flag" -d
-      git reset --hard HEAD
       git reset --hard HEAD~1
       git pull
       ;;
@@ -248,6 +249,7 @@ commit hash. )\n"
 \(put in equity.ledger\). )\n"
       cmdl="$cmdl$( subcommand_usage_line build \<tag\> Build the given tx \
 tag, which probably is multiple patches. )\n"
+      cmdl="$cmdl$( subcommand_usage_line finish Perform TX finishing actions, i.e. equity.ledger. )\n"
       cmdl="$cmdl$( subcommand_usage_line list List the available tx tags. )\n"
       cmdl="$cmdl$( subcommand_usage_line reset Clean and reset to HEAD. )\n"
       echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
@@ -269,7 +271,7 @@ handle_tpl_cmd() {
       build_tpl "$@"
       ;;
     list)
-      ls ./template/*.patch
+      ls "$GG_DIR"/*/template/*.patch
       ;;
     *)
       cmdl="$( subcommand_usage_line create Create a stub template for future \
@@ -286,8 +288,8 @@ template. )\n"
 # $1 is the name of the guild to clone
 # $2 is optional remote to clone from. Assumed to be github if not specified.
 clone_guild() {
-  if [ ! -d "$GG_DIR/$1" ]; then
-    mkdir -p "$GG_DIR"
+  exists=$( [ ! -d "$GG_DIR/$1" ] || echo true )
+  if [ "$(echo "$1" | grep -E '^[-]{1,2}h[elp]{0,3}$')" = "" ] && [ "$exists" != "true" ]; then
     if [ "$2" = "" ]; then
       url="https://github.com/$1/$1.git"
     else
@@ -296,7 +298,10 @@ clone_guild() {
     git clone "$url" "$GG_DIR/$1"
     setup_repo "$1"
   else
-    cmdl="$( subcommand_usage_line \<guild\> \(\<remote\>\) Clone a guild from optional remote. )\n"
+    if [ "$exists" = "true" ]; then
+      echo "$GG_DIR/$1 exists. Will not overwrite it."
+    fi
+    cmdl="$( subcommand_usage_line clone \<guild\> \(\<remote\>\) Clone a guild from optional remote. )\n"
     echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
     exit
   fi
@@ -643,7 +648,6 @@ ensure_members_uniq() {
     emails=$( grep -o ' [^ ]* ' AUTHORS | tr -d ' ' | sort | uniq | \
       wc -l )
     sigkeys=$( grep -o '[^ ]*$' AUTHORS | sort | uniq | wc -l )
-    # the following all have +1 due to the expected empty line before EOF
     if [ "$total" != "$names" ]; then
       echo "ERROR: found duplicate names" 1>&2
       exit 1
@@ -759,11 +763,11 @@ guess_template_param() {
 
 get_template_params() {
   # first argument should be a file or directory to look for templates
-  if [ -e "$1" ]; then
-    tdir=$1
-  elif [ -d "./template" ]; then
+  if [ -e "$GG_DIR/$1" ]; then
+    tdir=$GG_DIR/$1
+  elif [ -d ./template ]; then
     # if no argument given, assume current directory is base of repo
-    tdir=./template
+    tdir=$( readlink -f ./template )
   else
     echo "Unable to find template(s) at: ""$1" 1>&2
     echo 1>&2
@@ -776,7 +780,7 @@ get_template_params() {
 # $@ are param values to use, as pairs (key=val)
 build_tpl() {
   params=$( get_template_params "$1" )
-  cmd_str="cat $1"
+  cmd_str="cat $GG_DIR/$1"
   shift 1
   for kv in "$@"; do
     key="$(echo "$kv" | grep -o '^[^=]*')"

@@ -3,7 +3,7 @@ diff -cr -N -x .git -x '*.patch' /old//ledger/transaction.ledger /new//ledger/tr
 --- /new//ledger/transaction.ledger	2016-12-23 19:03:47.423589205 -0500
 ***************
 *** 1 ****
-! # This file should have any transactions in the current commit.
+! # This file should not have any transactions in the current commit.
 --- 1,5 ----
 ! 
 ! <<< date >>> * <<< user_name >>> Personal Guild Initialization

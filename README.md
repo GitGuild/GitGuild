@@ -51,7 +51,7 @@ The install process created a new 'git' user and group on your system, and addit
 After your reboot, you can create your personal guild, if you haven't done so on a previous occasion.
 
 ```
-make installpersonal
+make personal
 ```
 
 For more details on the output of this full install process, read `./doc/file-structure.md`.

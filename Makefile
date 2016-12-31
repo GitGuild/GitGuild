@@ -93,13 +93,12 @@ else \
 	gitguild clone $(USER_NAME); \
 fi; \
 cd $(GG_DIR)/$(USER_NAME); \
-cp -fR $(GG_DIR)/gitguild/template .; \
-gitguild template build template/clean_gitolite_admin.patch; \
-gitguild template build template/add_member_authors.patch; \
-gitguild template build template/add_general_project_files.patch; \
-gitguild template build template/ledger_basics.patch; \
-gitguild template build template/personal_ledger_init.patch; \
-gitguild template build template/add_GUILD.patch; \
+gitguild template build gitguild/template/clean_gitolite_admin.patch; \
+gitguild template build gitguild/template/add_member_authors.patch; \
+gitguild template build gitguild/template/add_general_project_files.patch; \
+gitguild template build gitguild/template/ledger_basics.patch; \
+gitguild template build gitguild/template/personal_ledger_init.patch; \
+gitguild template build gitguild/template/add_GUILD.patch; \
 export LAST_TRANSACTION=init_personal; \
 gitguild tx finish; \
 git add .gitignore; \
@@ -129,7 +128,7 @@ install:
 	$(call clone_gitguild)
 	sudo ln -sf $(GG_DIR)/gitguild/gitguild $(DESTDIR)/gitguild
 
-installpersonal:
+personal:
 	$(call clone_ident)
 	$(call fork_gitguild)
 
