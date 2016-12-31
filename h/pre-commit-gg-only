@@ -3,5 +3,6 @@
 shellcheck gitguild || exit 1
 shellcheck configure || exit 1
 shellcheck t/*.sh || exit 1
-ledger -f ledger/chain.ledger bal || exit 1
+# capture stdout but print stderr
+_=$(ledger -f ledger/chain.ledger bal) || exit 1
 

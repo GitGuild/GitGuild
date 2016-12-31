@@ -298,9 +298,9 @@ gg_push() {
   if [ "$branch" = "$USER_NAME" ]; then
     for remote in $( git remote ); do
       if [ "$( use_gitolite_push "$remote" )" ]; then
-        gitolite push "$remote" "$branch"
+        gitolite push -q "$remote" "$branch"
       else
-        git push "$remote" "$branch"
+        git push -q "$remote" "$branch"
       fi
     done
     git checkout master
@@ -309,9 +309,9 @@ gg_push() {
     remotes=$( git remote | grep "$USER_NAME" | uniq)
     for remote in $remotes; do
       if [ "$( use_gitolite_push "$remote" )" ]; then
-        gitolite push "$remote" master
+        gitolite push -q "$remote" master
       else
-        git push "$remote" master
+        git push -q "$remote" master
       fi
     done
     git checkout "$USER_NAME"
@@ -321,9 +321,9 @@ gg_push() {
     echo
     if [ "$( echo "$writeob" | grep '[yY].*' )" != "" ]; then
       if [ "$( use_gitolite_push "$USER_NAME" )" ]; then
-        gitolite push "$USER_NAME" "$branch"
+        gitolite push -q "$USER_NAME" "$branch"
       else
-        git push "$USER_NAME" "$branch"
+        git push -q "$USER_NAME" "$branch"
       fi
     fi
   fi
