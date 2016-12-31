@@ -102,8 +102,9 @@ gitguild template build template/personal_ledger_init.patch; \
 gitguild template build template/add_GUILD.patch; \
 export LAST_TRANSACTION=init_personal; \
 gitguild tx finish; \
+git add .gitignore; \
 git add -A; \
-git commit -m "initialize identity guild"; \
+git commit -q -m "initialize identity guild"; \
 gitguild push
 
 clone_gitguild = if [ ! -d "$(GG_DIR)/gitguild" ]; then \

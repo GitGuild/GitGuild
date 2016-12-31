@@ -101,6 +101,14 @@ __main() {
       shift 1
       handle_user_cmd "$@"
       ;;
+    ledger)
+      shift 1
+      get_or_set_all_cfg_values
+      if [ ! $USER_IS_CONFIGURED ]; then
+        exit 1
+      fi
+      handle_ledger_cmd "$@"
+      ;;
     tx)
       shift 1
       get_or_set_all_cfg_values
@@ -152,6 +160,8 @@ __main() {
       cmdl="$( command_usage_line Manage your gitguild user.)\n"
       COMMAND="tx"
       cmdl="$cmdl$( command_usage_line build and check transactions.)\n"
+      COMMAND="ledger"
+      cmdl="$cmdl$( command_usage_line Perform gitguild-related ledger actions. )\n"
       COMMAND="clone"
       cmdl="$cmdl$( subcommand_usage_line \<guild\> \(\<remote\>\) Clone a guild from optional remote. )\n"
       COMMAND="push"
@@ -303,8 +313,8 @@ gg_push() {
         git push -q "$remote" "$branch"
       fi
     done
-    git checkout master
-    git merge "$USER_NAME"
+    git checkout -q master
+    git merge -q "$USER_NAME"
     # only push master to your own gitolite and github
     remotes=$( git remote | grep "$USER_NAME" | uniq)
     for remote in $remotes; do
@@ -314,7 +324,7 @@ gg_push() {
         git push -q "$remote" master
       fi
     done
-    git checkout "$USER_NAME"
+    git checkout -q "$USER_NAME"
   else
     echo "You are not on your own branch. Are you sure you want to push?"
     read writeob
@@ -362,13 +372,15 @@ gg_fork() {
   if [ "$USE_GITOLITE" = "true" ]; then
     # clone locally if necessary
     if [ "$( gitolite list-phy-repos | grep "$1" )" = "" ]; then
-      git clone --bare "$remote" "$GIT_HOME/repositories/$1.git"
+      git clone -q --bare "$remote" "$GIT_HOME/repositories/$1.git"
       gitolite setup
     fi
     # add to gitolite.conf
-    if [ "$( grep \"repo "$1"\" "$GG_DIR"/"$USER_NAME"/conf/gitolite.conf )" = "" ]; then
+    # shellcheck disable=SC2016
+    if [ "$( grep 'repo "$1"' "$GG_DIR"/"$USER_NAME"/conf/gitolite.conf )" = "" ]; then
+      echo "after"
       cd "$GG_DIR/$USER_NAME"
-      git checkout "$USER_NAME"
+      git checkout -q "$USER_NAME"
       build_tx fork_repo "other_guild=$1"
       git add -A
       git commit -m "forked $1"
@@ -381,6 +393,28 @@ gg_fork() {
   # setup remotes
   setup_repo "$1"
   # register?
+}
+
+ledger_help() {
+  cmdl="$( subcommand_usage_line equity Print the equity gitguild style)\n"
+  cmdl="$cmdl$( subcommand_usage_line build Build the ledger for the current commit.)\n"
+  echo "$USAGE_PREAMBLE$cmdl$GENERAL_USAGE$USAGE_SUFFIX"
+}
+
+# $1 subcommand
+handle_ledger_cmd() {
+  case $1 in
+    equity)
+      ledger_equity
+    ;;
+    build)
+      ledger_build
+    ;;
+    *)
+      ledger_help
+      exit
+    ;;
+  esac
 }
 
 #--------------Checks, setup, and installation helpers---------------
@@ -748,7 +782,8 @@ build_tpl() {
     key="$(echo "$kv" | grep -o '^[^=]*')"
     val="$(echo "$kv" | grep -o '[^=]*$')"
     IFS=" "
-    if [ "$(echo "$params" | grep \"^"$key"$\")" = "" ]; then
+    # shellcheck disable=SC2016
+    if [ "$(echo "$params" | grep '^"$key"$')" = "" ]; then
       cmd_str="$cmd_str $( build_param_replace_command "$key" "$val" )"
       params=$(echo "$params" | sed "s,^$key$,,g")
     fi
@@ -759,12 +794,12 @@ build_tpl() {
       cmd_str="$cmd_str $( build_param_replace_command "$p" "$( guess_template_param "$p" HEAD)" )"
     fi
   done
-  cmd_str="$cmd_str | patch -p2"  # TODO what p level to set?
+  cmd_str="$cmd_str | patch -s -p2"  # TODO what p level to set?
   eval "$cmd_str"
 }
 
 list_tx_tags() {
-  grep tag ledger/tag.ledger | grep -o "[^tag ].*$"
+  grep tag ledger/tag.ledger | grep -o "[^ ].*$"
 }
 
 # $1 the name of the tag to list templates for
@@ -781,14 +816,8 @@ list_tx_tag_templates() {
   done < ledger/tag.ledger
 }
 
-ledger_equity() {
-  if [ -f ledger/transaction.ledger ]; then
-    ledger -C -f ledger/chain.ledger equity | sed 's/ Opening Balances/ * Cleared Balances/g'
-    ledger -U -f ledger/chain.ledger equity | sed 's/Opening Balances/Uncleared Balances/g'
-  fi
-}
-
 archive_tx_ledger() {
+  ledger_build
   if [ -f ledger/equity.ledger ]; then
     cp ledger/equity.ledger ledger/equity.parent
     echo "" > ledger/transaction.ledger
@@ -796,6 +825,7 @@ archive_tx_ledger() {
 }
 
 finish_tx() {
+  ledger_build
   sed -i GUILD -e "s,EPOCH_TIME.*,EPOCH_TIME $(date -u +%s),g" \
     -e "s,LAST_TRANSACTION.*,LAST_TRANSACTION $LAST_TRANSACTION,g"
   ledger_equity > ledger/equity.ledger
@@ -805,16 +835,13 @@ finish_tx() {
 # $@ are build tpl params
 build_tx() {
   archive_tx_ledger
-  tpllist=$( list_tx_tag_templates "$1" )
   export LAST_TRANSACTION="$1"
   shift 1
-  for tpl in $tpllist; do
+  #for tpl in "$( list_tx_tag_templates "$LAST_TRANSACTION" )"; do
+  list_tx_tag_templates "$LAST_TRANSACTION" | while read tpl; do
     if [ "$( echo "$tpl" | grep '^patch .*patch$' )" != "" ]; then
       ptpl="$( echo "$tpl" | grep -o '[^ ]*$' )"
       build_tpl "$ptpl" "$@"
-    elif [ "$( echo "$tpl" | grep '^gitguild ' )" != "" ]; then
-      echo evaling tpl "$tpl"
-      eval "$tpl"
     fi
   done
   finish_tx
@@ -917,10 +944,73 @@ use_gitolite_push() {
   fi
 }
 
-
 ### pull
 gg_pull() {
   git pull "$USER_NAME"
+}
+
+#-----------------------ledger section---------------------------
+
+# print the equity splitting confirmed and unconfirmed
+ledger_equity() {
+  if [ -f ledger/transaction.ledger ]; then
+    ledger -C -f ledger/chain.ledger equity | sed 's/ Opening Balances/ * Cleared Balances/g'
+    ledger -U -f ledger/chain.ledger equity | sed 's/Opening Balances/Uncleared Balances/g'
+  fi
+}
+
+# $1 the account prefix (check or assert)
+# $2 an account line from ledger
+generate_checks_from_accounts() {
+  IFS=":"
+  level="0"
+  user=""
+  guild=""
+  branch=""
+  top=""
+  for account in $2; do
+    # shellcheck disable=SC2003
+    level=$(expr "$level" + 1)
+    case $level in
+      1)
+        user="$account"
+        echo "assert user_vote_check(\"$user\")"
+        ;;
+      # skip 2, as no checks to run
+      3)
+        guild="$account"
+        ;;
+      4)
+        branch="$account"
+        echo "assert branch_vote_check(\"$user\", \"$guild\", \"$branch\" ) "
+        ;;
+      5)
+        top="$account"
+        echo "$1 issue_vote_check(\"$user\", \"$guild\", \"$branch\", \"$top\")"
+        echo "$1 user_issue_vote_check(\"$user\", \"$guild\", \"$branch\", \"$top\")"
+        return
+        ;;
+    esac
+  done
+  IFS=$ORIG_IFS
+}
+
+# build local ledger files for running (i.e. generate check file)
+ledger_build() {
+  ACCT_PREFIX="assert"
+  while read line
+  do
+    if [ "$(echo "$line" | grep '^#')" != "" ]; then
+      continue
+    elif [ "$(echo "$line" | grep '\* Cleared Balances')" != "" ]; then
+      ACCT_PREFIX="assert"
+    elif [ "$(echo "$line" | grep ' Uncleared Balances')" != "" ]; then
+      ACCT_PREFIX="check"
+    elif [ "$line" != "" ]; then
+      acline="$(echo "$line" | grep -o '^ *[0-9a-zA-Z:]*' | tr -d ' ')"
+      generate_checks_from_accounts "$ACCT_PREFIX" "$acline"
+    fi
+  done < ledger/equity.ledger | sort | uniq > ledger/generated_check.ledger
 }
 
 __main "$@"

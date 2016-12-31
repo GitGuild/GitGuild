@@ -37,22 +37,20 @@ diff -cr -N -x .git -x '*.patch' /old//ledger/chain.ledger /new//ledger/chain.le
 --- /new//ledger/chain.ledger	2016-12-23 20:15:53.519511733 -0500
 ***************
 *** 0 ****
---- 1,6 ----
+--- 1,7 ----
 + !include commodity.ledger
 + !include account.ledger
 + !include tag.ledger
 + !include equity.parent
 + !include transaction.ledger
 + !include check.ledger
++ !include generated_check.ledger
 diff -cr -N -x .git -x '*.patch' /old//ledger/check.ledger /new//ledger/check.ledger
 *** /old//ledger/check.ledger	1969-12-31 19:00:00.000000000 -0500
 --- /new//ledger/check.ledger	2016-12-23 20:13:47.011513999 -0500
 ***************
 *** 0 ****
---- 1,21 ----
-+ ; TODO lots of assertions and checks go here to ensure proper behavior
-+ ; How can we add loops to make checks more generic?
-+ 
+--- 1,15 ----
 + define GUILD_DEPTH = (-account("<<< guild_name >>>:Depth:<<< guild_name >>>").total)
 + define GUILD_HEIGHT = (account("<<< guild_name >>>:Height:<<< guild_name >>>").total)
 + 
@@ -67,9 +65,6 @@ diff -cr -N -x .git -x '*.patch' /old//ledger/check.ledger /new//ledger/check.le
 + 
 + ; user has not spent more XP than allowed on this issue
 + define user_issue_vote_check(user_name, vote_guild_name, vote_branch, vote_parent) = (account(user_name + ":Height").total >= abs(account(user_name + ":Depth:" + vote_guild_name + ":" + vote_branch + ":" + vote_parent).total))
-+ 
-+ ; Guild itself must have positive height
-+ check user_vote_check("<<< guild_name >>>")
 + 
 diff -cr -N -x .git -x '*.patch' /old//ledger/commodity.ledger /new//ledger/commodity.ledger
 *** /old//ledger/commodity.ledger	1969-12-31 19:00:00.000000000 -0500

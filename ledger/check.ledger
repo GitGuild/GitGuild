@@ -16,12 +16,3 @@ define issue_vote_check(user_name, vote_guild_name, vote_branch, vote_parent) = 
 ; user has not spent more XP than allowed on this issue
 define user_issue_vote_check(user_name, vote_guild_name, vote_branch, vote_parent) = (account(user_name + ":Height").total >= abs(account(user_name + ":Depth:" + vote_guild_name + ":" + vote_branch + ":" + vote_parent).total))
 
-; Guild itself must have positive height
-assert user_vote_check("gitguild")
-
-assert branch_vote_check("isysd", "gitguild", "isysd")
-assert issue_vote_check("isysd", "gitguild", "isysd", "172209b109dd42cc53ce3556b929dde7a21134b6")
-assert branch_vote_check("isysd", "gitguild", "isysd")
-assert user_issue_vote_check("isysd", "gitguild", "isysd", "172209b109dd42cc53ce3556b929dde7a21134b6")
-
-assert user_vote_check("isysd")

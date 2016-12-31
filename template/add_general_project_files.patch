@@ -1,3 +1,10 @@
+diff -cr -N -x .git -x '*.patch' /old//.gitignore /new//.gitignore
+*** /old//.gitignore	2016-12-23 16:00:00.000000000 -0500
+--- /new//.gitignore	2016-12-23 16:31:48.615752000 -0500
+***************
+*** 0 ****
+--- 1 ----
++ ledger/generated_check.ledger
 diff -cr -N -x .git -x '*.patch' /old//CHANGELOG.md /new//CHANGELOG.md
 *** /old//CHANGELOG.md	1969-12-31 19:00:00.000000000 -0500
 --- /new//CHANGELOG.md	2016-12-23 16:31:48.615752000 -0500

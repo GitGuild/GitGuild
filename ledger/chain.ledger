@@ -4,3 +4,4 @@
 !include equity.ledger
 !include transaction.ledger
 !include check.ledger
+!include generated_check.ledger
